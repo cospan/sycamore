@@ -1,0 +1,36 @@
+
+Version: 0.0.2
+	-changed response ID character from 'F' to 'S' because F is a HEX number
+
+Version: 0.0.1
+	-initial version
+
+
+Wishbone Host interface
+
+input handler
+	-decode incomming data
+	-all ASCII format (this is for debug), set size
+
+	-initial proposed format
+
+		'LXXXXXXXXYYYYYYYYZZZZZZZZ'
+
+			X: command
+				size: 32 bits
+			Y: address
+				size: 32 bits
+			Z: data
+				size: 32 bits
+output handler
+	-format outgoing data
+	
+	-initial proposed format
+		'SXXXXXXXXYYYYYYYYZZZZZZZZ'
+			X: status
+				size: 32 bits
+			Y: address
+				size: 32 bits
+			Z: data
+
+

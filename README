@@ -1,0 +1,35 @@
+Project: Sycamore
+
+Goal: Simplifiy both generation of HDL and interactions with FPGAs. HDL is complicated to work with but given that FPGAs are extremely flexible it is the opinion of this author that FPGA will be a large part of computers in the future. This is an attempt to hurry that along.
+
+-Although the goal of this project is to facilitate a commmunication scheme with both Wishbone and AXI4, for simplicity sake, Wishbone will be used first.
+-Verilog will be generated first then later on the project will expand into VHDL
+
+Description: A high level Wishbone/AXI4 HDL generator
+
+-Generate Verilog and VHDL code that can be used to generate FPGA images.
+-The initial effort of this project will be to generate a library that can be used to generate the verilog files
+
+Phase 1: "Miracle Grow" Library
+	-Develop the static code that will not have to be modified in any user customization
+
+Phase 2: "SAP" GUI Interface
+	-Develop a Java project that can be used to generate both wishbone images and Wishbone slave templates
+
+Phase 3: "Roots" udev Linux Interface
+	-Develop generic drivers that can be installed with udev. The host will query the Wishbone master for the peripherals attached to the wishbone interconnect by reading addresss 0, then a udev script will generate either a generic character file, or a generic device. The devices will act as passthrough that will control the peripheral devices.
+		-UART example.
+			-UART wishbone slave is attached to the wishbone interconnect and a UART define is put into the "ROM" (address 0x00)
+			-When the host queries the "ROM" and finds a UART device is attached to the wishbone bus it generates a ttySx device in the /dev directory
+				-the ttySx device reads all I/O and all ioctl and passes them to the wishbone UART.
+			-It is the job of the peripheral writer to handle all I/O and all ioctl commands
+
+-Roadmap:
+	-Generate a ASCII UART input handler that will enable control of the Wishbone/AXI4 master through the command line
+	-Write a "Loopback" that will return all commands as status's to the host computer in order to exercise the UART controller
+	-Write a Wishbone master that will be controlled through a generic I/O handler
+	-Write a Wishbone interconnect generator that will allow users to generate an interconnect that can connect up with the master and an arbitrary number of 
+	wishbone slaves
+		-The interconnect will generate a "ROM" at address 0x00 to allow users to query 	
+-Credit:
+	-Give credit to the uart module we used from OpenCores.org

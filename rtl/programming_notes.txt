@@ -1,0 +1,4 @@
+
+
+-Everthing that is initiates an action from another core (input to that core) is _en
+-Everthing that is an output of a core to indicate that it is ready (output from that core) is _ready
