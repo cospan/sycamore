@@ -1,6 +1,16 @@
-uart_input_handler.v
-uart_input_handler_tb.v
 
-#uart_output_handler.v
+#uncomment to test uart input handler
+#../rtl/uart_input_handler.v
+#uart_input_handler_tb.v
+
+#uncomment to test uart output handler
+#../rtl/uart_output_handler.v
 #uart_output_handler_tb.v
 
+
+#uncomment to test uart input/output handler
+../rtl/uart.v
+../rtl/uart_input_handler.v
+../rtl/uart_output_handler.v
+../rtl/uart_io_handler.v
+#uart_io_handler.v
