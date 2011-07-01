@@ -10,53 +10,59 @@
  */
 
 module faux_uart(
-    input clk, // The master clock for this module
-    input rst, // Synchronous reset.
-    input rx, // Incoming serial line
-    output tx, // Outgoing serial line
-    input transmit, // Signal to transmit
-    input [7:0] tx_byte, // Byte to transmit
-    output received, // Indicated that a byte has been received.
-    output [7:0] rx_byte, // Byte received
-    output is_receiving, // Low when receive line is idle.
-    output is_transmitting, // Low when transmit line is idle.
-    output recv_error // Indicates error in receiving packet.
+    clk, 					// The master clock for this module
+    rst, 					// Synchronous reset.
+    rx, 					// Incoming serial line
+    tx, 					// Outgoing serial line
+    transmit, 				// Signal to transmit
+    tx_byte, 				// Byte to transmit
+    received,				// Indicated that a byte has been received.
+    rx_byte, 				// Byte received
+    is_receiving, 			// Low when receive line is idle.
+    is_transmitting,		// Low when transmit line is idle.
+    recv_error,				// Indicates error in receiving packet.
     );
+
+input clk;
+input rst;
+input rx;
+output reg tx;
+input transmit;
+input [7:0] tx_byte;
+output reg received;
+output reg [7:0] rx_byte;
+output reg is_receiving;
+output reg is_transmitting;
+output reg recv_error;
 
 parameter INITIAL_COMMAND		= 32'h00000001;
 parameter INITIAL_ADDRESS		= 32'h01234567;
 parameter INITIAL_DATA			= 32'h89ABCDEF;
 
+parameter CHAR_0 				= 8'h30;
+parameter CHAR_L 				= 8'h4C;
+parameter CHAR_HEX_OFFSET 		= 8'h37;
+parameter CHAR_A				= 8'h41;
+parameter CHAR_F				= 8'h46;
+
 parameter FAUX_UART_DELAY		= 8'h0F;
 
 //input/output signals
-input 		clk;
-input 		rst;
-input 		rx;
-output 		tx 					= 0;
-input 		transmit;
-input 		[7:0] tx_byte;
-output reg 	received 			= 0;
-output reg 	[7:0] rx_byte		= 8'h0;
-output reg 	is_receiving 		= 0;
-output reg 	is_transmitting 	= 0;
-output reg 	recv_error 			= 0;
-
-parameter 	CHAR_S				= 	8'h53;
+parameter 	CHAR_S					= 	8'h53;
 
 //faux data
-reg	[31:0]	r_command_in		= INITIAL_COMMAND;
-reg [31:0]	r_address_in		= INITIAL_ADDRESS;
-reg [31:0] 	r_data_in			= INITIAL_DATA;
+reg	[31:0]	r_command_in			= INITIAL_COMMAND;
+reg [31:0]	r_address_in			= INITIAL_ADDRESS;
+reg [31:0] 	r_data_in				= INITIAL_DATA;
 
 //states
-parameter	RX_IDLE				= 8'h0;
-parameter	RX_SEND_ID			= 8'h1;
-parameter	RX_SEND_COMMAND		= 8'h2;
-parameter	RX_SEND_ADDRESS		= 8'h3;
-parameter	RX_SEND_DATA		= 8'h4;
+parameter	RX_IDLE					= 8'h0;
+parameter	RX_SEND_ID				= 8'h1;
+parameter	RX_SEND_COMMAND			= 8'h2;
+parameter	RX_SEND_ADDRESS			= 8'h3;
+parameter	RX_SEND_DATA			= 8'h4;
 
-reg [7:0]	rx_state			= RX_IDLE;
+reg [7:0]	rx_state				= RX_IDLE;
 
 parameter	TX_IDLE					= 8'h0;
 parameter	TX_READ_ID				= 8'h1;
@@ -87,25 +93,98 @@ reg [7:0]	tx_byte_count			= 0;
 //receive state machine
 always @ (posedge clk) begin
 	en_rx_delay				<= 0;
+	received				<= 0;
 	if (rst) begin
-		rx_byte				<= 8'0;
-		received			<= 0;
+		rx_byte				<= 8'h0;
 		is_receiving		<= 0;
 		recv_error			<= 0;
 		rx_state			<= RX_IDLE;
 	end
 	else begin
 		//real code
-		case (rx_state) begin
+		case (rx_state)
 			RX_IDLE: begin
+				r_command_in			<= INITIAL_COMMAND;
+				r_address_in			<= INITIAL_ADDRESS;
+				r_data_in				<= INITIAL_DATA;
+				if (rx) begin
+					rx_state			<= RX_SEND_ID;
+					en_rx_delay			<= 1;
+					is_receiving		<= 1;
+				end
 			end
 			RX_SEND_ID: begin 
+				if (rx_delay == 0) begin
+					received			<= 1;
+					rx_byte				<= CHAR_L;
+					is_receiving		<= 1;
+					en_rx_delay			<= 1;
+					rx_byte_count		<= RX_TOTAL_BYTE_COUNT;
+					received			<= 1;
+				end
 			end
 			RX_SEND_COMMAND: begin
+				if (rx_byte_count > 0) begin
+					if (rx_delay == 0) begin
+						is_receiving	<= 0;
+						received		<= 1;
+						if (r_command_in[31:28] > 9) begin
+							rx_byte 	<= r_command_in[31:28] + CHAR_HEX_OFFSET;
+						end
+						else begin
+							rx_byte 	<= r_command_in[31:28] + CHAR_0;
+						end
+						r_command_in 	<= r_command_in[28:0] + 4'h0;
+						en_rx_delay		<= 1;
+					end
+				end
+				else begin
+					received			<= 1;
+					rx_byte_count		<= RX_TOTAL_BYTE_COUNT;
+					rx_state			<= RX_SEND_ADDRESS;
+				end
 			end
 			RX_SEND_ADDRESS: begin
+				if (rx_byte_count > 0) begin
+					if (rx_delay == 0) begin
+						is_receiving	<= 0;
+						received		<= 1;
+						if (r_address_in[31:28] > 9) begin
+							rx_byte 	<= r_address_in[31:28] + CHAR_HEX_OFFSET;
+						end
+						else begin
+							rx_byte 	<= r_address_in[31:28] + CHAR_0;
+						end
+						r_command_in 	<= r_address_in[28:0] + 4'h0;
+						en_rx_delay		<= 1;
+					end
+				end
+				else begin
+					received			<= 1;
+					rx_byte_count		<= RX_TOTAL_BYTE_COUNT;
+					rx_state			<= RX_SEND_DATA;
+				end
 			end
 			RX_SEND_DATA:	begin
+				if (rx_byte_count > 0) begin
+					if (rx_delay == 0) begin
+						is_receiving	<= 0;
+						received		<= 1;
+						if (r_data_in[31:28] > 9) begin
+							rx_byte 	<= r_data_in[31:28] + CHAR_HEX_OFFSET;
+						end
+						else begin
+							rx_byte 	<= r_data_in[31:28] + CHAR_0;
+						end
+						r_data_in	 	<= r_data_in[28:0] + 4'h0;
+						en_rx_delay		<= 1;
+					end
+				end
+				else begin
+					received			<= 1;
+					rx_byte_count		<= RX_TOTAL_BYTE_COUNT;
+					rx_state			<= RX_IDLE;
+				end
 			end
 			default: begin
 				rx_state	<= RX_IDLE;
@@ -119,6 +198,7 @@ end
 //transmit state machine
 always @ (posedge clk) begin
 	en_tx_delay				<= 0;
+	tx						<= 0;
 	if (rst) begin
 		tx 					<= 0;
 		is_transmitting		<= 0;
@@ -126,13 +206,13 @@ always @ (posedge clk) begin
 	end
 	else begin
 		//check if the user is trying to send something
-		case (tx_state) begin
+		case (tx_state)
 			TX_IDLE: begin
 				if (transmit) begin
 					is_transmitting	<=	1;
 					tx_state		<=  TX_READ_ID;
 					en_tx_delay		<= 	1;
-				end;
+				end
 				else begin
 					is_transmitting	<= 0;
 				end
@@ -156,15 +236,82 @@ always @ (posedge clk) begin
 				if (tx_byte_count > 0) begin
 					if (tx_delay == 0) begin
 						//check to see if the user has transmitted a new byte
+						if (transmit) begin
+							//user transmitted new byte
+							tx_byte_count 	<= tx_byte_count - 1;
+							//verify the byte is in the correct format
+//if the character is not a HEX number than quit
+							if ((tx_byte < CHAR_0) || (tx_byte > (CHAR_0 + 10) && tx_byte < CHAR_A) || tx_byte > CHAR_F)begin
+								//out of range
+								tx_state <= TX_IDLE;
+								tx_byte_count <= 0;
+							end
+							else begin
+								en_tx_delay		<=	1;
+							end
+						end
 					end
 				end
+				//finished with the 8 bytes
 				else begin
+					tx_byte_count	<= TX_TOTAL_BYTE_COUNT;  
+					tx_state 		<= TX_READ_ADDRESS;
+				end
+			end
+			TX_READ_ADDRESS: begin
+				if (tx_byte_count > 0) begin
+					if (tx_delay == 0) begin
+						//check to see if the user has transmitted a new byte
+						if (transmit) begin
+							//user transmitted new byte
+							tx_byte_count 	<= tx_byte_count - 1;
+							//verify the byte is in the correct format
+//if the character is not a HEX number than quit
+							if ((tx_byte < CHAR_0) || (tx_byte > (CHAR_0 + 10) && tx_byte < CHAR_A) || tx_byte > CHAR_F)begin
+								//out of range
+								tx_state <= TX_IDLE;
+								tx_byte_count <= 0;
+							end
+							else begin
+								en_tx_delay		<=	1;
+							end
+						end
+					end
+				end
+				//finished with the 8 bytes
+				else begin
+					tx_byte_count	<= TX_TOTAL_BYTE_COUNT;  
+					tx_state 		<= TX_READ_DATA;
 				end
 
 			end
-			TX_READ_ADDRESS: begin
-			end
 			TX_READ_DATA: begin
+				if (tx_byte_count > 0) begin
+					if (tx_delay == 0) begin
+						//check to see if the user has transmitted a new byte
+						if (transmit) begin
+							//user transmitted new byte
+							tx_byte_count 	<= tx_byte_count - 1;
+							//verify the byte is in the correct format
+//if the character is not a HEX number than quit
+							if ((tx_byte < CHAR_0) || (tx_byte > (CHAR_0 + 10) && tx_byte < CHAR_A) || tx_byte > CHAR_F)begin
+								//out of range
+								tx_state <= TX_IDLE;
+								tx_byte_count <= 0;
+							end
+							else begin
+								en_tx_delay		<=	1;
+							end
+						end
+					end
+				end
+				//finished with the 8 bytes
+				else begin
+					tx_byte_count	<= TX_TOTAL_BYTE_COUNT;  
+					tx_state 		<= TX_IDLE;
+					tx				<= 1;
+				end
+
 			end
 			default: begin
 				tx_state	<= TX_IDLE;
