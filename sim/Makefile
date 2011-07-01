@@ -1,5 +1,7 @@
 all:
 	iverilog -o design -cfile_list.txt
+faux_uart:
+	iverilog -o design -cfaux/uart/file_list.txt
 clean:
 	rm design
 	rm *.vcd

@@ -1,0 +1,5 @@
+../rtl/uart.v
+../rtl/uart_input_handler.v
+../rtl/uart_output_handler.v
+../rtl/uart_io_handler.v
+faux/uart/faux_uart.v
