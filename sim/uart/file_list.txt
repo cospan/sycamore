@@ -1,0 +1,3 @@
+../rtl/uart_input_handler.v
+../rtl/uart_output_handler.v
+uart/uart_top_tb.v
