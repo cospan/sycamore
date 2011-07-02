@@ -4,16 +4,16 @@
  * used for testing out the uart_io handler independent of a FPGA
  *
  * HOW TO USE
- *	send a status out
- *		-if rx = 1 then faux_uart will generate a good incomming signal
- *		-if user sends a good output then tx will toggle
+ * reads charaters from a input characters and sens them to the io handler
  */
 
 module faux_uart(
     clk, 					// The master clock for this module
     rst, 					// Synchronous reset.
-    rx, 					// Incoming serial line
-    tx, 					// Outgoing serial line
+    rx_en, 					// Incoming serial line
+	sim_in_byte				// simulation input byte
+    tx_ready, 				// Outgoing serial line
+	sim_out_byte,			// simulation output byte
     transmit, 				// Signal to transmit
     tx_byte, 				// Byte to transmit
     received,				// Indicated that a byte has been received.
@@ -25,8 +25,10 @@ module faux_uart(
 
 input clk;
 input rst;
-input rx;
-output reg tx;
+input rx_en;
+input [7:0]sim_in_byte;
+output reg [7:0]sim_out_byte;
+output reg tx_ready;
 input transmit;
 input [7:0] tx_byte;
 output reg received;
@@ -89,7 +91,6 @@ reg [7:0]	tx_byte_count			= 0;
 
 //BLOCKS
 
-
 //receive state machine
 always @ (posedge clk) begin
 	en_rx_delay				<= 0;
@@ -107,35 +108,23 @@ always @ (posedge clk) begin
 				r_command_in			<= INITIAL_COMMAND;
 				r_address_in			<= INITIAL_ADDRESS;
 				r_data_in				<= INITIAL_DATA;
-				if (rx) begin
+				if (rx_en) begin
+					rx_byte				<= sim_in_bye;
 					rx_state			<= RX_SEND_ID;
-					en_rx_delay			<= 1;
 					is_receiving		<= 1;
 				end
 			end
 			RX_SEND_ID: begin 
-				if (rx_delay == 0) begin
-					received			<= 1;
-					rx_byte				<= CHAR_L;
-					is_receiving		<= 1;
-					en_rx_delay			<= 1;
-					rx_byte_count		<= RX_TOTAL_BYTE_COUNT;
-					received			<= 1;
-				end
+				rx_byte_count		<= RX_TOTAL_BYTE_COUNT;
+				received			<= 1;
+				rx_state			<= RX_SEND_COMMAND;
 			end
 			RX_SEND_COMMAND: begin
 				if (rx_byte_count > 0) begin
-					if (rx_delay == 0) begin
-						is_receiving	<= 0;
+					if (rx_en) begin
 						received		<= 1;
-						if (r_command_in[31:28] > 9) begin
-							rx_byte 	<= r_command_in[31:28] + CHAR_HEX_OFFSET;
-						end
-						else begin
-							rx_byte 	<= r_command_in[31:28] + CHAR_0;
-						end
-						r_command_in 	<= r_command_in[28:0] + 4'h0;
-						en_rx_delay		<= 1;
+						rx_byte			<= sim_in_byte;
+						rx_byte_count 	<= rx_byte_count - 1;
 					end
 				end
 				else begin
@@ -146,17 +135,10 @@ always @ (posedge clk) begin
 			end
 			RX_SEND_ADDRESS: begin
 				if (rx_byte_count > 0) begin
-					if (rx_delay == 0) begin
-						is_receiving	<= 0;
+					if (rx_en) begin
 						received		<= 1;
-						if (r_address_in[31:28] > 9) begin
-							rx_byte 	<= r_address_in[31:28] + CHAR_HEX_OFFSET;
-						end
-						else begin
-							rx_byte 	<= r_address_in[31:28] + CHAR_0;
-						end
-						r_command_in 	<= r_address_in[28:0] + 4'h0;
-						en_rx_delay		<= 1;
+						rx_byte			<= sim_in_byte;
+						rx_byte_count 	<= rx_byte_count - 1;
 					end
 				end
 				else begin
@@ -167,17 +149,10 @@ always @ (posedge clk) begin
 			end
 			RX_SEND_DATA:	begin
 				if (rx_byte_count > 0) begin
-					if (rx_delay == 0) begin
-						is_receiving	<= 0;
+					if (rx_en) begin
 						received		<= 1;
-						if (r_data_in[31:28] > 9) begin
-							rx_byte 	<= r_data_in[31:28] + CHAR_HEX_OFFSET;
-						end
-						else begin
-							rx_byte 	<= r_data_in[31:28] + CHAR_0;
-						end
-						r_data_in	 	<= r_data_in[28:0] + 4'h0;
-						en_rx_delay		<= 1;
+						rx_byte			<= sim_in_byte;
+						rx_byte_count 	<= rx_byte_count - 1;
 					end
 				end
 				else begin
