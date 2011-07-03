@@ -30,12 +30,19 @@ module wishbone_master (
 	output reg [31:0]	out_address		= 32'h0;
 	output reg [31:0]	out_data		= 32'h0;
 	
+	//parameters
+	parameter 			COMMAND_PING	= 32'h00000000;
+	parameter			COMMAND_WRITE	= 32'h00000001;
+	parameter			COMMAND_READ	= 32'h00000002;
+
+	parameter			S_PING_RESP		= 32'h00001EAF;
 	//private registers
 
 	reg [31:0]			local_command	= 32'h0;
 	reg [31:0]			local_address	= 32'h0;
 	reg [31:0]			local_data		= 32'h0;
 	//private wires
+	
 
 	//private assigns
 
@@ -60,16 +67,24 @@ module wishbone_master (
 			local_address	<= in_address;
 			local_data		<= in_data;
 
-			//temporarily if in_command bit 0 == 1 then reflect back
-			if (in_command & 1 != 0)begin
-				out_status	<= in_command;
-				out_address <= in_address;
-				out_data	<= in_data;
-				//out_status	<= 32'hAAAAAAAA;
-				//out_address <= 32'hBBBBBBBB;
-				//out_data	<= 32'hCCCCCCCC;
-				out_en		<= 1;
-			end
+
+			case (in_command)
+
+				COMMAND_PING: begin
+					out_status	<= S_PING_RESP;
+					out_address	<= 32'h00000000;
+					out_data	<= 32'h00000000;
+					out_en		<= 1;
+				end
+				COMMAND_WRITE:	begin
+			
+				end
+				COMMAND_READ: 	begin
+				end
+				default: 		begin
+				end
+			endcase
+
 		end
 		//handle output
 	end
