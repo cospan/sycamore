@@ -16,7 +16,7 @@ Phase 1: "Miracle Grow" Library
 Phase 2: "SAP" GUI Interface
 	-Develop a Java project that can be used to generate both wishbone images and Wishbone slave templates
 
-Phase 3: "Roots" udev Linux Interface
+Phase 3: "Xylem" udev Linux Interface
 	-Develop generic drivers that can be installed with udev. The host will query the Wishbone master for the peripherals attached to the wishbone interconnect by reading addresss 0, then a udev script will generate either a generic character file, or a generic device. The devices will act as passthrough that will control the peripheral devices.
 		-UART example.
 			-UART wishbone slave is attached to the wishbone interconnect and a UART define is put into the "ROM" (address 0x00)

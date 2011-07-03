@@ -1,0 +1,24 @@
+Device Rom Table (DRT)
+
+A wishbone slave that maps all the devices in the interconnect.
+
+-This slave should be located at address 0 on the wishbone interconnect
+-The controlling software should query this ROM in order to determine the devices and where they are located on the wishbone bus
+-Initially designed for 32 bit words
+
+Organization of the ROM 32 bit address location
+
+0x00							DRT_ID (DRT ID), DRT_VERSION (version number)
+0x01							DRT_NUM_DEVICES (Number of devices attached)
+0x02							RFU
+0x03							RFU
+
+0x04:DEV_OFFSET	beginning of device offset (DRT_DEV_OFFSET)
+
+DRT_DEV_OFFSET[x * 4] + 0:		Device ID (flag to indicate this is a standard device or not)
+DRT_DEV_OFFSET[x * 4] + 1:		FLAGS
+DRT_DEV_OFFSET[x * 4] + 2:		Offset from 0x00 	(NEED A NAME)
+DRT_DEV_OFFSET[x * 4] + 3:		Size of address space for device (NEED A NAME)
+
+
+
