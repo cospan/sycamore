@@ -1,3 +1,5 @@
+Version: 0.0.3
+	-added initial master mode commands, its still under debate whether things should be flags, or numeric representation
 
 Version: 0.0.2
 	-changed response ID character from 'F' to 'S' because F is a HEX number
@@ -7,6 +9,38 @@ Version: 0.0.1
 
 
 Wishbone Host interface
+
+Master Commands
+	-Ping the host
+		-Command:
+			C: 0x00000000
+			A: 0xXXXXXXXX
+			D: 0xXXXXXXXX
+		-Response:
+			S: 0xFFFFFFFF
+			A: 0x00000000
+			D: 0x00001EAF
+				
+	-Write the data to the memory location provided
+		-Command:
+			C: 0x00000001
+			A: 0x????????
+			D: 0x????????
+		-Response
+			S: 0xFFFFFFFE
+			A: 0xXXXXXXXX
+			D: 0xXXXXXXXX
+
+	-Read the data from the memory location provided
+		-Command:
+			C: 0x00000002
+			A: 0x????????
+			D: 0xXXXXXXXX
+		-Response:
+			S: 0xFFFFFFFD
+			A: 0x????????
+			D: 0x????????
+
 
 input handler
 	-decode incomming data

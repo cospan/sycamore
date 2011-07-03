@@ -1,3 +1,4 @@
-../rtl/uart_input_handler.v
-../rtl/uart_output_handler.v
+../rtl/wishbone/master_handler/uart/uart_input_handler.v
+../rtl/wishbone/master_handler/uart/uart_output_handler.v
+../rtl/wishbone/master/wishbone_master.v
 uart/uart_top_tb.v
