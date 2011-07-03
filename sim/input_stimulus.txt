@@ -1,2 +1,0 @@
-#send a write command
-L00000001FEDCBA9876543210
