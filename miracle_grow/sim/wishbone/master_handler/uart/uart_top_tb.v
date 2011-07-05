@@ -91,7 +91,7 @@ module uart_top_tb;
 		$dumpvars (0, uart_top_tb);
 		$dumpvars (0, uih);
 		$dumpvars (0, uoh);
-		fd_in = $fopen ("uart/uart_input_data.txt", "r");
+		fd_in = $fopen ("uart_input_data.txt", "r");
 		//fd_out = $fopen ("uart/uart_output_data.txt", "r");
 
 			rst 					<= 0;	
