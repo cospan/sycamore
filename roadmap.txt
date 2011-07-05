@@ -1,0 +1,39 @@
+Version 1.0
+	-miracle_grow
+		-Master Wishbone Controller Working
+		-Master Interfaces
+			-UART
+			-sim
+			-FSMC
+			-PCIE
+		-Interconnect Working
+		-2 Slaves
+			-SIM slave
+			-GPIO slave
+	-sap
+		-SAP library written
+			-generate interconnect
+			-generate ROM
+			-generate TOP
+		-SAP command line
+		-GUI working
+	-xylem
+		-uart master driver working
+		-udev script working
+		-devices
+			-char device
+			-UART device
+			-SPI device
+			-I2C device
+			-block devices
+
+Version 2.0
+	-miracle_grow
+		-port to VHDL
+	-sap
+		-generate a wishbone slave for user to modify
+		-constraints GUI
+			-allow the user to connect the constraint pins to the "top" project
+		-online core browser
+	-xylem
+		-Integration with custom ubuntu apt-get server
