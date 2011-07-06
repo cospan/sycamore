@@ -69,8 +69,8 @@ module wishbone_master_tb (
 );
 
 //test signals
-reg			clk	<= 0;
-reg			rst <= 0;
+reg			clk	= 0;
+reg			rst = 0;
 wire		master_ready;
 reg 		in_ready;
 reg [31:0]	in_command;
@@ -137,9 +137,9 @@ initial begin
 
 	$dumpfile ("design.vcd");
 	$dumpvars (0, wishbone_master_tb);
-	$dumpvars (0, wishbone_master);
-	fd_in = fopen("master_input_test_data.txt", "r");
-	fd_out = %fopen("master_output_test_data.txt", "w");
+	$dumpvars (0, wm);
+	fd_in = $fopen("master_input_test_data.txt", "r");
+	fd_out = $fopen("master_output_test_data.txt", "w");
 
 		rst				<= 0;
 	#5
@@ -152,8 +152,8 @@ initial begin
 		in_data			<= 32'h0;
 		out_ready		<= 32'h0;
 		//clear wishbone signals
-		wb_dat_o		<= 32'h0;
-		wb_ack_o		<= 0;
+		wb_dat_i		<= 32'h0;
+		wb_ack_i		<= 0;
 	#10
 		rst				<= 1;
 		out_ready 		<= 1;
@@ -167,8 +167,8 @@ initial begin
 			$fscanf ("%d:%d:%d", in_command, in_address, in_data);
 			$display ("read: C:A:D = %h:%h:%h", in_command, in_address, in_data);
 			#1
-			case (in_command) begin
-				COMMAND_WSTREAM_C: begin
+			case (in_command)
+				`COMMAND_WSTREAM_C: begin
 					/*the data will hold the count of the number of bytes 
 					I'll have to send to the host, so I don't have to keep any
 					local arrays of integers I'll just send them to the host when I 
@@ -199,7 +199,7 @@ initial begin
 						end
 					end
 
-					$fprintf (fd_out, "%h:%h:%h response: %h:%h:%h", in_command, in_address, in_data, out_command, out_address, out_data);
+					$fprintf (fd_out, "%h:%h:%h response: %h:%h:%h", in_command, in_address, in_data, out_status, out_address, out_data);
 					while (timeout_count > 0) begin
 						if (out_en) begin
 							//got a response before timeout
@@ -219,7 +219,7 @@ initial begin
 				
 					
 				end
-				COMMAND_WSTREAM: begin
+				`COMMAND_WSTREAM: begin
 					//same as prev
 					data_count		= in_data;
 					in_ready 		<= 1;
@@ -244,7 +244,7 @@ initial begin
 						end
 					end
 
-					$fprintf (fd_out, "%h:%h:%h response: %h:%h:%h", in_command, in_address, in_data, out_command, out_address, out_data);
+					$fprintf (fd_out, "%h:%h:%h response: %h:%h:%h", in_command, in_address, in_data, out_status, out_address, out_data);
 					while (timeout_count > 0) begin
 						if (out_en) begin
 							//got a response before timeout
@@ -263,7 +263,7 @@ initial begin
 					end
 
 				end
-				COMMAND_RSTREAM_C: begin
+				`COMMAND_RSTREAM_C: begin
 					//read data from the master in_data (the count) number of tiems
 					data_count		= in_data;
 					in_ready 		<= 1;
@@ -275,7 +275,7 @@ initial begin
 					while (data_count > 0 && timeout_count > 0) begin
 						if (out_en) begin
 							data_count = data_count - 1;	
-							$display *"read %h", out_data);
+							$display ("read %h", out_data);
 							$fprintf (fd_out, ":%h", out_data);
 							timeout_count = `TIMEOUT_COUNT;
 						end
@@ -289,7 +289,7 @@ initial begin
 					end
 
 				end
-				COMMAND_RSTREAM: begin
+				`COMMAND_RSTREAM: begin
 					//same as prev
 				end
 				default: begin
@@ -299,7 +299,7 @@ initial begin
 					#1
 					in_ready		<= 0;
 					out_ready 		<= 1;
-					$fprintf (fd_out, "%h:%h:%h response: %h:%h:%h", in_command, in_address, in_data, out_command, out_address, out_data);
+					$fprintf (fd_out, "%h:%h:%h response: %h:%h:%h", in_command, in_address, in_data, out_status, out_address, out_data);
 					while (timeout_count > 0) begin
 						if (out_en) begin
 							//got a response before timeout
@@ -317,9 +317,11 @@ initial begin
 						$display ("Wishbone master timed out while executing command: %h", in_command);
 					end
 				end
-			end
+			endcase
 		end
 	end
+	$fclose (fd_in);
+	$fclose (fd_out);
 end
 
 endmodule
