@@ -1,6 +1,6 @@
 Version 1.0
 	-miracle_grow
-		-Master Wishbone Controller Working
+		-Master Wishbone bus
 		-Master Interfaces
 			-UART
 			-sim

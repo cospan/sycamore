@@ -25,7 +25,7 @@ lappend	signals "wishbone_master_tb.rst"
 lappend signals "wishbone_master_tb.in_command"
 lappend signals "wishbone_master_tb.in_ready"
 lappend signals "wishbone_master_tb.out_en"
-
+lappend signals "wishbone_master_tb.master_ready"
 
 set num_added [gtkwave::addSignalsFromList $signals]
 

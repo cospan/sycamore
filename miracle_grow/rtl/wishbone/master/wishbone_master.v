@@ -86,6 +86,10 @@ module wishbone_master (
 		
 		out_en		<= 0;
 
+//master ready should be used as a flow control, for now its being reset every
+//clock cycle, but in the future this should be used to regulate data comming in so that the master can send data to the slaves without overflowing any buffers
+		master_ready	<= 1;
+
 		if (rst) begin
 			out_status		<= 32'h0;
 			out_address 	<= 32'h0;
@@ -94,6 +98,7 @@ module wishbone_master (
 			local_address	<= 32'h0;
 			local_data		<= 32'h0;
 			master_flags	<= 32'h0;
+			master_ready	<= 1;
 		end
 
 
@@ -107,34 +112,52 @@ module wishbone_master (
 			case (in_command)
 
 				`COMMAND_PING: begin
+					$display("ping");
 					out_status	<= ~in_command;
 					out_address	<= 32'h00000000;
 					out_data	<= S_PING_RESP;
 					out_en		<= 1;
 				end
 				`COMMAND_WRITE:	begin
+					$display ("write");
 					out_status	<= ~in_command;
+					out_en		<= 1;
 				end
 				`COMMAND_READ: 	begin
+					$display ("read");
 					out_status	<= ~in_command;
+					out_en		<= 1;
 				end
 				`COMMAND_WSTREAM_C: begin
+					$display ("write stream consective");
 					out_status	<= ~in_command;
+					out_en		<= 1;
+					master_ready	<= 0;
 				end
 				`COMMAND_WSTREAM: begin
+					$display ("write stream");
 					out_status	<= ~in_command;
+					out_en		<= 1;
 				end
 				`COMMAND_RSTREAM_C: begin
+					$display ("read stream consecutive");
 					out_status	<= ~in_command;
+					out_en		<= 1;
 				end
 				`COMMAND_RSTREAM: begin
+					$display ("read stream");
 					out_status	<= ~in_command;
+					out_en		<= 1;
 				end
 				`COMMAND_RW_FLAGS: begin
+					$display ("rw flags");
 					out_status	<= ~in_command;
+					out_en		<= 1;
 				end
 				`COMMAND_INTERRUPT: begin
+					$display ("interrupts");
 					out_status	<= ~in_command;
+					out_en		<= 1;
 				end
 				default: 		begin
 				end
