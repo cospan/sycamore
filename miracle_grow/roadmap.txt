@@ -1,0 +1,28 @@
+Version 1.0
+	-Master:
+		-read
+		-write
+		-excercise all commands, confirm status
+	-Master Interface: Sim
+	-2 Slaves
+		-sim slave
+		-GPIO slave
+	-Interconnect
+	-Master Wishbone bus
+		-Verification:
+			-Simulation Top
+				-sim master handler
+					-write
+					-read
+			-wishbone master
+				-exercise all commands and recieve all expected status
+				-communication with slave
+					-sim slave
+					-GPIO slave
+
+	-Master Interfaces
+		-UART: Hard verification
+		-sim: soft
+		-FSMC
+		-PCIE
+
