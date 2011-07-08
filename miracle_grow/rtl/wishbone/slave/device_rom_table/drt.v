@@ -2,13 +2,13 @@
 
 
 //!!replace this with the number of devices in the DRT
-`define NUM_OF_DEVICES 		1
+`define DRT_NUM_OF_DEVICES 		1
 //!!end
 `define DRT_SIZE_OF_HEADER 	4
 `define DRT_SIZE_OF_DEV		4
 
 
-module device_rom_table (
+module drt (
 	clk,
 	rst,
 
@@ -16,11 +16,11 @@ module device_rom_table (
 	wbs_cyc_i,
 	wbs_dat_i,
 	wbs_stb_i,
-	wbs_ack_o;
-	wbs_dat_i;
+	wbs_ack_o,
+	wbs_dat_i,
 	wbs_dat_o,
-	wbs_adr_i;
-	wbs_int_o;
+	wbs_adr_i,
+	wbs_int_o,
 );
 
 input 					clk;
@@ -56,23 +56,24 @@ parameter DEV_MEM_OFF_OFF	= 4'h2;
 parameter DEV_SIZE_OFF		= 4'h3;
 
 //registers
-reg [`DRT_SIZE_OF_HEADER + (`NUM_OF_DEVICE * `DRT_SIZE_OF_DEV) : 0][31:0] drt;
+//parameter DRT_SIZE			= 31 * `DRT_SIZE_OF_HEADER + (`DRT_NUM_OF_DEVICES * `DRT_SIZE_OF_DEV);
+//reg [DRT_SIZE:0][31:0] drt;
 
 
 //blocks
 always @ (posedge clk) begin
 	//load everything in the ROM
 	if (rst) begin
-		drt[0][31:0]	<= {DRT_ID, DRT_VERSION};
-		drt[1][31:0]	<= 32'h`NUM_OF_DEVICDS;
-		drt[2][31:0]	<= DRT_RFU_1;
-		drt[3][31:0]	<= DRT_RFU_2;
+//		drt[0][31:0]	<= {DRT_ID, DRT_VERSION};
+//		drt[1][31:0]	<= 32'h`DRT_NUM_OF_DEVICES;
+//		drt[2][31:0]	<= DRT_RFU_1;
+//		drt[3][31:0]	<= DRT_RFU_2;
 
 		//!!populate the list
-		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 0][31:0]	<= 32'h01234567	//device 0 ID
-		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 1][31:0]	<= 32'h76543210 //device 0 info/flags
-		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 2][31:0]	<= 32'h0000000F	//device 0 offset from 0x00
-		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 3][31:0]	<= 32'h0000000F	//device 0 size
+//		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 0][31:0]	<= 32'h01234567	//device 0 ID
+//		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 1][31:0]	<= 32'h76543210 //device 0 info/flags
+//		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 2][31:0]	<= 32'h0000000F	//device 0 offset from 0x00
+//		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 3][31:0]	<= 32'h0000000F	//device 0 size
 		//!!end populate list
 	end
 end
@@ -103,7 +104,7 @@ always @ (posedge clk) begin
 
 		else begin 
 			//read request
-			wbs_dat_o	<= drt[wbs_adr_i - `DRT_SIZE_OF_HEADER][31:0];	
+			//wbs_dat_o	<= drt[wbs_adr_i - `DRT_SIZE_OF_HEADER][31:0];	
 			wbs_ack_o	<= 1;
 			endcase
 		end
