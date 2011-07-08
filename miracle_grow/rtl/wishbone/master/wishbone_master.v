@@ -121,6 +121,7 @@ module wishbone_master (
 
 			case(state)
 				IDLE: begin
+					$display ("in IDLE state");
 					case (in_command)
 
 					`COMMAND_PING: begin
@@ -148,7 +149,7 @@ module wishbone_master (
 						out_status	<= ~in_command;
 						out_en		<= 1;
 						master_ready<= 0;
-						$display ("in_data == %d\n", in_data);
+						$display ("in_data == %d", in_data);
 						rw_count	<= in_data;
 						state		<= STREAM_WRITE_C;
 					end
@@ -156,6 +157,7 @@ module wishbone_master (
 						$display ("write stream");
 						out_status	<= ~in_command;
 						out_en		<= 1;
+						$display ("in_data == %d", in_data);
 						master_ready	<= 0;
 						rw_count	<= in_data;
 						state		<= STREAM_WRITE;
@@ -164,13 +166,17 @@ module wishbone_master (
 						$display ("read stream consecutive");
 						out_status	<= ~in_command;
 						out_en		<= 1;
+						$display ("in_data == %d", in_data);
 						rw_count	<= in_data;
+						master_ready <= 0;
 						state		<= STREAM_READ_C;
 					end
 					`COMMAND_RSTREAM: begin
 						$display ("read stream");
 						out_status	<= ~in_command;
 						out_en		<= 1;
+						master_ready <= 0;
+						$display ("in_data == %d", in_data);
 						rw_count	<= in_data;
 						state		<= STREAM_READ;
 					end
@@ -198,11 +204,14 @@ module wishbone_master (
 						//local data is only used for simulation
 						//we should be really writing to the address
 						local_data	<= in_data;
+						out_data	<= in_data;
+						$display("read data: %h", in_data);
 						rw_count	<= rw_count - 1;
 						$display ("rw_count: %d\n", rw_count);
-						if (rw_count == 0)begin
+						if (rw_count <= 1)begin
 							$display ("return to IDLE");
 							state	<= IDLE;
+							out_en	<= 1;
 						end
 					end
 				end
@@ -212,12 +221,15 @@ module wishbone_master (
 						master_ready	<= 0;
 						//local data is only used for simulation
 						//we should be really writing to the address
+						local_data	<= in_data;
+						out_data	<= in_data;
+						$display("read data: %h", in_data);
 						rw_count	<= rw_count - 1;
 						$display ("rw_count: %d\n", rw_count);
-						local_data	<= in_data;
 						if (rw_count <= 1)begin
 							$display ("return to IDLE");
 							state	<= IDLE;
+							out_en	<= 1;
 						end
 					end
 				end

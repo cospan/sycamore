@@ -158,7 +158,7 @@ initial begin
 		wb_dat_i		<= 32'h0;
 		wb_ack_i		<= 0;
 	#20
-		rst				<= 1;
+		rst				<= 0;
 		out_ready 		<= 1;
 
 	if (fd_in == 0) begin
@@ -172,7 +172,6 @@ initial begin
 			$display ("read: C:A:D = %h:%h:%h", in_command, in_address, in_data);
 			#4
 			case (in_command)
-
 				`COMMAND_WSTREAM_C: begin
 					/*the data will hold the count of the number of bytes 
 					I'll have to send to the host, so I don't have to keep any
@@ -187,8 +186,9 @@ initial begin
 					timeout_count	=	`TIMEOUT_COUNT;
 					#2
 					in_ready		<= 0;
-					#2
+					#4
 					while (data_count > 0 && timeout_count > 0) begin
+						$display ("in stream loop data_count: %d, timeout_count %d", data_count, timeout_count);
 						if (master_ready) begin
 							$display ("master ready");
 							timeout_count 	<= `TIMEOUT_COUNT;
@@ -196,9 +196,9 @@ initial begin
 							read_count = $fscanf(fd_in, ":%h", in_data);
 							$display ("read %d items", read_count);
 							$display ("sending data: %h", in_data); 
-							#2
+							#4
 							in_ready		<= 1;
-							#2
+							#4
 							in_ready		<= 0;
 							if (data_count == 0) begin
 								timeout_count <= -1;
@@ -215,9 +215,9 @@ initial begin
 					end
 
 					timeout_count 	<= `TIMEOUT_COUNT;
-					#2
 					$fwrite (fd_out, "command: %h:%h:%h response: %h:%h:%h\n", in_command, in_address, in_data, out_status, out_address, out_data);
 					while (timeout_count > 0) begin
+						$display ("in final timeout timeout_count: %d", timeout_count);
 						if (out_en) begin
 							//got a response before timeout
 							$display ("read: S:A:D = %h:%h:%h", out_status, out_address, out_data);
@@ -239,22 +239,17 @@ initial begin
 						end
 					end					
 				end
+
 				`COMMAND_WSTREAM: begin
 					$display ("COMMAND_WSTREAM");
-					/*the data will hold the count of the number of bytes 
-					I'll have to send to the host, so I don't have to keep any
-					local arrays of integers I'll just send them to the host when I 
-					read from a file, and count down locally the number of left (from
-					in data)
-					*/
-					//save the count for the timeout
 					data_count		= in_data;
 					in_ready 		<= 1;
 					timeout_count	=	`TIMEOUT_COUNT;
 					#2
 					in_ready		<= 0;
-					#2
+					#4
 					while (data_count > 0 && timeout_count > 0) begin
+						$display ("in stream loop data_count: %d, timeout_count %d", data_count, timeout_count);
 						if (master_ready) begin
 							$display ("master ready");
 							timeout_count 	<= `TIMEOUT_COUNT;
@@ -262,9 +257,9 @@ initial begin
 							read_count = $fscanf(fd_in, ":%h", in_data);
 							$display ("read %d items", read_count);
 							$display ("sending data: %h", in_data); 
-							#2
+							#4
 							in_ready		<= 1;
-							#2
+							#4
 							in_ready		<= 0;
 							if (data_count == 0) begin
 								timeout_count <= -1;
@@ -279,15 +274,11 @@ initial begin
 					if (timeout_count == 0) begin
 						$display ("failed to send all the data to the master");
 					end
-					else begin
-						$display ("sent all data to master");
-					end
 
 					timeout_count 	<= `TIMEOUT_COUNT;
-					#2
-
 					$fwrite (fd_out, "command: %h:%h:%h response: %h:%h:%h\n", in_command, in_address, in_data, out_status, out_address, out_data);
 					while (timeout_count > 0) begin
+						$display ("in final timeout timeout_count: %d", timeout_count);
 						if (out_en) begin
 							//got a response before timeout
 							$display ("read: S:A:D = %h:%h:%h", out_status, out_address, out_data);
@@ -310,6 +301,7 @@ initial begin
 					end					
 	
 				end
+
 				`COMMAND_RSTREAM_C: begin
 
 					$display("COMMAND_RSTREAM_C");
