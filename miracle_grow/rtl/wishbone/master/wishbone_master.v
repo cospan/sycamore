@@ -68,14 +68,22 @@ module wishbone_master (
 //	parameter			COMMAND_RW_FLAGS	= 32'h00000007;
 //	parameter			COMMAND_INTERRUPT	= 32'h00000008;
 
+	parameter 			IDLE				= 32'h00000000;
+	parameter			STREAM_WRITE_C		= 32'h00000001;
+	parameter			STREAM_WRITE		= 32'h00000002;
+	parameter			STREAM_READ_C		= 32'h00000003;
+	parameter			STREAM_READ			= 32'h00000004;
+
 	parameter			S_PING_RESP			= 32'h00001EAF;
 	//private registers
 
+	reg [31:0]			state			= IDLE;
 	reg [31:0]			local_command	= 32'h0;
 	reg [31:0]			local_address	= 32'h0;
 	reg [31:0]			local_data		= 32'h0;
 
 	reg [31:0]			master_flags	= 32'h0;
+	reg [31:0]			rw_count		= 32'h0;
 	//private wires
 	
 
@@ -99,6 +107,8 @@ module wishbone_master (
 			local_data		<= 32'h0;
 			master_flags	<= 32'h0;
 			master_ready	<= 1;
+			rw_count		<= 0;
+			state			<= IDLE;
 		end
 
 
@@ -109,59 +119,138 @@ module wishbone_master (
 			local_data		<= in_data;
 
 
-			case (in_command)
+			case(state)
+				IDLE: begin
+					case (in_command)
 
-				`COMMAND_PING: begin
-					$display("ping");
-					out_status	<= ~in_command;
-					out_address	<= 32'h00000000;
-					out_data	<= S_PING_RESP;
-					out_en		<= 1;
+					`COMMAND_PING: begin
+						$display("ping");
+						out_status	<= ~in_command;
+						out_address	<= 32'h00000000;
+						out_data	<= S_PING_RESP;
+						out_en		<= 1;
+						state 		<= IDLE;
+					end
+					`COMMAND_WRITE:	begin
+						$display ("write");
+						out_status	<= ~in_command;
+						out_en		<= 1;
+						state		<= IDLE;
+					end
+					`COMMAND_READ: 	begin
+						$display ("read");
+						out_status	<= ~in_command;
+						out_en		<= 1;
+						state		<= IDLE;
+					end
+					`COMMAND_WSTREAM_C: begin
+						$display ("write stream consective");
+						out_status	<= ~in_command;
+						out_en		<= 1;
+						master_ready<= 0;
+						$display ("in_data == %d\n", in_data);
+						rw_count	<= in_data;
+						state		<= STREAM_WRITE_C;
+					end
+					`COMMAND_WSTREAM: begin
+						$display ("write stream");
+						out_status	<= ~in_command;
+						out_en		<= 1;
+						master_ready	<= 0;
+						rw_count	<= in_data;
+						state		<= STREAM_WRITE;
+					end
+					`COMMAND_RSTREAM_C: begin
+						$display ("read stream consecutive");
+						out_status	<= ~in_command;
+						out_en		<= 1;
+						rw_count	<= in_data;
+						state		<= STREAM_READ_C;
+					end
+					`COMMAND_RSTREAM: begin
+						$display ("read stream");
+						out_status	<= ~in_command;
+						out_en		<= 1;
+						rw_count	<= in_data;
+						state		<= STREAM_READ;
+					end
+					`COMMAND_RW_FLAGS: begin
+						$display ("rw flags");
+						out_status	<= ~in_command;
+						out_en		<= 1;
+						state		<= IDLE;
+					end
+					`COMMAND_INTERRUPT: begin
+						$display ("interrupts");
+						out_status	<= ~in_command;
+						out_en		<= 1;
+						state		<= IDLE;
+					end
+					default: 		begin
+						state		<= IDLE;
+					end
+					endcase
 				end
-				`COMMAND_WRITE:	begin
-					$display ("write");
-					out_status	<= ~in_command;
-					out_en		<= 1;
+				STREAM_WRITE_C: begin
+					if (in_ready) begin
+						$display("in state STREAM_WRITE_C");
+						master_ready	<= 0;
+						//local data is only used for simulation
+						//we should be really writing to the address
+						local_data	<= in_data;
+						rw_count	<= rw_count - 1;
+						$display ("rw_count: %d\n", rw_count);
+						if (rw_count == 0)begin
+							$display ("return to IDLE");
+							state	<= IDLE;
+						end
+					end
 				end
-				`COMMAND_READ: 	begin
-					$display ("read");
-					out_status	<= ~in_command;
-					out_en		<= 1;
+				STREAM_WRITE: begin
+					if (in_ready) begin
+						$display("in state STREAM_WRITE");
+						master_ready	<= 0;
+						//local data is only used for simulation
+						//we should be really writing to the address
+						rw_count	<= rw_count - 1;
+						$display ("rw_count: %d\n", rw_count);
+						local_data	<= in_data;
+						if (rw_count <= 1)begin
+							$display ("return to IDLE");
+							state	<= IDLE;
+						end
+					end
 				end
-				`COMMAND_WSTREAM_C: begin
-					$display ("write stream consective");
-					out_status	<= ~in_command;
-					out_en		<= 1;
-					master_ready	<= 0;
+				STREAM_READ_C: begin
+					if (out_ready) begin
+						$display("in state STREAM_READ_C");
+						out_en			<= 1;	
+						out_data		<= 32'h55555555;
+						rw_count	<= rw_count - 1;
+						$display ("rw_count: %d\n", rw_count);
+						if (rw_count <= 1)begin
+							$display ("return to IDLE");
+							state	<= IDLE;
+						end
+					end
 				end
-				`COMMAND_WSTREAM: begin
-					$display ("write stream");
-					out_status	<= ~in_command;
-					out_en		<= 1;
+				STREAM_READ: begin
+					if (out_ready) begin
+						$display("in state STREAM_READ");
+						out_en			<= 1;	
+						out_data		<= 32'h55555555;
+						rw_count	<= rw_count - 1;
+						$display ("rw_count: %d\n", rw_count);
+						if (rw_count <= 1)begin
+							$display ("return to IDLE");
+							state	<= IDLE;
+						end
+					end
 				end
-				`COMMAND_RSTREAM_C: begin
-					$display ("read stream consecutive");
-					out_status	<= ~in_command;
-					out_en		<= 1;
-				end
-				`COMMAND_RSTREAM: begin
-					$display ("read stream");
-					out_status	<= ~in_command;
-					out_en		<= 1;
-				end
-				`COMMAND_RW_FLAGS: begin
-					$display ("rw flags");
-					out_status	<= ~in_command;
-					out_en		<= 1;
-				end
-				`COMMAND_INTERRUPT: begin
-					$display ("interrupts");
-					out_status	<= ~in_command;
-					out_en		<= 1;
-				end
-				default: 		begin
+				default: begin
 				end
 			endcase
+
 
 		end
 		//handle output

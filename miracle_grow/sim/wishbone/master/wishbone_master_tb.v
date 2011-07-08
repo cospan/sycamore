@@ -187,6 +187,7 @@ initial begin
 					timeout_count	=	`TIMEOUT_COUNT;
 					#2
 					in_ready		<= 0;
+					#2
 					while (data_count > 0 && timeout_count > 0) begin
 						if (master_ready) begin
 							$display ("master ready");
@@ -213,6 +214,8 @@ initial begin
 						$display ("failed to send all the data to the master");
 					end
 
+					timeout_count 	<= `TIMEOUT_COUNT;
+					#2
 					$fwrite (fd_out, "command: %h:%h:%h response: %h:%h:%h\n", in_command, in_address, in_data, out_status, out_address, out_data);
 					while (timeout_count > 0) begin
 						if (out_en) begin
@@ -238,31 +241,52 @@ initial begin
 				end
 				`COMMAND_WSTREAM: begin
 					$display ("COMMAND_WSTREAM");
-					//same as prev
+					/*the data will hold the count of the number of bytes 
+					I'll have to send to the host, so I don't have to keep any
+					local arrays of integers I'll just send them to the host when I 
+					read from a file, and count down locally the number of left (from
+					in data)
+					*/
+					//save the count for the timeout
 					data_count		= in_data;
 					in_ready 		<= 1;
 					timeout_count	=	`TIMEOUT_COUNT;
 					#2
-					in_ready		<= 1;
+					in_ready		<= 0;
+					#2
 					while (data_count > 0 && timeout_count > 0) begin
 						if (master_ready) begin
-							timeout_count 	= `TIMEOUT_COUNT;
-							data_count		= data_count	- 1;
+							$display ("master ready");
+							timeout_count 	<= `TIMEOUT_COUNT;
+							data_count		<= data_count	- 1;
 							read_count = $fscanf(fd_in, ":%h", in_data);
+							$display ("read %d items", read_count);
+							$display ("sending data: %h", in_data); 
 							#2
 							in_ready		<= 1;
 							#2
 							in_ready		<= 0;
 							if (data_count == 0) begin
-								timeout_count = -1;
+								timeout_count <= -1;
 							end
 						end
 						else begin
-							timeout_count		<= timeout_count - 1;
+							#2
+							timeout_count	<= timeout_count - 1;
+
 						end
 					end
+					if (timeout_count == 0) begin
+						$display ("failed to send all the data to the master");
+					end
+					else begin
+						$display ("sent all data to master");
+					end
 
-					$fwrite (fd_out, "%h:%h:%h response: %h:%h:%h\n", in_command, in_address, in_data, out_status, out_address, out_data);
+					timeout_count 	<= `TIMEOUT_COUNT;
+					#2
+
+					$fwrite (fd_out, "command: %h:%h:%h response: %h:%h:%h\n", in_command, in_address, in_data, out_status, out_address, out_data);
 					while (timeout_count > 0) begin
 						if (out_en) begin
 							//got a response before timeout
@@ -278,8 +302,13 @@ initial begin
 
 					if (timeout_count == 0) begin
 						$display ("Wishbone master timed out while executing command: %h", in_command);
-					end
-
+						//flush out the end of the data read command
+						ch = 1;
+						while (!$feof(fd_in) && ch != "\n") begin
+							ch	=	$fgetc(fd_in);
+						end
+					end					
+	
 				end
 				`COMMAND_RSTREAM_C: begin
 
@@ -290,7 +319,7 @@ initial begin
 					timeout_count	=	`TIMEOUT_COUNT;
 					#2
 					in_ready		<= 1;
-
+					#2
 					$fwrite (fd_out, "command: %h:%h:%h response:", in_command, in_address, in_data);
 					while (data_count > 0 && timeout_count > 0) begin
 						if (out_en) begin
@@ -318,7 +347,7 @@ initial begin
 					timeout_count	=	`TIMEOUT_COUNT;
 					#2
 					in_ready		<= 1;
-
+					#2
 					$fwrite (fd_out, "%h:%h:%h response:", in_command, in_address, in_data);
 					while (data_count > 0 && timeout_count > 0) begin
 						if (out_en) begin
@@ -344,6 +373,7 @@ initial begin
 					#2
 					in_ready		<= 0;
 					out_ready 		<= 1;
+					#2
 					$fwrite (fd_out, "command: %h:%h:%h response: ", in_command, in_address, in_data);
 					while (timeout_count > 0) begin
 						if (out_en) begin
