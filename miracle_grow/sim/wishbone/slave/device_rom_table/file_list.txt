@@ -1,3 +1,4 @@
 ../../../../rtl/mg_defines.v
-../../../../rtl/wishbone/slave/device_rom_table/drt.v
+device_table_defines.v
+../../../../rtl/wishbone/slave/device_rom_table/device_rom_table.v
 drt_tb.v

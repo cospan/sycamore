@@ -9,6 +9,8 @@ A wishbone slave that maps all the devices in the interconnect.
 Organization of the ROM 32 bit address location
 
 0x00							DRT_ID (DRT ID), DRT_VERSION (version number)
+	(Addr: 31-16)	: Version WW.XX.YY.ZZ
+	(Addr: 15-0)	: DRT_ID (1EAF)
 0x01							DRT_NUM_DEVICES (Number of devices attached)
 0x02							RFU
 0x03							RFU
@@ -16,9 +18,15 @@ Organization of the ROM 32 bit address location
 0x04:DEV_OFFSET	beginning of device offset (DRT_DEV_OFFSET)
 
 DRT_DEV_OFFSET[x * 4] + 0:		Device ID (flag to indicate this is a standard device or not)
+	(Addr: 31-0	)	: device ID number (see below)
 DRT_DEV_OFFSET[x * 4] + 1:		FLAGS
+	(Addr: 0 )		: standard device (can use generic drivers)
 DRT_DEV_OFFSET[x * 4] + 2:		Offset from 0x00 	(NEED A NAME)
 DRT_DEV_OFFSET[x * 4] + 3:		Size of address space for device (NEED A NAME)
 
 
 
+THIS IS NOT BY ANY MEANS FINAL, BUT MAKING DEVICE IDENTIFICATION NUMBER
+0000	: Nothing
+0001	: GPIO
+0002	: UART

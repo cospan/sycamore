@@ -1,14 +1,18 @@
 //device_rom_table.v
 
 
-//!!replace this with the number of devices in the DRT
-`define DRT_NUM_OF_DEVICES 		1
-//!!end
+/*
+ *use defparam in the instantiating module in order to set the 
+ * number of items in the ROM
+ * defparam DRT_NUM_OF_DEVICES = 2;
+ */
+
+//`define DRT_NUM_OF_DEVICES 1
 `define DRT_SIZE_OF_HEADER 	4
 `define DRT_SIZE_OF_DEV		4
 
 
-module drt (
+module device_rom_table (
 	clk,
 	rst,
 
@@ -36,6 +40,8 @@ output reg  [31:0]		wbs_dat_o;
 output reg				wbs_ack_o;
 output reg				wbs_int_o; 
 
+parameter DRT_NUM_OF_DEVICES = 1;
+
 parameter DRT_ID_ADR		= 32'h00000000;	
 parameter DRT_NUM_DEV_ADR	= 32'h00000001;
 parameter DRT_RFU_1_ADR		= 32'h00000002;
@@ -56,26 +62,21 @@ parameter DEV_MEM_OFF_OFF	= 4'h2;
 parameter DEV_SIZE_OFF		= 4'h3;
 
 //registers
-//parameter DRT_SIZE			= 31 * `DRT_SIZE_OF_HEADER + (`DRT_NUM_OF_DEVICES * `DRT_SIZE_OF_DEV);
+parameter DRT_SIZE			= `DRT_SIZE_OF_HEADER + (`DRT_NUM_OF_DEVICES * `DRT_SIZE_OF_DEV);
 //reg [DRT_SIZE:0][31:0] drt;
+reg [31:0] drt [(DRT_SIZE - 1):0]; 
 
-
-//blocks
-always @ (posedge clk) begin
-	//load everything in the ROM
-	if (rst) begin
-//		drt[0][31:0]	<= {DRT_ID, DRT_VERSION};
-//		drt[1][31:0]	<= 32'h`DRT_NUM_OF_DEVICES;
-//		drt[2][31:0]	<= DRT_RFU_1;
-//		drt[3][31:0]	<= DRT_RFU_2;
-
-		//!!populate the list
-//		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 0][31:0]	<= 32'h01234567	//device 0 ID
-//		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 1][31:0]	<= 32'h76543210 //device 0 info/flags
-//		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 2][31:0]	<= 32'h0000000F	//device 0 offset from 0x00
-//		drt[`DRT_SIZE_OF_HEADER + 0 * `DRT_SIZE_OF_DEV + 3][31:0]	<= 32'h0000000F	//device 0 size
-		//!!end populate list
-	end
+//NEED A way to pull data in from input file
+//`DRT_INPUT_FILE
+//integer i;
+initial begin
+//	$display ("size of ROM: 32 x %d", DRT_SIZE);
+//	$display ("total size of ROM is %d", DRT_SIZE * 32 + 4);
+//	$display ("drt: %h", drt[0]);
+	$readmemh(`DRT_INPUT_FILE, drt, 0, DRT_SIZE - 1); 
+//	for (i = 0; i < DRT_SIZE; i = i+1) begin
+//		$display ("drt[%d]: %h", i, drt[i]);
+//	end
 end
 
 always @ (posedge clk) begin
@@ -93,21 +94,14 @@ always @ (posedge clk) begin
 	if (wbs_stb_i & wbs_cyc_i) begin
 		//master is requesting somethign
 		if (wbs_we_i) begin
-			//write request
-			case (wbs_adr_i) 
-				//ADDRESS DEFINE : begin
-				//	do something
-				//end
-				wbs_ack_i;
-			endcase
+			//ROMS can't be written to
 		end
 
 		else begin 
 			//read request
-			//wbs_dat_o	<= drt[wbs_adr_i - `DRT_SIZE_OF_HEADER][31:0];	
-			wbs_ack_o	<= 1;
-			endcase
+			wbs_dat_o	<= drt[wbs_adr_i];	
 		end
+		wbs_ack_o	<= 1;
 	end
 end
 
