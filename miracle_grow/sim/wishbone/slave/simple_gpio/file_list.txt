@@ -1,0 +1,3 @@
+../../../../rtl/mg_defines.v
+../../../../rtl/wishbone/slave/simple_gpio/simple_gpio.v
+simple_gpio_tb.v

@@ -1,0 +1,10 @@
+simple gpio:
+
+dead simple wishbone interface that has two 32 bit registers.
+
+	-ADDR 0:	gpio register
+		-write to this reigister to output data on the GPIO, the output will be bitwise anded with the mask register
+		-read from this register to read the state of the GPIO
+	-ADDR 1:	bit mask
+		-write to this reigster to set the mask for the output
+		-read from this register to read the current mask
