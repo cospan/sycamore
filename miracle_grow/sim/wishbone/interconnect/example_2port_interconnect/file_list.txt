@@ -1,0 +1,4 @@
+../../../../rtl/mg_defines.v
+../../../../rtl/wishbone/slave/simple_gpio/simple_gpio.v
+wishbone_interconnect.v
+wishbone_interconnect_tb.v
