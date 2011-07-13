@@ -1,0 +1,5 @@
+../../../../rtl/mg_defines.v
+../../interconnect/example_2port_interconnect/wishbone_interconnect.v
+../../../../rtl/wishbone/slave/simple_gpio/simple_gpio.v
+../../../../rtl/wishbone/master/wishbone_master.v
+wishbone_master_tb.v
