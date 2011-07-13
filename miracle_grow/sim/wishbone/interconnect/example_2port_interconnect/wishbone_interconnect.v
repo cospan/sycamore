@@ -104,9 +104,11 @@ input       [31:0]  s1_dat_i;
 input               s1_ack_i;
 input               s1_int_i;
 
-
-
-
+/*
+initial begin
+    $monitor ("%t adr: %h, stb: %h, ack: %h", $time, m_adr_i, m_stb_i, m_ack_o);
+end
+*/
 //this should be parameterized
 wire [7:0]slave_select;
 assign slave_select =   m_adr_i[31:24];
@@ -157,17 +159,17 @@ always @ (slave_select or s0_int_i or s1_int_i) begin
 end
 
 
-assign s0_we_o    =  m_we_i;
-assign s0_stb_o   =  m_stb_i;
-assign s0_cyc_o   =  m_cyc_i;
-assign s0_adr_o   =  m_adr_i;
-assign s0_dat_o   =  m_dat_i;
+assign s0_we_o    =  (slave_select == ADDR_0) ? m_we_i: 0;
+assign s0_stb_o   =  (slave_select == ADDR_0) ? m_stb_i: 0;
+assign s0_cyc_o   =  (slave_select == ADDR_0) ? m_cyc_i: 0;
+assign s0_adr_o   =  (slave_select == ADDR_0) ? {8'h0 , m_adr_i[23:0]}: 0;
+assign s0_dat_o   =  (slave_select == ADDR_0) ? m_dat_i: 0;
 
-assign s1_we_o    = m_we_i;
-assign s1_stb_o   = m_stb_i;
-assign s1_cyc_o   = m_cyc_i;
-assign s1_adr_o   = m_adr_i;
-assign s1_dat_o   = m_dat_i;
+assign s1_we_o    = (slave_select == ADDR_1) ? m_we_i: 0;
+assign s1_stb_o   = (slave_select == ADDR_1) ? m_stb_i: 0;
+assign s1_cyc_o   = (slave_select == ADDR_1) ? m_cyc_i: 0;
+assign s1_adr_o   = (slave_select == ADDR_1) ? {8'h0 , m_adr_i[23:0]}: 0;
+assign s1_dat_o   = (slave_select == ADDR_1) ? m_dat_i: 0;
 
 
 endmodule

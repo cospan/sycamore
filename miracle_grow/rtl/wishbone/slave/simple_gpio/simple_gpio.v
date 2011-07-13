@@ -30,7 +30,6 @@ module simple_gpio (
 
 	wbs_we_i,
 	wbs_cyc_i,
-	wbs_dat_i,
 	wbs_stb_i,
 	wbs_ack_o,
 	wbs_dat_i,
@@ -63,7 +62,11 @@ parameter	ADDR_IO 	= 32'h00000000;
 parameter	ADDR_MASK	= 32'h00000001;
 
 reg			[31:0]	mask;
-
+/*
+initial begin
+    $monitor ("%t: we: %h stb: %h c: %h a: %h di: %h do: %h ak: %h i: %h", $time, wbs_we_i, wbs_stb_i, wbs_cyc_i, wbs_adr_i, wbs_dat_i, wbs_dat_o, wbs_ack_o, wbs_int_o );
+end
+*/
 //blocks
 always @ (posedge clk) begin
 	if (rst) begin
@@ -72,45 +75,52 @@ always @ (posedge clk) begin
 		wbs_int_o	<= 0;
 		gpio_out	<= 32'h0;
 		mask		<= 32'h0;
-	end
+    end
 
-	//when the master acks our ack, then put our ack down
-	if (wbs_ack_o & ~ wbs_stb_i)begin
-		wbs_ack_o <= 0;
-	end
+    else begin
+//     $display ("gpio stb: %h ack: %h", wbs_stb_i, wbs_ack_o);
+	
+    	//when the master acks our ack, then put our ack down
+	    if (wbs_ack_o & ~ wbs_stb_i)begin
+    		wbs_ack_o <= 0;
+	    end
 
-	if (wbs_stb_i & wbs_cyc_i) begin
-		//master is requesting somethign
-		if (wbs_we_i) begin
-			//write request
-			case (wbs_adr_i) 
-				ADDR_IO	: begin
-					gpio_out	<= wbs_dat_i & mask;
-				end
-				ADDR_MASK: begin
-					mask		<= wbs_dat_i;
-				end
-				default: begin
-				end
-			endcase
-		end
+    	if (wbs_stb_i & wbs_cyc_i) begin
+            $display ("new transaction in GPIO, ADDR: %h", wbs_adr_i);
+	    	//master is requesting somethign
+    		if (wbs_we_i) begin
+		    	//write request
+	    		case (wbs_adr_i) 
+    				ADDR_IO	: begin
+                        $display ("writing to gpio_out: %h", wbs_dat_i);
+					    gpio_out	<= wbs_dat_i & mask;
+				    end
+			    	ADDR_MASK: begin
+		    			mask		<= wbs_dat_i;
+	    			end
+    				default: begin
+			    	end
+		    	endcase
+	    	end
 
-		else begin 
-			//read request
-			case (wbs_adr_i)
-				ADDR_IO	: begin
-					wbs_dat_o	<= gpio_in;
-				end
-				ADDR_MASK: begin
-					wbs_dat_o	<= mask;
-				end
-				default: begin
-				end
+    		else begin 
+	    		//read request
+    			case (wbs_adr_i)
+				    ADDR_IO	: begin
+      //                  $display ("Reading GPIO");
+			    		wbs_dat_o	<= gpio_in;
+		    		end
+	    			ADDR_MASK: begin
+    					wbs_dat_o	<= mask;
+				    end
+				    default: begin
+				    end
 
-			endcase
-		end
-		wbs_ack_o <= 1;
-	end
+			    endcase
+		    end
+		    wbs_ack_o <= 1;
+	    end
+    end
 end
 
 

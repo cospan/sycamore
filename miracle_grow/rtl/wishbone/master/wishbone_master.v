@@ -44,10 +44,10 @@ module wishbone_master (
 	out_data,
 
 	//wishbone signals
-	wb_addr_o,
+	wb_adr_o,
 	wb_dat_o,
 	wb_dat_i,
-	wb_str_o,
+	wb_stb_o,
 	wb_cyc_o,
 	wb_we_o,
 	wb_msk_o,
@@ -71,10 +71,10 @@ module wishbone_master (
 	output reg [31:0]	out_data		= 32'h0;
 	
 	//wishbone
-	output reg [31:0]	wb_addr_o;
+	output reg [31:0]	wb_adr_o;
 	output reg [31:0]	wb_dat_o;
 	input [31:0]		wb_dat_i;
-	output reg 			wb_str_o;
+	output reg 			wb_stb_o;
 	output reg			wb_cyc_o;
 	output reg			wb_we_o;
 	output reg			wb_msk_o;
@@ -93,10 +93,12 @@ module wishbone_master (
 //	parameter			COMMAND_INTERRUPT	= 32'h00000008;
 
 	parameter 			IDLE				= 32'h00000000;
-	parameter			STREAM_WRITE_C		= 32'h00000001;
-	parameter			STREAM_WRITE		= 32'h00000002;
-	parameter			STREAM_READ_C		= 32'h00000003;
-	parameter			STREAM_READ			= 32'h00000004;
+    parameter           WRITE               = 32'h00000001;
+    parameter           READ                = 32'h00000002;
+	parameter			STREAM_WRITE_C		= 32'h00000003;
+	parameter			STREAM_WRITE		= 32'h00000004;
+	parameter			STREAM_READ_C		= 32'h00000005;
+	parameter			STREAM_READ			= 32'h00000006;
 
 	parameter			S_PING_RESP			= 32'h00001EAF;
 	//private registers
@@ -108,11 +110,15 @@ module wishbone_master (
 
 	reg [31:0]			master_flags	= 32'h0;
 	reg [31:0]			rw_count		= 32'h0;
+    reg                 wait_for_slave  = 0;
 	//private wires
 	
 
 	//private assigns
-
+/*initial begin
+    $monitor("%t, stb: %h", $time, wb_stb_o);
+end
+*/
 	//blocks
 	always @ (posedge clk) begin
 		
@@ -133,161 +139,218 @@ module wishbone_master (
 			master_ready	<= 1;
 			rw_count		<= 0;
 			state			<= IDLE;
+
+            wait_for_slave  <= 0;
+
+            //wishbone reset
+            wb_adr_o        <= 32'h0;
+            wb_dat_o        <= 32'h0;
+            wb_stb_o        <= 0;
+            wb_cyc_o        <= 0;
+            wb_we_o         <= 0;
+            wb_msk_o        <= 0;
+            wb_sel_o        <= 0;
 		end
 
+        else begin 
+            if (wb_ack_i) begin
+                wb_stb_o <= 0;
+                wb_cyc_o <= 0;
+            end
+            if (in_ready && (state == READ || state == WRITE)) begin
+                state   <= IDLE;
+            end
 
-		//handle input
-		if (in_ready) begin
-			local_command	<= in_command;
-			local_address	<= in_address;
-			local_data		<= in_data;
+            case (state)
 
+            READ: begin
+                $display ("reading adr: %h", wb_adr_o);
+                if (wb_ack_i) begin
+                    $display ("GOT AN ACK!!!");
+                    wb_stb_o    <= 0;
+                    wb_cyc_o    <= 0;
+                    wb_we_o     <= 0;
+                    out_en      <= 1; 
+                    out_data    <= wb_dat_i;
+                    state       <= IDLE;
+                    end
+            end
+            WRITE: begin
+                $display ("writing adr: %h", wb_adr_o);
+                if (wb_ack_i) begin
+                    $display ("GOT AN ACK FROM A READ");
+                    wb_stb_o    <= 0;
+                    wb_cyc_o    <= 0;
+                    wb_we_o     <= 0;
+ 
+                    out_en	   <= 1;
+                    state       <= IDLE;
+                end
+            end
+            default: begin
+            end
+            endcase 
 
-			case(state)
-				IDLE: begin
-					$display ("in IDLE state");
-					case (in_command)
-
-					`COMMAND_PING: begin
-						$display("ping");
-						out_status	<= ~in_command;
-						out_address	<= 32'h00000000;
-						out_data	<= S_PING_RESP;
-						out_en		<= 1;
-						state 		<= IDLE;
-					end
-					`COMMAND_WRITE:	begin
-						$display ("write");
-						out_status	<= ~in_command;
-						out_en		<= 1;
-						state		<= IDLE;
-					end
-					`COMMAND_READ: 	begin
-						$display ("read");
-						out_status	<= ~in_command;
-						out_en		<= 1;
-						state		<= IDLE;
-					end
-					`COMMAND_WSTREAM_C: begin
-						$display ("write stream consective");
-						out_status	<= ~in_command;
-						out_en		<= 1;
-						master_ready<= 0;
-						$display ("in_data == %d", in_data);
-						rw_count	<= in_data;
-						state		<= STREAM_WRITE_C;
-					end
-					`COMMAND_WSTREAM: begin
-						$display ("write stream");
-						out_status	<= ~in_command;
-						out_en		<= 1;
-						$display ("in_data == %d", in_data);
-						master_ready	<= 0;
-						rw_count	<= in_data;
-						state		<= STREAM_WRITE;
-					end
-					`COMMAND_RSTREAM_C: begin
-						$display ("read stream consecutive");
-						out_status	<= ~in_command;
-						out_en		<= 1;
-						$display ("in_data == %d", in_data);
-						rw_count	<= in_data;
-						master_ready <= 0;
-						state		<= STREAM_READ_C;
-					end
-					`COMMAND_RSTREAM: begin
-						$display ("read stream");
-						out_status	<= ~in_command;
-						out_en		<= 1;
-						master_ready <= 0;
-						$display ("in_data == %d", in_data);
-						rw_count	<= in_data;
-						state		<= STREAM_READ;
-					end
-					`COMMAND_RW_FLAGS: begin
-						$display ("rw flags");
-						out_status	<= ~in_command;
-						out_en		<= 1;
-						state		<= IDLE;
-					end
-					`COMMAND_INTERRUPT: begin
-						$display ("interrupts");
-						out_status	<= ~in_command;
-						out_en		<= 1;
-						state		<= IDLE;
-					end
-					default: 		begin
-						state		<= IDLE;
-					end
-					endcase
-				end
-				STREAM_WRITE_C: begin
-					if (in_ready) begin
-						$display("in state STREAM_WRITE_C");
-						master_ready	<= 0;
-						//local data is only used for simulation
-						//we should be really writing to the address
-						local_data	<= in_data;
-						out_data	<= in_data;
-						$display("read data: %h", in_data);
-						rw_count	<= rw_count - 1;
-						$display ("rw_count: %d\n", rw_count);
-						if (rw_count <= 1)begin
-							$display ("return to IDLE");
-							state	<= IDLE;
-							out_en	<= 1;
-						end
-					end
-				end
-				STREAM_WRITE: begin
-					if (in_ready) begin
-						$display("in state STREAM_WRITE");
-						master_ready	<= 0;
-						//local data is only used for simulation
-						//we should be really writing to the address
-						local_data	<= in_data;
-						out_data	<= in_data;
-						$display("read data: %h", in_data);
-						rw_count	<= rw_count - 1;
-						$display ("rw_count: %d\n", rw_count);
-						if (rw_count <= 1)begin
-							$display ("return to IDLE");
-							state	<= IDLE;
-							out_en	<= 1;
-						end
-					end
-				end
-				STREAM_READ_C: begin
-					if (out_ready) begin
-						$display("in state STREAM_READ_C");
-						out_en			<= 1;	
-						out_data		<= 32'h55555555;
-						rw_count	<= rw_count - 1;
-						$display ("rw_count: %d\n", rw_count);
-						if (rw_count <= 1)begin
-							$display ("return to IDLE");
-							state	<= IDLE;
-						end
-					end
-				end
-				STREAM_READ: begin
-					if (out_ready) begin
-						$display("in state STREAM_READ");
-						out_en			<= 1;	
-						out_data		<= 32'h55555555;
-						rw_count	<= rw_count - 1;
-						$display ("rw_count: %d\n", rw_count);
-						if (rw_count <= 1)begin
-							$display ("return to IDLE");
-							state	<= IDLE;
-						end
-					end
-				end
-				default: begin
-				end
-			endcase
+	    	//handle input
+		    if (in_ready) begin
+    			local_command	<= in_command;
+	    		local_address	<= in_address;
+		    	local_data		<= in_data;
 
 
+			    case(state)
+    				IDLE: begin
+	    				$display ("in IDLE state");
+		    			case (in_command)
+
+			    		`COMMAND_PING: begin
+				    		$display("ping");
+					    	out_status	<= ~in_command;
+    						out_address	<= 32'h00000000;
+	    					out_data	<= S_PING_RESP;
+		    				out_en		<= 1;
+			    			state 		<= IDLE;
+				    	end
+    					`COMMAND_WRITE:	begin
+	    					$display ("write");
+		    				out_status	<= ~in_command;
+                            wb_adr_o    <= in_address;
+                            wb_stb_o    <= 1;
+                            wb_cyc_o    <= 1;
+                            wb_we_o     <= 1;
+                            wb_dat_o    <= in_data;
+                            $display ("Address: %h", in_address);
+    	    				state		<= WRITE;
+			    		end
+				    	`COMMAND_READ: 	begin
+					    	$display ("read");
+						    out_status	<= ~in_command;
+                            wb_adr_o    <= in_address;
+                            wb_stb_o    <= 1;
+                            wb_cyc_o    <= 1;
+                            wb_we_o     <= 0;
+    			    		state		<= READ;
+					    end
+    					`COMMAND_WSTREAM_C: begin
+	    					$display ("write stream consective");
+		    				out_status	<= ~in_command;
+			    			out_en		<= 1;
+				    		master_ready<= 0;
+					    	$display ("in_data == %d", in_data);
+    						rw_count	<= in_data;
+	    					state		<= STREAM_WRITE_C;
+		    			end
+			    		`COMMAND_WSTREAM: begin
+				    		$display ("write stream");
+					    	out_status	<= ~in_command;
+						    out_en		<= 1;
+    						$display ("in_data == %d", in_data);
+	    					master_ready	<= 0;
+		    				rw_count	<= in_data;
+			    			state		<= STREAM_WRITE;
+				    	end
+					    `COMMAND_RSTREAM_C: begin
+    						$display ("read stream consecutive");
+	    					out_status	<= ~in_command;
+		    				out_en		<= 1;
+			    			$display ("in_data == %d", in_data);
+				    		rw_count	<= in_data;
+					    	master_ready <= 0;
+						    state		<= STREAM_READ_C;
+    					end
+	    				`COMMAND_RSTREAM: begin
+		    				$display ("read stream");
+			    			out_status	<= ~in_command;
+				    		out_en		<= 1;
+					    	master_ready <= 0;
+						    $display ("in_data == %d", in_data);
+    						rw_count	<= in_data;
+	    					state		<= STREAM_READ;
+		    			end
+			    		`COMMAND_RW_FLAGS: begin
+				    		$display ("rw flags");
+					    	out_status	<= ~in_command;
+						    out_en		<= 1;
+    						state		<= IDLE;
+	    				end
+		    			`COMMAND_INTERRUPT: begin
+			    			$display ("interrupts");
+				    		out_status	<= ~in_command;
+					    	out_en		<= 1;
+						    state		<= IDLE;
+    					end
+    					default: 		begin
+	    					state		<= IDLE;
+		    			end
+			    		endcase
+    				    end
+            			STREAM_WRITE_C: begin
+	        				if (in_ready) begin
+		        				$display("in state STREAM_WRITE_C");
+			        			master_ready	<= 0;
+				        		//local data is only used for simulation
+					        	//we should be really writing to the address
+						        local_data	<= in_data;
+        						out_data	<= in_data;
+	        					$display("read data: %h", in_data);
+		        				rw_count	<= rw_count - 1;
+			        			$display ("rw_count: %d\n", rw_count);
+				        		if (rw_count <= 1)begin
+					        		$display ("return to IDLE");
+						    	state	<= IDLE;
+							    out_en	<= 1;
+    						end
+	    				end
+		    		end
+			    	STREAM_WRITE: begin
+				    	if (in_ready) begin
+					    	$display("in state STREAM_WRITE");
+						    master_ready	<= 0;
+    						//local data is only used for simulation
+	    					//we should be really writing to the address
+		    				local_data	<= in_data;
+			    			out_data	<= in_data;
+				    		$display("read data: %h", in_data);
+					    	rw_count	<= rw_count - 1;
+						    $display ("rw_count: %d\n", rw_count);
+    						if (rw_count <= 1)begin
+	    						$display ("return to IDLE");
+		    					state	<= IDLE;
+			    				out_en	<= 1;
+				    		end
+					    end
+    				end
+	    			STREAM_READ_C: begin
+		    			if (out_ready) begin
+			    			$display("in state STREAM_READ_C");
+				    		out_en			<= 1;	
+					    	out_data		<= 32'h55555555;
+						    rw_count	<= rw_count - 1;
+    						$display ("rw_count: %d\n", rw_count);
+	    					if (rw_count <= 1)begin
+		    					$display ("return to IDLE");
+			    				state	<= IDLE;
+				    		end
+					    end
+    				end
+	    			STREAM_READ: begin
+		    			if (out_ready) begin
+			    			$display("in state STREAM_READ");
+				    		out_en			<= 1;	
+					    	out_data		<= 32'h55555555;
+						    rw_count	<= rw_count - 1;
+    						$display ("rw_count: %d\n", rw_count);
+	    					if (rw_count <= 1)begin
+		    					$display ("return to IDLE");
+			    				state	<= IDLE;
+				    		end
+					    end
+    				end
+	    			default: begin
+		    		end
+			    endcase
+    
+            end
 		end
 		//handle output
 	end

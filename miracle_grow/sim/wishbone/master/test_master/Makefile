@@ -1,10 +1,5 @@
-#Declare the top of miracle grow
-TOP_MG:=../
-
 all:
 	iverilog -o design -cfile_list.txt
-uart_sim:
-	iverilog -o design -cuart/file_list.txt
 clean:
 	rm design
 	rm *.vcd
