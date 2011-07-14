@@ -143,10 +143,10 @@ module uart_top_tb;
 				stimulus_in_byte 	<= ch;
 				stimulus_rx_en		<= 1;
 
-				#5
+				#2
 				stimulus_rx_en		<= 0;
 
-				#5
+				#10
 				ch = $fgetc(fd_in);				
 			
 			end
@@ -176,7 +176,7 @@ module uart_top_tb;
 
 	initial begin
 //		$monitor ("%t, in_ch:%h, ih_rdy:%h, ih_cmd:%h, ih_addr:%h, ih_data:%h", $time, stimulus_in_byte, input_ready, command_input, address_input, data_input);  
-		$monitor ("%t, out_c: %c, send_en: %h, uart_en: %h: fin: %h, S:A:D : %h:%h:%h", $time, out_byte, oh_send_en, uart_byte_en, oh_finished, status_out, address_out, data_out);
+//		$monitor ("%t, out_c: %c, send_en: %h, uart_en: %h: fin: %h, S:A:D : %h:%h:%h", $time, out_byte, oh_send_en, uart_byte_en, oh_finished, status_out, address_out, data_out);
 
 		//$monitor ("%t, send_en: %h, out_c: %c", $time, oh_send_en, out_byte);
 	end

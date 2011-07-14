@@ -47,11 +47,12 @@ output reg [31:0] data;
 output reg ready;
 
 //STATES
-parameter STATE_IDLE             = 8'h0;
-parameter STATE_READ_ID  		 = 8'h1;
-parameter STATE_READ_CONTROL     = 8'h2;
-parameter STATE_READ_ADDRESS   	 = 8'h3;
-parameter STATE_READ_DATA        = 8'h4;
+parameter IDLE             = 8'h0;
+parameter READ_ID          = 8'h1;
+parameter READ_DATA_COUNT  = 8'h2;
+parameter READ_CONTROL     = 8'h3;
+parameter READ_ADDRESS   	 = 8'h4;
+parameter READ_DATA        = 8'h5;
 
 parameter CHAR_L 				= 8'h4C;
 
@@ -61,26 +62,25 @@ parameter CHAR_A				= 8'h41;
 parameter CHAR_F				= 8'h46;
 
 //Registers
-reg [7:0]  r_STATE    		= 'b0;
+reg [7:0]  state;
 
 //reg r_low_byte          	= 0;
-reg [3:0] r_nibble_count	= 4'h0;
-reg [15:0] r_count      	= 0;
+reg [3:0] nibble_count;
+reg [15:0] r_count;
 
-reg r_prev_byte_available = 0;
+reg [27:0]  data_count;
 
-
+reg send_first_data;
 //Wire
-wire pos_edge_byte_available;
 
 //Assign
-assign pos_edge_byte_available = (byte_available & ~r_prev_byte_available);
 
 //Synchronous
-always @ (posedge clk) begin
-    r_prev_byte_available <= byte_available;
+/*
+initial begin
+    $monitor("%t: state: %h nibble_count: %d byte: %c", $time, state, nibble_count, byte);
 end
-
+*/
 always @ (posedge clk) begin
 
 	ready	<= 0;
@@ -88,38 +88,71 @@ always @ (posedge clk) begin
         command     	<= 32'h0000;
 		address			<= 32'h0000;
 		data			<= 32'h0000;
-        r_STATE     	<= STATE_IDLE;
-		r_nibble_count	<= 4'h0;
-        //r_low_byte  <= 0;
-		ready		<= 0;
-
+        state     	    <= IDLE;
+		nibble_count	<= 4'h0;
+        //r_low_byte    <= 0;
+		ready		    <= 0;
+        data_count      <= 24'h0;
+        send_first_data <= 0;
     end
     else begin
         //main state machine goes here
-        case (r_STATE)
-            STATE_IDLE: begin
-				command			<= 32'h0000;
-				address			<= 32'h0000;
-				data			<= 32'h0000;
-				r_nibble_count	<= 4'h0;
+        case (state)
+            IDLE: begin
 				ready			<= 0;
-                if (pos_edge_byte_available) begin
-                    r_STATE     <= STATE_READ_ID;
+                if (byte_available) begin
+                    state     <= READ_ID;
                 end
             end
-            STATE_READ_ID: begin
+            READ_ID: begin
+                //putting this here lets master hold onto the data for
+                //a longer time
+                command			<= 32'h0000;
+				address			<= 32'h0000;
+				data			<= 32'h0000;
+                data_count      <= 24'h000;
+                send_first_data <= 1;
                 if (byte == CHAR_L) begin
                     //read the first of byte
-                    r_STATE     	<= STATE_READ_CONTROL;
-					r_nibble_count	<= 4'h0;
+                    state     	<= READ_DATA_COUNT;
+					nibble_count	<= 4'h0;
                 end
                 else begin
-                    r_STATE 		<= STATE_IDLE;
+                    state 		<= IDLE;
                 end
 			end
-            STATE_READ_CONTROL: begin
+
+            READ_DATA_COUNT: begin
+                if (byte_available) begin
+                    if ((byte < CHAR_0) ||
+                        (( byte > CHAR_0 + 10) && (byte < CHAR_A)) ||
+                        (byte > CHAR_F)) begin
+                        //invalid character go back to READ_ID
+                        state     <= READ_ID;
+                    end
+                    else begin
+                        //valid character
+                        if (byte >= CHAR_A) begin
+                            //A - F
+                            data_count  <= {data_count[19:0], byte - CHAR_0}; 
+                        end
+                        else begin
+                            data_count  <= {data_count[19:0], byte - CHAR_0};
+                        end
+                        if (nibble_count >= 6) begin
+                            nibble_count    <= 4'h0;
+                            state   <= READ_CONTROL;
+                        end
+                        else begin
+                            nibble_count <= nibble_count + 1;
+                        end
+                    end
+                end
                 
-                if (pos_edge_byte_available) begin
+				//nibble_count	<= 4'h0;
+            end
+            READ_CONTROL: begin
+                if (byte_available) begin
                     if ((byte < CHAR_0) || 
 						((byte > CHAR_0 + 10) && (byte < CHAR_A)) || 
 						(byte > CHAR_F)) begin
@@ -128,14 +161,14 @@ always @ (posedge clk) begin
 						outside all of the states, but within the state its
 						easier to understand the code
 						*/
-                        r_STATE    <=    STATE_READ_ID;
+                        state    <=    READ_ID;
                     end
                     else begin
 					/*
 						read a byte, increment the count and put data into the
 						command register MSB first
 						*/
-						if (byte >= CHAR_A && byte <= CHAR_F) begin
+						if (byte >= CHAR_A) begin
 							//A - F value
 							command 		<= (command[31:0] << 4) + (byte - CHAR_HEX_OFFSET);
 						end
@@ -143,19 +176,19 @@ always @ (posedge clk) begin
 							//0-9 value
 							command 		<= (command[31:0] << 4) + (byte - CHAR_0);
 						end
-						r_nibble_count 	<= r_nibble_count + 1;	
+						nibble_count 	<= nibble_count + 1;	
 
-						if (r_nibble_count >= 7) begin
-							r_STATE			<= STATE_READ_ADDRESS;
-							r_nibble_count 	<= 4'h0;
+						if (nibble_count >= 7) begin
+							state			<= READ_ADDRESS;
+							nibble_count 	<= 4'h0;
 						end
 	
                     end
                 end
             end
-            STATE_READ_ADDRESS: begin
+            READ_ADDRESS: begin
                 //read the size
-                if (pos_edge_byte_available) begin
+                if (byte_available) begin
                     if ((byte < CHAR_0) || 
 						((byte > CHAR_0 + 10) && (byte < CHAR_A)) || 
 						(byte > CHAR_F)) begin
@@ -164,10 +197,10 @@ always @ (posedge clk) begin
 						outside all of the states, but within the state its
 						easier to understand the code
 						*/
-                        r_STATE    <=    STATE_READ_ID;
+                        state    <=    READ_ID;
                     end
                     else begin
-						if (byte >= CHAR_A && byte <= CHAR_F) begin
+						if (byte >= CHAR_A) begin
 							//A - F value
 							address 		<= (address[31:0] << 4) + (byte - CHAR_HEX_OFFSET);
 						end
@@ -176,17 +209,17 @@ always @ (posedge clk) begin
 							address 		<= (address[31:0] << 4) + (byte - CHAR_0);
 						end
 				
-						r_nibble_count 	<= r_nibble_count + 1;
+						nibble_count 	<= nibble_count + 1;
 					
-						if (r_nibble_count >= 7) begin
-							r_STATE			<= STATE_READ_DATA;
-							r_nibble_count 	<= 4'h0;
+						if (nibble_count >= 7) begin
+							state			<= READ_DATA;
+							nibble_count 	<= 4'h0;
 						end
                     end                
                 end
             end
-            STATE_READ_DATA : begin
-                if (pos_edge_byte_available) begin
+            READ_DATA : begin
+                if (byte_available) begin
 					if ((byte < CHAR_0) || 
 						((byte > CHAR_0 + 10) && (byte < CHAR_A)) || 
 						(byte > CHAR_F)) begin
@@ -195,35 +228,39 @@ always @ (posedge clk) begin
 						outside all of the states, but within the state its
 						easier to understand the code
 						*/
-                        r_STATE    <=    STATE_READ_ID;
+                        state    <=    READ_ID;
                     end
                     else begin
-						if (byte >= CHAR_A && byte <= CHAR_F) begin
+						if (byte >= CHAR_A) begin
 							//A - F value
-							data 		<= (data[31:0] << 4) + (byte - CHAR_HEX_OFFSET);
+							data 		<= (data[31:0] << 4 | (byte - CHAR_HEX_OFFSET));
 						end
 						else begin
 							//0-9 value
-							data 		<= (data[31:0] << 4) + (byte - CHAR_0);
+							data 		<= (data[31:0] << 4 |  (byte - CHAR_0));
 						end
 
-						r_nibble_count	<= r_nibble_count + 1;
-
-						if (r_nibble_count >= 7) begin
-							r_STATE			<= STATE_IDLE;
-							r_nibble_count	<= 4'h0;
-							ready			<= 1;
-
+						if (nibble_count >= 7) begin
+                            if (data_count > 0) begin
+                                data_count = data_count - 1;
+                            end
+                            else begin
+							    state			<= IDLE;
+                            end
+                            nibble_count        <= 4'h0;
+                            ready               <= 1;
 						end
+                        else begin
+						    nibble_count	<= nibble_count + 1;
+                        end
                     end
                 end
             end
             default: begin
                 command         <= 8'h0;
-                r_STATE         <= STATE_IDLE;
+                state         <= IDLE;
             end
         endcase
-        
     end
 end
 endmodule

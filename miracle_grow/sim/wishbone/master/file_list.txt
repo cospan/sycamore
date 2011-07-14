@@ -1,3 +1,0 @@
-../../../rtl/mg_defines.v
-../../../rtl/wishbone/master/wishbone_master.v
-wishbone_master_tb.v
