@@ -138,8 +138,10 @@ input handler
 
 	-initial proposed format
 
-		'LXXXXXXXXYYYYYYYYZZZZZZZZ'
+		'LNNNNNNNXXXXXXXXYYYYYYYYZZZZZZZZ'
 
+            N: number of data bytes to send after word
+                size: 24 bits
 			X: command
 				size: 32 bits
 			Y: address
@@ -150,11 +152,12 @@ output handler
 	-format outgoing data
 	
 	-initial proposed format
-		'SXXXXXXXXYYYYYYYYZZZZZZZZ'
+		'SXXXXXXXXYYYYYYYYZZZZZZZZM...'
 			X: status
 				size: 32 bits
 			Y: address
 				size: 32 bits
 			Z: data
+            M: added data bytes (from a stream read)
 
 

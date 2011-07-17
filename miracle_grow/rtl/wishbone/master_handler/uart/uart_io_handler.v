@@ -41,6 +41,7 @@ module uart_io_handler (
 	out_status,
 	out_address,
 	out_data,
+    out_data_count,
 
 	//phy
 	phy_uart_in,
@@ -61,6 +62,7 @@ input				out_en;
 input [31:0]		out_status;
 input [31:0]		out_address;
 input [31:0]		out_data;
+input [15:0]        out_data_count;
 
 //these are the only thing that are different between xxx_io_handler
 input				phy_uart_in;
@@ -131,6 +133,7 @@ uart_output_handler uoh(
 	.uart_ready(~uart_out_busy),
 	.handler_ready(out_ready),
 	.uart_byte_en(uart_byte_en),
+    .data_count(out_data_count),
 	.finished(out_finished));
 
 endmodule

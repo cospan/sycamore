@@ -32,6 +32,7 @@ module uart_input_handler(
 	address,
     data,
     ready,
+    data_count,
 );
 
 //incomming signals
@@ -45,6 +46,7 @@ output reg [31:0] command;
 output reg [31:0] address;
 output reg [31:0] data;
 output reg ready;
+output reg [27:0]  data_count;
 
 //STATES
 parameter IDLE             = 8'h0;
@@ -68,7 +70,6 @@ reg [7:0]  state;
 reg [3:0] nibble_count;
 reg [15:0] r_count;
 
-reg [27:0]  data_count;
 
 reg send_first_data;
 //Wire
@@ -101,10 +102,12 @@ always @ (posedge clk) begin
             IDLE: begin
 				ready			<= 0;
                 if (byte_available) begin
+                    //$display ("byte_available");
                     state     <= READ_ID;
                 end
             end
             READ_ID: begin
+                //$display ("read id");
                 //putting this here lets master hold onto the data for
                 //a longer time
                 command			<= 32'h0000;
@@ -124,6 +127,7 @@ always @ (posedge clk) begin
 
             READ_DATA_COUNT: begin
                 if (byte_available) begin
+                    //$display ("read data_count");
                     if ((byte < CHAR_0) ||
                         (( byte > CHAR_0 + 10) && (byte < CHAR_A)) ||
                         (byte > CHAR_F)) begin
@@ -153,6 +157,7 @@ always @ (posedge clk) begin
             end
             READ_CONTROL: begin
                 if (byte_available) begin
+                    //$display ("read_control");
                     if ((byte < CHAR_0) || 
 						((byte > CHAR_0 + 10) && (byte < CHAR_A)) || 
 						(byte > CHAR_F)) begin
@@ -189,6 +194,8 @@ always @ (posedge clk) begin
             READ_ADDRESS: begin
                 //read the size
                 if (byte_available) begin
+
+                    //$display("read address");
                     if ((byte < CHAR_0) || 
 						((byte > CHAR_0 + 10) && (byte < CHAR_A)) || 
 						(byte > CHAR_F)) begin
@@ -220,6 +227,8 @@ always @ (posedge clk) begin
             end
             READ_DATA : begin
                 if (byte_available) begin
+
+                    //$display ("read data");
 					if ((byte < CHAR_0) || 
 						((byte > CHAR_0 + 10) && (byte < CHAR_A)) || 
 						(byte > CHAR_F)) begin

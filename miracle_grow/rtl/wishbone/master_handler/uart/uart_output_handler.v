@@ -35,6 +35,7 @@ module uart_output_handler(
 	handler_ready,
 	uart_byte_en,
 	finished,
+    data_count,
 );
 
 //incomming signals
@@ -48,6 +49,7 @@ input [31:0] data;
 input uart_ready;
 
 input send_en;
+input [15:0] data_count;
 
 output reg [7:0] byte;
 output reg uart_byte_en;
@@ -72,6 +74,7 @@ reg[3:0]	r_nibble_count		= 	4'h0;
 
 reg r_data_ready				= 	0;
 reg r_uart_wait					=	0;
+reg [15:0] local_data_count     =   16'h0;
 
 reg	[31:0]	r_status			=	0;
 reg [31:0]	r_address			=	0;
@@ -96,101 +99,111 @@ always @ (posedge clk) begin
 
 	//uart_byte_en should only be high for one clock cycle
 
-	finished	<= 0;
+	finished	            <= 0;
+	uart_byte_en			<= 0;
 
 	if (rst) begin
 		r_STATE			<=	STATE_IDLE;
 		r_nibble_count	<=	4'h0;
 		byte			<= 	8'h0;
-		uart_byte_en 	<= 	0;
+        local_data_count <= 16'h0;
 	end
 
 	else begin
 		//don't do anything until the UART is ready
 		if (uart_ready) begin
-			case (r_STATE)
-				STATE_IDLE: begin
-					byte			<= 	8'h0;
-					r_nibble_count	<=	4'h0;
-					if (send_en) begin
-						r_status		<= status;
-						r_address		<= address;
-						r_data			<= data;
-						byte			<= 	CHAR_S;	
-						r_STATE			<=	STATE_WRITE_STATUS; 
-						uart_byte_en	<= 1;
-					end 
+		case (r_STATE)
+			STATE_IDLE: begin
+				byte			<= 	8'h0;
+				r_nibble_count	<=	4'h0;
+				if (send_en) begin
+//                    $display ("got a send en");
+					r_status		<= status;
+					r_address		<= address;
+					r_data			<= data;
+					byte			<= 	CHAR_S;	
+					r_STATE			<=	STATE_WRITE_STATUS; 
+					uart_byte_en	<= 1;
+                    local_data_count    <= data_count;
+				end 
+			end
+			STATE_WRITE_STATUS: begin
+//                $display ("write_status");
+				//shift the data into the output byte one at a time
+				if (r_status[31:28] < 10)begin
+					//send character number
+					byte 	<= r_status[31:28] + CHAR_0;
 				end
-				STATE_WRITE_STATUS: begin
-					//shift the data into the output byte one at a time
-					if (r_status[31:28] < 10)begin
-						//send character number
-						byte 	<= r_status[31:28] + CHAR_0;
-					end
-					else begin
-						//send  character hex value
-						byte 	<= r_status[31:28] + CHAR_HEX_OFFSET;
-					end
-					r_status 				<= {r_status[28:0], 4'h0};
-					uart_byte_en			<= 1;
-					r_nibble_count			<= r_nibble_count + 1;
-
-					if (r_nibble_count >= 7) begin
-						r_STATE			<= STATE_WRITE_ADDRESS;
-						r_nibble_count	<= 4'h0;
-					end
-
+				else begin
+					//send  character hex value
+					byte 	<= r_status[31:28] + CHAR_HEX_OFFSET;
 				end
-				STATE_WRITE_ADDRESS: begin
-					//shift the data into the output byte one at a time
-					if (r_address[31:28] < 10)begin
-						//send character number
-						byte 	<= r_address[31:28] + CHAR_0;
-					end
-					else begin
-						//send character hex value
-						byte 	<= r_address[31:28] + CHAR_HEX_OFFSET;
-					end
-
-					r_address 			<= {r_address[28:0], 4'h0};
-					uart_byte_en		<= 1;
-					r_nibble_count		<= r_nibble_count + 1;
-
-					if (r_nibble_count >= 7) begin
-						r_STATE			<= STATE_WRITE_DATA;
-						r_nibble_count	<= 4'h0;
-					end
-
+				r_status 				<= {r_status[28:0], 4'h0};
+				uart_byte_en			<= 1;
+				r_nibble_count			<= r_nibble_count + 1;
+//                $display ("count: %d", r_nibble_count);
+				if (r_nibble_count >= 7) begin
+					r_STATE			<= STATE_WRITE_ADDRESS;
+					r_nibble_count	<= 4'h0;
 				end
-				STATE_WRITE_DATA: begin
-					//shift the data into the output byte one at a time
-					if (r_data[31:28] < 10)begin
-						//send character number
-						byte 	<= r_data[31:28] + CHAR_0;
-					end
-					else begin
-						//send  character hex value
-						byte 	<= r_data[31:28] + CHAR_HEX_OFFSET;
-					end
 
-					r_data 				<= {r_data[28:0], 4'h0};
-					uart_byte_en		<= 1;
-					r_nibble_count		<= r_nibble_count + 1;
-
-					if (r_nibble_count >= 7) begin
-						finished		<= 1;
-						r_STATE			<= STATE_IDLE;
-						r_nibble_count	<= 4'h0;
-					end
-
+			end
+			STATE_WRITE_ADDRESS: begin
+//                $display ("write address");
+				//shift the data into the output byte one at a time
+				if (r_address[31:28] < 10)begin
+					//send character number
+					byte 	<= r_address[31:28] + CHAR_0;
 				end
-				default: begin
+				else begin
+					//send character hex value
+					byte 	<= r_address[31:28] + CHAR_HEX_OFFSET;
+				end
+
+				r_address 			<= {r_address[28:0], 4'h0};
+				uart_byte_en		<= 1;
+				r_nibble_count		<= r_nibble_count + 1;
+
+//                $display ("count: %d", r_nibble_count);
+	    		if (r_nibble_count >= 7) begin
+					r_STATE			<= STATE_WRITE_DATA;
+					r_nibble_count	<= 4'h0;
+				end
+
+			end
+			STATE_WRITE_DATA: begin
+//                $display ("write data");
+				//shift the data into the output byte one at a time
+				if (r_data[31:28] < 10)begin
+					//send character number
+					byte 	<= r_data[31:28] + CHAR_0;
+				end
+				else begin
+					//send  character hex value
+					byte 	<= r_data[31:28] + CHAR_HEX_OFFSET;
+				end
+
+				r_data 				<= {r_data[28:0], 4'h0};
+				uart_byte_en		<= 1;
+				r_nibble_count		<= r_nibble_count + 1;
+
+//                $display ("count: %d", r_nibble_count);
+				if (r_nibble_count >= 7) begin
+                    if (local_data_count > 0) begin
+                        local_data_count = local_data_count - 1;
+                    end
+                    else begin
+					    finished		<= 1;
+					    r_STATE			<= STATE_IDLE;
+                    end
+					r_nibble_count	<= 4'h0;
+				end
+
+			end
+			default: begin
 					r_STATE	<=	STATE_IDLE;
 			end
 		endcase
-		end
-		else begin
-			uart_byte_en			<= 0;
 		end
 	end
 	

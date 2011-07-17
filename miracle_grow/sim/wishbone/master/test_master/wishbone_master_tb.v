@@ -106,6 +106,7 @@ wire 		out_en;
 wire [31:0] out_status;
 wire [31:0] out_address;
 wire [31:0]	out_data;
+wire [15:0]  out_data_count;
 
 //wishbone signals
 wire [31:0] wb_addr_o;
@@ -132,12 +133,13 @@ wishbone_master wm (
 	.out_status(out_status),
 	.out_address(out_address),
 	.out_data(out_data),
+    .out_data_count(out_data_count),
 	.master_ready(master_ready),
 
-	.wb_addr_o(wb_addr_o),
+	.wb_adr_o(wb_addr_o),
 	.wb_dat_o(wb_dat_o),
 	.wb_dat_i(wb_dat_i),
-	.wb_str_o(wb_str_o),
+	.wb_stb_o(wb_str_o),
 	.wb_cyc_o(wb_cyc_o),
 	.wb_we_o(wb_we_o),
 	.wb_msk_o(wb_msk_o),

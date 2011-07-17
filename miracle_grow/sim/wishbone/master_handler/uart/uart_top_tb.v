@@ -34,6 +34,7 @@ module uart_top_tb;
 	wire [31:0]	command_input;
 	wire [31:0] address_input;
 	wire [31:0]	data_input;
+    wire [27:0] data_count;
 
 	wire input_ready;
 
@@ -47,7 +48,8 @@ module uart_top_tb;
 		.command(command_input),
 		.address(address_input),
 		.data(data_input),
-		.ready(input_ready)
+		.ready(input_ready),
+        .data_count(data_count)
 	);
 
 	//uart_output handler_signals
