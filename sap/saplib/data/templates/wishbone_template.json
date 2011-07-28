@@ -1,0 +1,51 @@
+{
+	
+	"project template":{
+		"type":"dir",
+		"files": {
+			"Makefile":{"type":"text", "modify":true, "tag":"#!!"},
+			"README":{"type":"text", "modify":true, "tag":"#!!"},
+			"project_defines.v":{"type":"hdl", "modify":true, "tag":"//!!"}	,
+			"build_scripts":{"type":"dir",
+				"files":{
+					"generate_synth_drt.py":{"type":"python"}
+				}
+			},
+			"sim_scripts":{"type":"dir",
+				"files":{
+					"sim_interface.py":{"location":"data/bus/sim_scripts/sim_interface.py", "tag_map":"data/tags/sim_scripts/sim_interface.py.json"}
+				}
+			},
+			"rtl":{ "type":"dir",
+				"files":{
+					"rtl_top.v":{"type":"hdl", "modify":true, "tag":"//!!"},
+					"bus":{"type":"dir",
+						"files":{
+							"master":{"type":"dir",
+								"files":{
+									"master.v":{"type":"hdl"}
+								}
+							},
+							"interconnect":{"type":"dir",
+								"files":{
+									"interconnect.v":{"type":"hdl"}
+								}
+							},
+							"slave":{"type":"dir"},
+							"interface":{"type":"dir"}
+						}
+					}
+				}	
+			},
+			"sim":{"type":"dir",
+				"files":{
+					"sim_top":{"type":"hdl", "modify":true, "tag":"//!!"},
+					"interface":{"type":"dir"}
+				}
+			},
+			"linux examples":{"type":"dir"}
+		}
+	}
+
+
+}

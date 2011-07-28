@@ -1,0 +1,10 @@
+{
+	
+	"BASE_DIR":"~/projects/sycamore_projects",
+	"PROJECT_NAME":"example_project",
+	"TEMPLATE":"wishbone_template.json",
+	"INTERFACE":"uart",
+	"SLAVES":[
+		"simple_gpio"
+	]
+}
