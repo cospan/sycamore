@@ -52,12 +52,12 @@ class Test (unittest.TestCase):
 
 	def test_load_project_config(self):
 		project_config = self.sap.load_project_config(json_config_file_name="./data/example_project/example1.json")
-		project_structure = self.sap.load_project_template("./data/templates/wishbone/wishbone_template.json")
+		project_structure = self.sap.load_project_template("./data/templates/wishbone_template.json")
 		self.assertEqual(1,1)	
 
 	def test_load_project_template(self):
 		"""Test the loading JSON file"""
-		project_structure = self.sap.load_project_template("./data/templates/wishbone/wishbone_template.json")
+		project_structure = self.sap.load_project_template("./data/templates/wishbone_template.json")
 		self.assertNotEqual(len(project_structure), 0)
 		self.assertEqual(True, True)
 

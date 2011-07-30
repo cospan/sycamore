@@ -2,16 +2,15 @@ import os
 
 
 
-class SapGen:
+class SapFile:
 	"""Base SapGen Class must be overriden: Used to modify or generate files"""
 
 	def __init__ (self):
 		self.buf = ""
-		self.tag_map = {}
-		self.project_name = ""
+		self.tags = {}
 		return
 
-	def open_file(self, location="", filename=""):
+	def read_file(self, location="", filename=""):
 		"""open file with the speicifed name, and location"""
 		try:
 			filein = open (location + "/" + filename, "r")
@@ -42,53 +41,28 @@ class SapGen:
 
 		return True
 
-	def generate_file(self, filename="", gen_script_name=""):
+	def apply_gen_script(self, filename="", gen_script_name="", file_dict={}):
 		"""run the custom script specified on the buf"""
+		#extrapolate the script location from the file_dict
+		#create a local module of the generation script
+		#mod = __import__(file_dict["gen_script"])
+
+		#mod.apply_script(self.buf, self.tags)
 		return
 
-	def modify_file(self):
+	def apply_tags(self):
 		"""substitute the tags with the data specific to this project"""
 		#search through the buf for any tags that match something within
 		#our tag map
-		if self.tag_map.has_key("PROJECT_NAME"):
-			print "has key!"
-		self.buf = self.buf.format(self.tag_map)
+		self.buf = self.buf.format(self.tags)
 		return
 	
-	def set_tag_map(self, tag_map={}):
-		"""set the tag_map, or the keyword: data relation mapping"""
-		if tag_map.has_key("PROJECT_NAME"):
-			self.project_name = tag_map["PROJECT_NAME"]
-		
-		self.tag_map = tag_map
-		self.tag_map["PROJECT_NAME"] = self.project_name
+	def set_tags(self, tags={}):
+		"""set the tags, or the keyword: data relation mapping"""
+		self.tags = tags
 		return
 
-	def clear_tag_map(self):
-		"""clear the current tag"""
-		self.tag_map = {}
-		return
-
-	def set_project_name(self, project_name="project_name"):
-		"""set the project name, this will be loaded with all new tag maps"""
-		self.project_name = project_name	
-		return
-	
-	def load_tag_file(self, tag_file = ""):
-		"""load a tag file, tags can be opened through a file, or as an actual dictionary""" 
-		try:
-			json_file = open (tag_file)
-			print ("loaded the file")
-			#set_tag_map(json_load(json_file))
-		except IOError as err:
-			print "IO Error" + str(err)
-			return False
-
-		json_file.close()
-
-		return True
-
-	def process_file(self, filename = "", file_dict={}, directory="", tag_map={}):
+	def process_file(self, filename = "", file_dict={}, directory=""):
 		"""read in a file, modify it (if necessary), then wite it to the location specified by the director variable"""
 		if (len(filename) == 0):
 			return False
@@ -97,7 +71,7 @@ class SapGen:
 		
 		
 		print "in process file"
-		#maybe load a tag_map??
+		#maybe load a tags??
 
 		#using the location value in the file_dict find the file and 
 		#pull it into a buf
@@ -105,7 +79,7 @@ class SapGen:
 			print "didn't found location"
 			return False;
 	
-		result = self.open_file(file_dict["location"], filename)
+		result = self.read_file(file_dict["location"], filename)
 
 		#if the generation flag is set in the dictionary
 		if file_dict.has_key("gen_script"):
@@ -114,7 +88,7 @@ class SapGen:
 		#call the specific generation script
 
 		#perform the format function
-		self.modify_file()	
+		self.apply_tags()	
 		print self.buf
 		#write the file to the specified directory
 		result = self.write_file(directory, filename)
