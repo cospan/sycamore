@@ -1,50 +1,49 @@
 {
-
 	
-	"project template":{
-		"type":"dir",
+	"PROJECT_TEMPLATE":{
+		"dir":true,
 		"files": {
-			"Makefile":{"type":"text", "modify":true, "tag":"#!!"},
-			"README":{"type":"text", "modify":true, "tag":"#!!"},
-			"project_defines.v":{"type":"hdl", "modify":true, "tag":"//!!"}	,
-			"build_scripts":{"type":"dir",
+			"Makefile":{},
+			"README":{"location":"data/bus"},
+			"project_defines.v":{"location":"data/bus"},
+			"build_scripts":{"dir":true,
 				"files":{
-					"generate_synth_drt.py":{"type":"python"}
+					"generate_synth_drt.py":{}
 				}
 			},
-			"sim_scripts":{"type":"dir",
+			"sim_scripts":{"dir":true,
 				"files":{
-					"sim_interface.py":{"location":"data/bus/sim_scripts/sim_interface.py", "tag_map":"data/tags/sim_scripts/sim_interface.py.json"}
+					"sim_interface.py":{"location":"data/bus/sim_scripts"}
 				}
 			},
-			"rtl":{ "type":"dir",
+			"rtl":{ "dir":true,
 				"files":{
-					"rtl_top.v":{"type":"hdl", "modify":true, "tag":"//!!"},
-					"bus":{"type":"dir",
+					"rtl_top.v":{},
+					"bus":{"dir":true,
 						"files":{
-							"master":{"type":"dir",
+							"master":{"dir":true,
 								"files":{
-									"master.v":{"type":"hdl"}
+									"wishbone_master.v":{"location":"data/hdl/rtl/wishbone/master"}
 								}
 							},
-							"interconnect":{"type":"dir",
+							"interconnect":{"dir":true,
 								"files":{
-									"interconnect.v":{"type":"hdl"}
+									"interconnect.v":{}
 								}
 							},
-							"slave":{"type":"dir"},
-							"interface":{"type":"dir"}
+							"slave":{"dir":true},
+							"interface":{"dir":true}
 						}
 					}
 				}	
 			},
-			"sim":{"type":"dir",
+			"sim":{"dir":true,
 				"files":{
-					"sim_top":{"type":"hdl", "modify":true, "tag":"//!!"},
-					"interface":{"type":"dir"}
+					"sim_top":{},
+					"interface":{"dir":true}
 				}
 			},
-			"linux examples":{"type":"dir"}
+			"linux examples":{"dir":true}
 		}
 	}
 

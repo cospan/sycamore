@@ -1,5 +1,6 @@
 import unittest
 import sapfile
+import json
 
 class Test (unittest.TestCase):
 	"""Unit test for sapfile"""
@@ -32,10 +33,8 @@ class Test (unittest.TestCase):
 		project_name = "projjjjeeeecccttt NAME!!!"
 		self.sapfile.read_file("./data/bus", "README")
 		print self.sapfile.buf
-		self.sapfile.clear_tag_map();
-		self.sapfile.set_project_name(project_name)
-		tag_map = {}
-		self.sapfile.set_tag_map(tag_map)
+		tag_map = {"PROJECT_NAME":project_name}
+		self.sapfile.set_tags(tag_map)
 		self.sapfile.apply_tags()
 		print self.sapfile.buf
 		result = (self.sapfile.buf.find(project_name) == 0)
@@ -44,18 +43,9 @@ class Test (unittest.TestCase):
 	def test_set_tags(self):
 		"""test to see if a tag file was loaded correctly"""
 		tag_file = "./data/tags/README.json"
-		result = self.sapfile.set_tags(tag_file)
-		self.assertEqual(result, True)
+		self.sapfile.set_tags(tag_file)
+		self.assertEqual(True, True)
 	
-	def test_tag_file_was_loaded(self):
-		"""load the tag file"""
-		tag_file = "./data/tags/README.json"
-		result = self.sapfile.set_tags(tag_file)
-		#print result
-		#result = self.sapfile.tag_map.has_key("LICENSE")
-		#print result
-		self.assertEqual(result, True)
-
 	def test_process_file_no_dir(self):
 		"""make sure the process_file fales when user doesn't put in directory"""
 		result = self.sapfile.process_file(filename = "README")
@@ -71,8 +61,10 @@ class Test (unittest.TestCase):
 		"""excercise all functions of the class"""
 		print "testing process file"
 		project_tags_file = "./data/example_project/example1.json"
-		self.sapfile.set_tags(project_tags_file)
-		file_tags = {"location":"./data/bus"}
+		filein = open(project_tags_file)
+		json_tags = json.load(filein)
+		self.sapfile.set_tags(json_tags)
+		file_tags = {"location":"data/bus"}
 		result = self.sapfile.process_file(filename = "README", directory="~/sandbox", file_dict = file_tags)
 		print self.sapfile.buf
 		self.assertEqual(result, True)

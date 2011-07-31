@@ -1,0 +1,179 @@
+import sapfile
+import saputils
+import json
+import os
+
+class SapProject:
+	"""Generates SAP Projects"""
+
+	def __init__(self):
+		self.filegen = sapfile.SapFile()
+		self.project_tags = {}
+		self.template_tags = {}
+		return
+
+	def read_config_string(self, json_string=""):
+		"""read the JSON string and change it to a structure"""
+		self.project_tags = json.loads(json_string)
+		return True
+
+	def read_config_file(self, file_name="", debug=False):
+		"""Read the project configuration file"""
+		if (debug):
+			print "File to read: " + file_name
+		json_string = ""
+		try:
+			#open up the specified JSON project config file
+			filein = open (file_name)
+			#copy it into a buffer
+			json_string = filein.read()
+			filein.close()
+
+		except IOError as err:
+			print("File Error: " + str(err))
+			return False
+
+		#now we have a buffer call the read config string
+		result = self.read_config_string(json_string)
+		return result 
+
+	def read_template(self, template_file_name="", debug=False):
+		"""Read the template file associatd with this bus"""
+		if (debug):
+			print "Debug enabled"
+		try: 
+			if (debug):
+				print "attempting local"
+			filein = open(template_file_name, "r")
+			json_string = filein.read()
+			self.template_tags = json.loads(json_string)
+			filein.close()
+			return True
+		except IOError as err:
+			filein = None
+
+		#if the project doesn't have a .json file association
+		if (not template_file_name.endswith(".json")):
+			template_file_name = template_file_name + ".json"
+		
+			try:
+				if (debug):
+					print "attempting local + .json"
+				filein = open(template_file_name, "r")
+				json_string = filein.read()
+				self.template_tags = json.loads(json_string)
+				filein.close()
+				return True
+			except IOError as err:
+				filein = None
+
+		#see if there is a environmental setting for SAPLIB_BASE
+		if (len(os.getenv("SAPLIB_BASE")) > 0):
+			file_name = os.getenv("SAPLIB_BASE") + "/data/templates/" + template_file_name	
+			try:
+				if (debug):
+					print "attempting environmental variable SAPLIB_BASE"
+					print file_name
+				filein = open(file_name, "r")
+				json_string = filein.read()
+				self.template_tags = json.loads(json_string)
+				filein.close()
+				return True
+			except IOError as err:
+				filein = None
+
+		#see if the sap_location was specified
+		if (self.project_tags.has_key("sap_location")):
+			file_name = self.project_tags["sap_location"] + "/data/templates/" + template_file_name
+			try:
+				print "attempting to read from project tags"
+				filein = open (file_name, "r")
+				json_string = filein.read()
+				self.template_tags = json.loads(json_string)
+				filein.close()
+				return True
+			except IOError as err:
+				filein = None
+
+		#try the default location	
+		file_name = "../data/templates/" + template_file_name
+		try:
+			print "attemping to read from hard string"
+			filein = open(file_name, "r")
+			json_string = filein.read()
+			self.template_tags = json.loads(json_string)
+			filein.close()
+			return True
+		except IOError as err:
+			filein = None
+		
+		return False
+
+	def generate_project(self, config_file_name, debug=False):
+		"""Recursively go through template structure and generate the folders and files"""
+		#reading the project config data into the the project tags
+		result = self.read_config_file(config_file_name)
+		if (not result):
+			print "failed to read in project config file"
+			return False
+		
+		#extrapolate the bus template
+		result = self.read_template(self.project_tags["TEMPLATE"])
+		if (not result):
+			print "failed to read in template file"
+			return False
+
+		#set all the tags within the filegen structure
+		self.filegen.set_tags(self.project_tags)
+
+		#generate the project directories and files
+		print "Parent dir: " + self.project_tags["BASE_DIR"]
+		for key in self.template_tags["PROJECT_TEMPLATE"]["files"]:
+			self.recursive_structure_generator(
+							self.template_tags["PROJECT_TEMPLATE"]["files"],
+							key,
+							self.project_tags["BASE_DIR"])
+
+		return True
+		
+	def recursive_structure_generator(self, 
+								parent_dict = {}, 
+								key="", 
+								parent_dir = "",  
+								debug=False):
+		"""recursively generate all directories and files"""
+		if (parent_dict[key].has_key("dir") and parent_dict[key]["dir"]):
+			print "found dir"
+			saputils.create_dir(parent_dir + "/" + key)
+			if (parent_dict[key].has_key("files")):
+				for sub_key in parent_dict[key]["files"]:
+					#print "sub item :" + sub_key
+					self.recursive_structure_generator(
+							parent_dict = parent_dict[key]["files"],
+							key = sub_key,
+							parent_dir = parent_dir + "/" + key)
+		else:
+			print "generate the file: " + key + " at: " + parent_dir
+			self.filegen.process_file(key, parent_dict[key], parent_dir)
+
+		return True
+
+	def query_slave(self, slave_name=""):
+		"""Using the template structure determing if the slave exists"""
+		#using the bus template find the location of the slave folders
+
+		#see if the name matches up to any of the files
+		#"name".v or "name".vhd
+		return False
+
+	def get_slave_meta_data(self, slave_name=""):
+		"""get the data that will be used for the DRT"""
+		#look for data within the verilog or VHDL file (verilog only right now)
+		return None
+	
+	def query_handler(self, handler_name=""):
+		"""see if a handler exists"""
+		return False
+
+
+	

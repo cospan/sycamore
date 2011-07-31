@@ -1,5 +1,5 @@
 import os
-
+import saputils
 
 
 class SapFile:
@@ -13,9 +13,8 @@ class SapFile:
 	def read_file(self, location="", filename=""):
 		"""open file with the speicifed name, and location"""
 		try:
-			filein = open (location + "/" + filename, "r")
-			with open (location + "/" + filename) as filein:
-				self.buf = filein.read()
+			filein = saputils.open_linux_file (location + "/" + filename)
+			self.buf = filein.read()
 		except IOError as err:
 			print ("File Error: " + str(err));
 			return False
@@ -55,6 +54,7 @@ class SapFile:
 		#search through the buf for any tags that match something within
 		#our tag map
 		self.buf = self.buf.format(self.tags)
+
 		return
 	
 	def set_tags(self, tags={}):
@@ -75,14 +75,26 @@ class SapFile:
 
 		#using the location value in the file_dict find the file and 
 		#pull it into a buf
-		if (not file_dict.has_key("location")):
-			print "didn't found location"
-			return False;
-	
-		result = self.read_file(file_dict["location"], filename)
+		file_location = ""
+		if file_dict.has_key("location"):
+			file_location = os.getenv("SAPLIB_BASE") + "/" + file_dict["location"]
+			print ("getting file: " + filename + " from location: " + file_location)
+		else:
+			print "didn't find file location"
+			return False
+
+		self.buf = ""
+		result = self.read_file(file_location, filename)
+
+		print "Project name: " + self.tags["PROJECT_NAME"]
+		if (len(self.buf) == 0):
+			print "File wasn't found!"
+			return False
+
+		print "file content: " + self.buf
 
 		#if the generation flag is set in the dictionary
-		if file_dict.has_key("gen_script"):
+		if (file_dict.has_key("gen_script")):
 			print "found the generation script"
 			print "run generation script: " + file_dict["gen_script"]
 		#call the specific generation script

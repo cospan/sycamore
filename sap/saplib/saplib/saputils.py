@@ -14,6 +14,11 @@ def create_dir(filename):
 	#							os.path.basename(filename))
 	#print "cwd: ", os.getcwd()	
 	#print "uname: ", os.uname()
+	
+	if filename.startswith("~"):
+		filename = filename.strip("~")
+		filename = os.getenv("HOME") + filename
+
 	print "Directory to create: ", filename
 
 	if  (not os.path.exists(filename)):
@@ -26,3 +31,12 @@ def create_dir(filename):
 		print ("Found the directory")
 	return True
 
+def open_linux_file(filename):
+	"""fixes linux issues when openeing a file"""
+
+	if filename.startswith("~"):
+		filename = filename.strip("~")
+		filename = os.getenv("HOME") + filename
+	
+	return open(filename)
+	
