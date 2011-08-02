@@ -1,7 +1,7 @@
 import unittest
-import gen
-import gen_interconnect 
+from gen import Gen
 import os
+from inspect import isclass
 
 class Test (unittest.TestCase):
 	"""Unit test for sapfile"""
@@ -9,23 +9,6 @@ class Test (unittest.TestCase):
 	def setUp(self):
 		"""open up a sapfile class"""
 		#self.gen = gen_interconnect.GenInterconnect()
-
-	def test_generate_file (self):
-		"""Generate file"""
-		#need to test the super class
-		tags = {"SLAVES":["slave1", "slave2"]}
-		interconnect_buffer = "\n${PORTS}\n${PORT_DEFINES}\n${ADDRESSES}\n${ASSIGN}\n${DATA}\n${ACK}\n${INT}"
-
-		#print "input buffer: " + interconnect_buffer
-
-		self.gen_module = __import__("gen_interconnect")
-		self.gen = self.gen_module.GenInterconnect()
-		self.gen.print_name()
-
-		result = self.gen.gen_script(tags, buf = interconnect_buffer)
-
-		#print "output buffer: " + result
-		self.assertEqual(len(result) > 0, True)
 
 	def test_gen_interconnect (self):
 		"""Generate an actual interconnect file"""
@@ -41,7 +24,13 @@ class Test (unittest.TestCase):
 
 		print "buf: " + interconnect_buffer
 		self.gen_module = __import__("gen_interconnect")
-		self.gen = self.gen_module.GenInterconnect()
+		for name in dir(self.gen_module):
+			obj = getattr(self.gen_module, name)
+			if isclass(obj) and issubclass(obj, Gen) and obj is not Gen:
+				self.gen = obj()
+				print "found " + name
+				
+		#self.gen = self.gen_module.Gen()
 		result = self.gen.gen_script(tags, buf = interconnect_buffer)
 
 		#write out the file

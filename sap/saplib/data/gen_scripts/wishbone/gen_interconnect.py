@@ -1,7 +1,10 @@
 import gen
 from string import Template
+from gen import Gen
 
-class GenInterconnect(gen.Gen):
+class GenInterconnect(Gen):
+
+
 	def __init__(self):
 		print "in GenInterconnect"
 		return
@@ -27,8 +30,8 @@ class GenInterconnect(gen.Gen):
 			num_slaves = num_slaves + len(slave_list)
 
 
-		for i in range ( 0, num_slaves):
-			print "count: " + str(i)
+		#for i in range ( 0, num_slaves):
+		#	print "count: " + str(i)
 
 		# ports
 		for i in range (0, num_slaves):
@@ -104,3 +107,6 @@ class GenInterconnect(gen.Gen):
 		#print "buf: " + buf
 
 		return buf
+
+		def get_name (self):
+			print "wishbone_interconnect.py"
