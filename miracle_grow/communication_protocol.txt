@@ -132,7 +132,8 @@ Master Commands
 			D: 0xRRRRRRRR (set)
 
 
-input handler
+UART io handler
+UART input handler
 	-decode incomming data
 	-all ASCII format (this is for debug), set size
 
@@ -148,7 +149,7 @@ input handler
 				size: 32 bits
 			Z: data
 				size: 32 bits
-output handler
+UART output handler
 	-format outgoing data
 	
 	-initial proposed format
@@ -160,4 +161,21 @@ output handler
 			Z: data
             M: added data bytes (from a stream read)
 
+
+UART example exchange:
+
+-ping the device
+	L0000000000000000000000000000000
+-response
+	SFFFFFFFF0000000000011EAF
+
+-read from address 0x00000001 (this address corresponds to the DRT offset 1 or the number of devices attached to the bus)
+	L0000000000000020000000100000000
+-response
+	SFFFFFFFD0000000100000001 (reading from address 1 from the DRT says there is 1 slave attached to the bus)
+
+-write the address 0x01000000 with a value of 0xFFFFFFFF (in the 2 slave example this corresponds to actually writing 0xFFFFFFFF to the GPIO values, or turning them all on)
+	L00000000000000101000000FFFFFFFF
+-response
+	SFFFFFFFE01000000FFFFFFFF
 

@@ -8,20 +8,20 @@ Version 1.0
 		-DRT slave: done
 		-GPIO slave: done
 	-Interconnect: done
-	-Master Wishbone bus
+	-Master Wishbone bus done
 		-Verification:
-			-Simulation Top
-				-sim master handler
-					-write
-					-read
+			-Simulation Top done
+				-sim master handler done
+					-write done
+					-read done
 			-wishbone master
-				-exercise all commands and recieve all expected status
+				-exercise all commands and recieve all expected status done
 				-communication with slave
-					-sim slave
-					-GPIO slave
+					-sim slave done
+					-GPIO slave done
 
 	-Master Interfaces
-		-UART: Hard verification
+		-UART: Hard verification done
 		-FSMC
 		-PCIE
 
