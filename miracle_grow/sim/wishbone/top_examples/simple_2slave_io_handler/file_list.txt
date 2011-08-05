@@ -1,0 +1,9 @@
+../../../../rtl/mg_defines.v
+../../../../rtl/wishbone/master_handler/uart/uart.v
+../../../../rtl/wishbone/master_handler/uart/uart_io_handler.v
+../../interconnect/example_2port_interconnect/wishbone_interconnect.v
+device_table_defines.v
+../../../../rtl/wishbone/slave/device_rom_table/device_rom_table.v
+../../../../rtl/wishbone/slave/simple_gpio/simple_gpio.v
+../../../../rtl/wishbone/master/wishbone_master.v
+top_tb.v

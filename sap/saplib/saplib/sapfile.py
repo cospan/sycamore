@@ -1,5 +1,7 @@
 import os
 import saputils
+from gen import Gen
+from inspect import isclass
 
 
 class SapFile:
@@ -62,7 +64,7 @@ class SapFile:
 		self.tags = tags
 		return
 
-	def process_file(self, filename = "", file_dict={}, directory=""):
+	def process_file(self, filename = "", file_dict={}, directory="", debug=False):
 		"""read in a file, modify it (if necessary), then wite it to the location specified by the director variable"""
 		if (len(filename) == 0):
 			return False
@@ -70,7 +72,8 @@ class SapFile:
 			return False
 		
 		
-		print "in process file"
+		if (debug):	
+			print "in process file"
 		#maybe load a tags??
 
 		#using the location value in the file_dict find the file and 
@@ -78,7 +81,8 @@ class SapFile:
 		file_location = ""
 		if file_dict.has_key("location"):
 			file_location = os.getenv("SAPLIB_BASE") + "/" + file_dict["location"]
-			print ("getting file: " + filename + " from location: " + file_location)
+			if (debug): 
+				print ("getting file: " + filename + " from location: " + file_location)
 		else:
 			print "didn't find file location"
 			return False
@@ -86,22 +90,37 @@ class SapFile:
 		self.buf = ""
 		result = self.read_file(file_location, filename)
 
-		print "Project name: " + self.tags["PROJECT_NAME"]
+		if (debug):
+			print "Project name: " + self.tags["PROJECT_NAME"]
 		if (len(self.buf) == 0):
 			print "File wasn't found!"
 			return False
 
-		print "file content: " + self.buf
+		if (debug):
+			print "file content: " + self.buf
 
+			
 		#if the generation flag is set in the dictionary
 		if (file_dict.has_key("gen_script")):
-			print "found the generation script"
-			print "run generation script: " + file_dict["gen_script"]
-		#call the specific generation script
+			if (debug):
+				print "found the generation script"
+				print "run generation script: " + file_dict["gen_script"]
+			#open up the new gen module
+			gen_module = __import__(file_dict["gen_script"])	
+			for name in dir(gen_module):
+				obj = getattr(gen_module, name)
+				if isclass(obj) and issubclass(obj, Gen) and obj is not Gen:
+					gen = obj()
+					self.buf = gen.gen_script(tags = self.tags, buf = self.buf)
 
-		#perform the format function
-		self.apply_tags()	
-		print self.buf
+			
+		else:
+			#perform the format function
+			self.apply_tags()	
+
+		if (debug):	
+			print self.buf
 		#write the file to the specified directory
 		result = self.write_file(directory, filename)
+
 		return True

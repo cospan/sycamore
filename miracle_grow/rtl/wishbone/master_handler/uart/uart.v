@@ -22,19 +22,31 @@
 // THE SOFTWARE.
 // 
 module uart(
-    input clk, // The master clock for this module
-    input rst, // Synchronous reset.
-    input rx, // Incoming serial line
-    output tx, // Outgoing serial line
-    input transmit, // Signal to transmit
-    input [7:0] tx_byte, // Byte to transmit
-    output received, // Indicated that a byte has been received.
-    output [7:0] rx_byte, // Byte received
-    output is_receiving, // Low when receive line is idle.
-    output is_transmitting, // Low when transmit line is idle.
-    output recv_error // Indicates error in receiving packet.
+    clk, // The master clock for this module
+    rst, // Synchronous reset.
+    rx, // Incoming serial line
+    tx, // Outgoing serial line
+    transmit, // Signal to transmit
+    tx_byte, // Byte to transmit
+    received, // Indicated that a byte has been received.
+    rx_byte, // Byte received
+    is_receiving, // Low when receive line is idle.
+    is_transmitting, // Low when transmit line is idle.
+    recv_error // Indicates error in receiving packet.
     );
 
+input clk;
+input rst;
+input rx;
+output tx;
+input transmit;
+input [7:0] tx_byte;
+output received;
+output [7:0] rx_byte;
+output is_receiving;
+output is_transmitting;
+output recv_error;
+	
 parameter CLOCK_DIVIDE = 1302; // clock rate (50Mhz) / (baud rate (9600) * 4)
 
 // States for the receiving state machine.

@@ -52,7 +52,7 @@ module wishbone_master (
 	wb_we_o,
 	wb_msk_o,
 	wb_sel_o,
-	wb_ack_i,
+	wb_ack_i
 	);
 
 	input 				clk;
@@ -69,7 +69,7 @@ module wishbone_master (
 	output reg [31:0]	out_status		= 32'h0;
 	output reg [31:0]	out_address		= 32'h0;
 	output reg [31:0]	out_data		= 32'h0;
-    output reg [15:0]   out_data_count  = 16'h0;
+    output reg [27:0]   out_data_count  = 28'h0;
 	
 	//wishbone
 	output reg [31:0]	wb_adr_o;
@@ -133,7 +133,7 @@ end
 			out_status		<= 32'h0;
 			out_address 	<= 32'h0;
 			out_data		<= 32'h0;
-            out_data_count  <= 16'h0;
+            out_data_count  <= 28'h0;
 			local_command	<= 32'h0;
 			local_address	<= 32'h0;
 			local_data		<= 32'h0;
@@ -166,7 +166,6 @@ end
             case (state)
 
             READ: begin
-                $display ("reading adr: %h", wb_adr_o);
                 if (wb_ack_i) begin
                     $display ("GOT AN ACK!!!");
                     wb_stb_o    <= 0;
@@ -178,9 +177,7 @@ end
                     end
             end
             WRITE: begin
-                $display ("writing adr: %h", wb_adr_o);
                 if (wb_ack_i) begin
-                    $display ("GOT AN ACK FROM A READ");
                     wb_stb_o    <= 0;
                     wb_cyc_o    <= 0;
                     wb_we_o     <= 0;
@@ -191,7 +188,6 @@ end
             end
     		STREAM_READ_C: begin
     			if (out_ready) begin
-	    			$display("in state STREAM_READ_C");
                     //send a request for new data
                     if (wb_stb_o == 0) begin
                         $display ("requesting more data from slave");
@@ -202,7 +198,6 @@ end
                     end
                     //got a response back
                     else if (wb_ack_i) begin
-                        $display("got an ack back from the slave");
                         wb_stb_o    <= 0;
                         wb_cyc_o    <= 0;
                         wb_we_o     <= 0;
@@ -212,11 +207,9 @@ end
                         out_en      <= 1;
 				        rw_count	<= rw_count - 1;
                         wb_adr_o    <= wb_adr_o + 1;
-   					    $display ("rw_count: %d\n", rw_count);
                     end
 
    					if (rw_count <= 1)begin
-    					$display ("return to IDLE");
 	    				state	<= IDLE;
 		    		end
 
@@ -225,16 +218,13 @@ end
    			STREAM_READ: begin
     			if (out_ready) begin
                     //send a request for new data
-	    			$display("in state STREAM_READ");
                     if (wb_stb_o == 0) begin
-                        $display ("requesting more data from slave");
                         wb_stb_o    <= 1;
                         wb_cyc_o    <= 1;
                         wb_we_o     <= 0;
                     end
                     //got a response back
                     else if (wb_ack_i) begin
-                        $display("got an ack back from the slave");
                         wb_stb_o    <= 0;
                         wb_cyc_o    <= 0;
                         wb_we_o     <= 0;
@@ -244,11 +234,9 @@ end
                         out_en      <= 1;
 				        rw_count	<= rw_count - 1;
 
-   					    $display ("rw_count: %d\n", rw_count);
                     end
 
    					if (rw_count <= 1)begin
-    					$display ("return to IDLE");
 	    				state	<= IDLE;
 		    		end
 			    end
@@ -267,11 +255,9 @@ end
 
 			    case(state)
     				IDLE: begin
-	    				$display ("in IDLE state");
 		    			case (in_command)
 
 			    		`COMMAND_PING: begin
-				    		$display("ping");
 					    	out_status	<= ~in_command;
     						out_address	<= 32'h00000000;
 	    					out_data	<= S_PING_RESP;
@@ -279,50 +265,44 @@ end
 			    			state 		<= IDLE;
 				    	end
     					`COMMAND_WRITE:	begin
-	    					$display ("write");
 		    				out_status	<= ~in_command;
                             wb_adr_o    <= in_address;
+							out_address	<= in_address;
+							out_data	<= in_data;
                             wb_stb_o    <= 1;
                             wb_cyc_o    <= 1;
                             wb_we_o     <= 1;
                             wb_dat_o    <= in_data;
-                            $display ("Address: %h", in_address);
     	    				state		<= WRITE;
 			    		end
 				    	`COMMAND_READ: 	begin
-					    	$display ("read");
 						    out_status	<= ~in_command;
                             wb_adr_o    <= in_address;
+							out_address	<= in_address;
                             wb_stb_o    <= 1;
                             wb_cyc_o    <= 1;
                             wb_we_o     <= 0;
     			    		state		<= READ;
 					    end
     					`COMMAND_WSTREAM_C: begin
-	    					$display ("write stream consective");
 		    				out_status	<= ~in_command;
 			    			out_en		<= 1;
 				    		master_ready<= 0;
                             wb_adr_o    <= in_address;
-					    	$display ("in_data == %d", in_data);
     						rw_count	<= in_data;
 	    					state		<= STREAM_WRITE_C;
 		    			end
 			    		`COMMAND_WSTREAM: begin
-				    		$display ("write stream");
 					    	out_status	<= ~in_command;
 						    out_en		<= 1;
                             wb_adr_o    <= in_address;
-    						$display ("in_data == %d", in_data);
 	    					master_ready	<= 0;
 		    				rw_count	<= in_data;
 			    			state		<= STREAM_WRITE;
 				    	end
 					    `COMMAND_RSTREAM_C: begin
-    						$display ("read stream consecutive");
 	    					out_status	<= ~in_command;
 		    				out_en		<= 1;
-			    			$display ("in_data == %d", in_data);
 				    		rw_count	<= in_data;
                             out_data_count  <= in_data;
                             wb_adr_o    <= in_address;
@@ -330,24 +310,20 @@ end
 						    state		<= STREAM_READ_C;
     					end
 	    				`COMMAND_RSTREAM: begin
-		    				$display ("read stream");
 			    			out_status	<= ~in_command;
 				    		out_en		<= 1;
 					    	master_ready <= 0;
-						    $display ("in_data == %d", in_data);
     						rw_count	<= in_data;
                             out_data_count  <= in_data;
 	    					state		<= STREAM_READ;
                             wb_adr_o    <= in_address;
 		    			end
 			    		`COMMAND_RW_FLAGS: begin
-				    		$display ("rw flags");
 					    	out_status	<= ~in_command;
 						    out_en		<= 1;
     						state		<= IDLE;
 	    				end
 		    			`COMMAND_INTERRUPT: begin
-			    			$display ("interrupts");
 				    		out_status	<= ~in_command;
 					    	out_en		<= 1;
 						    state		<= IDLE;
@@ -359,17 +335,13 @@ end
     		    end
             	STREAM_WRITE_C: begin
 	        		if (in_ready) begin
-		    			$display("in state STREAM_WRITE_C");
 	        			master_ready	<= 0;
 						//local data is only used for simulation
 			        	//we should be really writing to the address
 				        local_data	<= in_data;
    						out_data	<= in_data;
-       					$display("read data: %h", in_data);
         				rw_count	<= rw_count - 1;
-	        			$display ("rw_count: %d\n", rw_count);
 		        		if (rw_count <= 1)begin
-			        		$display ("return to IDLE");
 				    	state	<= IDLE;
 					    out_en	<= 1;
   						end
@@ -377,18 +349,14 @@ end
 	    		end
 		    	STREAM_WRITE: begin
 			    	if (in_ready) begin
-				    	$display("in state STREAM_WRITE");
 					    master_ready	<= 0;
    						//local data is only used for simulation
     					//we should be really writing to the address
 	    				local_data	<= in_data;
 		    			out_data	<= in_data;
-			    		$display("read data: %h", in_data);
 				    	rw_count	<= rw_count - 1;
-					    $display ("rw_count: %d\n", rw_count);
-   						if (rw_count <= 1)begin
-    						$display ("return to IDLE");
-	    					state	<= IDLE;
+						if (rw_count <= 1)begin
+        					state	<= IDLE;
 		    				out_en	<= 1;
 			    		end
 				    end

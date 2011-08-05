@@ -40,6 +40,9 @@ test_project:
 test_interconnect:
 	python test/test_interconnect.py 
 
+test_top:
+	python test/test_top.py
+
 test_help:
 	echo $(PWD)
 

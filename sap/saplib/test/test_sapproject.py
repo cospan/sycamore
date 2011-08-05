@@ -17,20 +17,20 @@ class Test (unittest.TestCase):
 	def test_read_config_file(self):
 		"""confirm that a project config file can be read"""
 		file_name = os.getenv("SAPLIB_BASE") + "/data/example_project/example1.json"
-		result = self.project.read_config_file(file_name, debug=True)
+		result = self.project.read_config_file(file_name, debug=False)
 		result = True
 		self.assertEqual(result, True)
 
 	def test_read_template(self):
 		"""confirm that a template file can be loaded"""
 		filename = "wishbone_template"
-		result = self.project.read_template(filename, debug=True)
+		result = self.project.read_template(filename, debug=False)
 		self.assertEqual(result, True)
 
 	def test_generate_project(self):
 		"""test if a project can be generated"""
 		file_name = os.getenv("SAPLIB_BASE") + "/data/example_project/example1.json"
-		result = self.project.generate_project(file_name, debug=True)
+		result = self.project.generate_project(file_name, debug=False)
 		self.assertEqual(result, True)
 
 	def test_query_slave(self):

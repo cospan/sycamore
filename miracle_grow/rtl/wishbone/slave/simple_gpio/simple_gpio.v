@@ -38,7 +38,7 @@ module simple_gpio (
 	wbs_int_o,
 
 	gpio_in,
-	gpio_out,
+	gpio_out
 );
 
 input 				clk;

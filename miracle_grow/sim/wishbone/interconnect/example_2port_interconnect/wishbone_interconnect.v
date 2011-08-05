@@ -63,7 +63,7 @@ module wishbone_interconnect (
     s1_dat_o,
     s1_dat_i,
     s1_adr_o,
-    s1_int_i,
+    s1_int_i
 );
 
 

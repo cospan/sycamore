@@ -29,7 +29,7 @@
 							},
 							"interconnect":{"dir":true,
 								"files":{
-									"wishbone_interconnect.v":{}
+									"wishbone_interconnect.v":{"location":"data/hdl/rtl/wishbone/interconnect", "gen_script":"gen_interconnect"}
 								}
 							},
 							"slave":{"dir":true},

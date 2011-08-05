@@ -2,7 +2,7 @@ import os
 
 """utilites that don't really belong in any of the sap classes"""
 
-def create_dir(filename):
+def create_dir(filename, debug=False):
 	"""Generate a directory with the specified location"""
 	
 	#print "os: ", os.name, "..."
@@ -19,16 +19,20 @@ def create_dir(filename):
 		filename = filename.strip("~")
 		filename = os.getenv("HOME") + filename
 
-	print "Directory to create: ", filename
+	if (debug):
+		print "Directory to create: ", filename
 
 	if  (not os.path.exists(filename)):
-		print ("Directory doesn't exist attempting to create...")
+		if (debug):
+			print ("Directory doesn't exist attempting to create...")
 		try: 
 			os.makedirs(filename)
 		except os.error:
-			print "Error: failed to create the directory"
+			if (debug):
+				print "Error: failed to create the directory"
 	else:
-		print ("Found the directory")
+		if (debug):
+			print ("Found the directory")
 	return True
 
 def open_linux_file(filename):

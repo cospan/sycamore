@@ -9,7 +9,7 @@ class GenInterconnect(Gen):
 		print "in GenInterconnect"
 		return
 
-	def gen_script (self, tags = {}, buf = ""):
+	def gen_script (self, tags = {}, buf = "", debug=False):
 		"""Overridden function"""
 		slave_list = []
 		template = Template(buf)
@@ -42,7 +42,11 @@ class GenInterconnect(Gen):
 			port_buf = port_buf + "\ts" + str(i) + "_dat_o,\n"
 			port_buf = port_buf + "\ts" + str(i) + "_dat_i,\n"
 			port_buf = port_buf + "\ts" + str(i) + "_adr_o,\n"
-			port_buf = port_buf + "\ts" + str(i) + "_int_i,\n"
+			port_buf = port_buf + "\ts" + str(i) + "_int_i"
+
+			if (i < num_slaves - 1):
+				port_buf = port_buf + ",\n"
+				
 			port_buf = port_buf + "\n\n"
 			
 
@@ -89,7 +93,7 @@ class GenInterconnect(Gen):
 		ack_block_buf = ack_block_buf + ") begin\n\tcase (slave_select)\n"
 		for i in range (0, num_slaves):
 			ack_block_buf = ack_block_buf + "\t\tADDR_" + str(i) + ": begin\n\t\t\tm_ack_o = s" + str(i) + "_ack_i\n\t\tend\n";
-		ack_block_buf = ack_block_buf + "\t\tdefault: begin\n\t\t\tm_ack_o <= x;\n\t\tend\n\tendcase\nend\n\n"
+		ack_block_buf = ack_block_buf + "\t\tdefault: begin\n\t\t\tm_ack_o <= 1\'hx;\n\t\tend\n\tendcase\nend\n\n"
 
 
 		#int in block
@@ -100,7 +104,7 @@ class GenInterconnect(Gen):
 		int_block_buf = int_block_buf + ") begin\n\tcase (slave_select)\n"
 		for i in range (0, num_slaves):
 			int_block_buf = int_block_buf + "\t\tADDR_" + str(i) + ": begin\n\t\t\tm_int_o = s" + str(i) + "_int_i\n\t\tend\n";
-		int_block_buf = int_block_buf + "\t\tdefault: begin\n\t\t\tm_int_o <= x;\n\t\tend\n\tendcase\nend\n\n"
+		int_block_buf = int_block_buf + "\t\tdefault: begin\n\t\t\tm_int_o <= 1\'hx;\n\t\tend\n\tendcase\nend\n\n"
 
 
 		buf = template.substitute(PORTS=port_buf, PORT_DEFINES=port_def_buf, ASSIGN=assign_buf, DATA=data_block_buf, ACK=ack_block_buf, INT=int_block_buf, ADDRESSES=address_param_buf)

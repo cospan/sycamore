@@ -86,7 +86,8 @@ class SapProject:
 		if (self.project_tags.has_key("sap_location")):
 			file_name = self.project_tags["sap_location"] + "/data/templates/" + template_file_name
 			try:
-				print "attempting to read from project tags"
+				if (debug):
+					print "attempting to read from project tags"
 				filein = open (file_name, "r")
 				json_string = filein.read()
 				self.template_tags = json.loads(json_string)
@@ -98,7 +99,8 @@ class SapProject:
 		#try the default location	
 		file_name = "../data/templates/" + template_file_name
 		try:
-			print "attemping to read from hard string"
+			if (debug):
+				print "attemping to read from hard string"
 			filein = open(file_name, "r")
 			json_string = filein.read()
 			self.template_tags = json.loads(json_string)
@@ -114,20 +116,22 @@ class SapProject:
 		#reading the project config data into the the project tags
 		result = self.read_config_file(config_file_name)
 		if (not result):
-			print "failed to read in project config file"
+			if (debug):
+				print "failed to read in project config file"
 			return False
 		
 		#extrapolate the bus template
 		result = self.read_template(self.project_tags["TEMPLATE"])
 		if (not result):
-			print "failed to read in template file"
+			if (debug):
+				print "failed to read in template file"
 			return False
 
 		#set all the tags within the filegen structure
 		self.filegen.set_tags(self.project_tags)
 
 		#generate the project directories and files
-		print "Parent dir: " + self.project_tags["BASE_DIR"]
+		#print "Parent dir: " + self.project_tags["BASE_DIR"]
 		for key in self.template_tags["PROJECT_TEMPLATE"]["files"]:
 			self.recursive_structure_generator(
 							self.template_tags["PROJECT_TEMPLATE"]["files"],
@@ -143,7 +147,7 @@ class SapProject:
 								debug=False):
 		"""recursively generate all directories and files"""
 		if (parent_dict[key].has_key("dir") and parent_dict[key]["dir"]):
-			print "found dir"
+			#print "found dir"
 			saputils.create_dir(parent_dir + "/" + key)
 			if (parent_dict[key].has_key("files")):
 				for sub_key in parent_dict[key]["files"]:
@@ -153,7 +157,7 @@ class SapProject:
 							key = sub_key,
 							parent_dir = parent_dir + "/" + key)
 		else:
-			print "generate the file: " + key + " at: " + parent_dir
+			#print "generate the file: " + key + " at: " + parent_dir
 			self.filegen.process_file(key, parent_dict[key], parent_dir)
 
 		return True

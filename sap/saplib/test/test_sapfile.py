@@ -1,6 +1,7 @@
 import unittest
 import sapfile
 import json
+from gen import Gen
 
 class Test (unittest.TestCase):
 	"""Unit test for sapfile"""
@@ -69,6 +70,16 @@ class Test (unittest.TestCase):
 		print self.sapfile.buf
 		self.assertEqual(result, True)
 		
+	def test_process_gen_script(self):
+		"""excercise the script"""
+		project_tags_file = "./data/example_project/example1.json"
+		filein = open(project_tags_file)
+		json_tags = json.load(filein)
+		self.sapfile.set_tags(json_tags)
+		file_tags = {"location":"data/hdl/rtl/wishbone/interconnect", "gen_script":"gen_interconnect"}
+		result = self.sapfile.process_file(filename = "wishbone_interconnect.v", directory="~/sandbox", file_dict = file_tags)
+		print self.sapfile.buf
+		self.assertEqual(result, True)
 		
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 
-FILES = gen_interconnect
+FILES = gen_interconnect gen_top
 
 all:
 	@for i in $(FILES); do \

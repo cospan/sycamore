@@ -29,7 +29,7 @@ SOFTWARE.
  * number of items in the ROM
  * defparam DRT_NUM_OF_DEVICES = 2;
  */
-
+//`include "device_table_defines.v"
 //`define DRT_NUM_OF_DEVICES 1
 `define DRT_SIZE_OF_HEADER 	4
 `define DRT_SIZE_OF_DEV		4
@@ -44,10 +44,9 @@ module device_rom_table (
 	wbs_dat_i,
 	wbs_stb_i,
 	wbs_ack_o,
-	wbs_dat_i,
 	wbs_dat_o,
 	wbs_adr_i,
-	wbs_int_o,
+	wbs_int_o
 );
 
 input 					clk;
@@ -63,7 +62,7 @@ output reg  [31:0]		wbs_dat_o;
 output reg				wbs_ack_o;
 output reg				wbs_int_o; 
 
-parameter DRT_NUM_OF_DEVICES = 1;
+//parameter DRT_NUM_OF_DEVICES = 1;
 
 parameter DRT_ID_ADR		= 32'h00000000;	
 parameter DRT_NUM_DEV_ADR	= 32'h00000001;
@@ -89,17 +88,8 @@ parameter DRT_SIZE			= `DRT_SIZE_OF_HEADER + (`DRT_NUM_OF_DEVICES * `DRT_SIZE_OF
 //reg [DRT_SIZE:0][31:0] drt;
 reg [31:0] drt [(DRT_SIZE - 1):0]; 
 
-//NEED A way to pull data in from input file
-//`DRT_INPUT_FILE
-//integer i;
 initial begin
-//	$display ("size of ROM: 32 x %d", DRT_SIZE);
-//	$display ("total size of ROM is %d", DRT_SIZE * 32 + 4);
-//	$display ("drt: %h", drt[0]);
 	$readmemh(`DRT_INPUT_FILE, drt, 0, DRT_SIZE - 1); 
-//	for (i = 0; i < DRT_SIZE; i = i+1) begin
-//		$display ("drt[%d]: %h", i, drt[i]);
-//	end
 end
 
 always @ (posedge clk) begin
