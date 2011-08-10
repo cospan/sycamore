@@ -138,6 +138,17 @@ class SapProject:
 							key,
 							self.project_tags["BASE_DIR"])
 
+		#Generate all the slaves
+		for slave in self.project_tags["SLAVES"]:
+			fdict = {"location":""}
+			file_dest = self.project_tags["BASE_DIR"] + "/rtl/bus/slave"
+			result = self.filegen.process_file(filename = slave, file_dict = fdict, directory=file_dest)
+			#each slave
+		#Generate the IO handler
+		interface_filename = self.project_tags["INTERFACE"]
+		fdict = {"location":""}
+		file_dest = self.project_tags["BASE_DIR"] + "/rtl/bus/interface"
+		result = self.filegen.process_file(filename = interface_filename, file_dict=fdict , directory=file_dest)
 		return True
 		
 	def recursive_structure_generator(self, 

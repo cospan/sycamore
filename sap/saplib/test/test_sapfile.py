@@ -12,7 +12,7 @@ class Test (unittest.TestCase):
 
 	def test_read_file(self):
 		"""a file should be open for modifying"""
-		result = self.sapfile.read_file("./data/bus", "README")
+		result = self.sapfile.read_file("./data/bus/README")
 		self.assertEqual(result, True)
 
 	def test_write_file(self):
@@ -32,12 +32,12 @@ class Test (unittest.TestCase):
 	def test_apply_tags(self):
 		"""a file should be changed based on the tags"""
 		project_name = "projjjjeeeecccttt NAME!!!"
-		self.sapfile.read_file("./data/bus", "README")
-		print self.sapfile.buf
+		self.sapfile.read_file("./data/bus/README")
+		#print self.sapfile.buf
 		tag_map = {"PROJECT_NAME":project_name}
 		self.sapfile.set_tags(tag_map)
 		self.sapfile.apply_tags()
-		print self.sapfile.buf
+		#print self.sapfile.buf
 		result = (self.sapfile.buf.find(project_name) == 0)
 		self.assertEqual(result, True)
 
@@ -54,20 +54,26 @@ class Test (unittest.TestCase):
 
 	def test_process_file_no_location(self):
 		"""make sue the process file fails when user doesn't give a location"""
-		result = self.sapfile.process_file(filename = "README", directory="~/sandbox")
-		self.assertNotEqual(result, True)
-	
-		
-	def test_process_file(self):
-		"""excercise all functions of the class"""
-		print "testing process file"
 		project_tags_file = "./data/example_project/example1.json"
 		filein = open(project_tags_file)
 		json_tags = json.load(filein)
 		self.sapfile.set_tags(json_tags)
 		file_tags = {"location":"data/bus"}
+		result = self.sapfile.process_file(filename = "README", directory="~/sandbox")
+		self.assertNotEqual(result, True)
+	
+	def test_process_file(self):
+		"""excercise all functions of the class"""
+		#print "testing process file"
+		project_tags_file = "./data/example_project/example1.json"
+		filein = open(project_tags_file)
+		json_tags = json.load(filein)
+		filein.close()
+
+		self.sapfile.set_tags(json_tags)
+		file_tags = {"location":""}
 		result = self.sapfile.process_file(filename = "README", directory="~/sandbox", file_dict = file_tags)
-		print self.sapfile.buf
+		#print self.sapfile.buf
 		self.assertEqual(result, True)
 		
 	def test_process_gen_script(self):
@@ -78,9 +84,19 @@ class Test (unittest.TestCase):
 		self.sapfile.set_tags(json_tags)
 		file_tags = {"location":"data/hdl/rtl/wishbone/interconnect", "gen_script":"gen_interconnect"}
 		result = self.sapfile.process_file(filename = "wishbone_interconnect.v", directory="~/sandbox", file_dict = file_tags)
-		print self.sapfile.buf
+		#print self.sapfile.buf
 		self.assertEqual(result, True)
 		
+	def test_process_file_no_filename(self):
+		"""excercise the gen script only functionality"""
+		project_tags_file = "./data/example_project/example1.json"
+		filein = open(project_tags_file)
+		json_tags = json.load(filein)
+		self.sapfile.set_tags(json_tags)
+		file_tags = {"gen_script":"gen_top"}
+		result = self.sapfile.process_file("top", directory="~/sandbox", file_dict = file_tags, debug=False)
+		self.assertEqual(result, True)
+
 
 if __name__ == "__main__":
 	unittest.main()

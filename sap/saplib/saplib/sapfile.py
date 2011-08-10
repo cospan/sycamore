@@ -12,10 +12,10 @@ class SapFile:
 		self.tags = {}
 		return
 
-	def read_file(self, location="", filename=""):
+	def read_file(self, filename):
 		"""open file with the speicifed name, and location"""
 		try:
-			filein = saputils.open_linux_file (location + "/" + filename)
+			filein = saputils.open_linux_file(filename)
 			self.buf = filein.read()
 		except IOError as err:
 			print ("File Error: " + str(err));
@@ -55,7 +55,10 @@ class SapFile:
 		"""substitute the tags with the data specific to this project"""
 		#search through the buf for any tags that match something within
 		#our tag map
-		self.buf = self.buf.format(self.tags)
+		try:
+			self.buf = self.buf.format(self.tags)
+		except KeyError as err:
+			print "Key Error: " + str(err)
 
 		return
 	
@@ -78,27 +81,37 @@ class SapFile:
 
 		#using the location value in the file_dict find the file and 
 		#pull it into a buf
+
+		self.buf = ""
 		file_location = ""
 		if file_dict.has_key("location"):
 			file_location = os.getenv("SAPLIB_BASE") + "/" + file_dict["location"]
 			if (debug): 
 				print ("getting file: " + filename + " from location: " + file_location)
-		else:
+				
+			result = self.read_file(file_location + "/" +  filename)
+			if (not result):
+				print "searching for file...",
+				absfilename = saputils.find_rtl_file_location(filename)
+				result = self.read_file(absfilename)
+				if result:
+					print "found file!"
+				else:
+					print "failed to find file"
+			if (len(self.buf) == 0):
+				print "File wasn't found!"
+				return False
+
+			if (debug):
+				print "file content: " + self.buf
+
+		elif (not file_dict.has_key("gen_script")):
 			print "didn't find file location"
 			return False
 
-		self.buf = ""
-		result = self.read_file(file_location, filename)
 
 		if (debug):
 			print "Project name: " + self.tags["PROJECT_NAME"]
-		if (len(self.buf) == 0):
-			print "File wasn't found!"
-			return False
-
-		if (debug):
-			print "file content: " + self.buf
-
 			
 		#if the generation flag is set in the dictionary
 		if (file_dict.has_key("gen_script")):

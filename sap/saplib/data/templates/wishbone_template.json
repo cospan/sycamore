@@ -5,8 +5,9 @@
 		"files": {
 			"Makefile":{},
 			"README":{"location":"data/bus"},
-			"project_defines.v":{"location":"data/bus"},
+			"device_table_defines.v":{"location":"data/bus"},
 			"mg_defines.v":{"location":"data/hdl/rtl"},
+			"device_rom_table.txt":{"gen_script":"gen_drt"},
 			"build_scripts":{"dir":true,
 				"files":{
 					"generate_synth_drt.py":{}
@@ -14,12 +15,12 @@
 			},
 			"sim_scripts":{"dir":true,
 				"files":{
-					"sim_interface.py":{"location":"data/bus/sim_scripts"}
+					"sim_interface.py":{"location":"sim_scripts"}
 				}
 			},
 			"rtl":{ "dir":true,
 				"files":{
-					"rtl_top.v":{},
+					"top.v":{"gen_script":"gen_top"},
 					"bus":{"dir":true,
 						"files":{
 							"master":{"dir":true,
@@ -32,7 +33,11 @@
 									"wishbone_interconnect.v":{"location":"data/hdl/rtl/wishbone/interconnect", "gen_script":"gen_interconnect"}
 								}
 							},
-							"slave":{"dir":true},
+							"slave":{"dir":true,
+								"files":{
+									"device_rom_table.v":{"location":"data/hdl/rtl/wishbone/slave/device_rom_table"}
+								}
+							},
 							"interface":{"dir":true}
 						}
 					}
@@ -47,6 +52,4 @@
 			"linux examples":{"dir":true}
 		}
 	}
-
-
 }

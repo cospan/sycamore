@@ -1,5 +1,5 @@
 
-FILES = gen_interconnect gen_top
+FILES = gen_interconnect gen_top gen_drt gen_project_defines
 
 all:
 	@for i in $(FILES); do \

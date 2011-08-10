@@ -1,5 +1,6 @@
 import unittest
 import saputils
+import os
 
 class Test (unittest.TestCase):
 	"""Unit test for saputils"""
@@ -18,7 +19,52 @@ class Test (unittest.TestCase):
 			self.assertEqual(True, False)
 			return
 		self.assertEqual(True, True)
+	
+	def test_read_slave_tags(self):
+		"""try and extrapolate all info from the slave file"""
+		base_dir = os.getenv("SAPLIB_BASE")	
+		filename = base_dir + "/data/hdl/rtl/wishbone/slave/simple_gpio/simple_gpio.v"
+		drt_keywords = [
+			"DRT_ID",
+			"DRT_FLAGS",
+			"DRT_SIZE"
+		]
+		tags = saputils.get_module_tags(filename, keywords = drt_keywords, debug = True)
+
+		io_types = [
+			"input",
+			"output",
+			"inout"
+		]
+		for io in io_types:
+			for port in tags["ports"][io].keys():
+				print "Ports: " + port
+
+		self.assertEqual(True, True)
+
+	def test_remove_comments(self):
+		"""try and remove all comments from a buffer"""
+		bufin = "not comment /*comment\n\n*/\n\n//comment\n\n/*\nabc\n*/soemthing//comment"
+		#print "input buffer:\n" + bufin
+		output_buffer = saputils.remove_comments(bufin)
+		#print "output buffer:\n" + bufout
+		
+		self.assertEqual(len(output_buffer) > 0, True)
 			
+	def test_find_rtl_file_location(self):
+		"""give a filename that should be in the RTL"""
+
+		result = saputils.find_rtl_file_location("simple_gpio.v")
+		print "file location: " + result
+		try:
+			testfile = open(result)
+			result = True
+			testfile.close()
+		except:
+			result = Fail
+
+		self.assertEqual(result, True)
+
 
 if __name__ == "__main__":
 	unittest.main()

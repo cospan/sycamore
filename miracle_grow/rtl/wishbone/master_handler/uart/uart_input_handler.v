@@ -77,11 +77,6 @@ reg send_first_data;
 //Assign
 
 //Synchronous
-/*
-initial begin
-    $monitor("%t: state: %h nibble_count: %d byte: %c", $time, state, nibble_count, byte);
-end
-*/
 always @ (posedge clk) begin
 
 	ready	<= 0;
@@ -102,7 +97,6 @@ always @ (posedge clk) begin
             IDLE: begin
 				ready			<= 0;
                 if (byte_available) begin
-                    //$display ("byte_available");
                     state     <= READ_ID;
                 end
             end
@@ -127,7 +121,6 @@ always @ (posedge clk) begin
 
             READ_DATA_COUNT: begin
                 if (byte_available) begin
-                    //$display ("read data_count");
                     if ((byte < CHAR_0) ||
                         (( byte > CHAR_0 + 10) && (byte < CHAR_A)) ||
                         (byte > CHAR_F)) begin
@@ -157,7 +150,6 @@ always @ (posedge clk) begin
             end
             READ_CONTROL: begin
                 if (byte_available) begin
-                    //$display ("read_control");
                     if ((byte < CHAR_0) || 
 						((byte > CHAR_0 + 10) && (byte < CHAR_A)) || 
 						(byte > CHAR_F)) begin
@@ -195,7 +187,6 @@ always @ (posedge clk) begin
                 //read the size
                 if (byte_available) begin
 
-                    //$display("read address");
                     if ((byte < CHAR_0) || 
 						((byte > CHAR_0 + 10) && (byte < CHAR_A)) || 
 						(byte > CHAR_F)) begin
@@ -228,7 +219,6 @@ always @ (posedge clk) begin
             READ_DATA : begin
                 if (byte_available) begin
 
-                    //$display ("read data");
 					if ((byte < CHAR_0) || 
 						((byte > CHAR_0 + 10) && (byte < CHAR_A)) || 
 						(byte > CHAR_F)) begin
