@@ -20,19 +20,19 @@ def create_dir(filename, debug=False):
 		filename = filename.strip("~")
 		filename = os.getenv("HOME") + filename
 
-	if (debug):
+	if debug:
 		print "Directory to create: ", filename
 
 	if  (not os.path.exists(filename)):
-		if (debug):
+		if debug:
 			print ("Directory doesn't exist attempting to create...")
 		try: 
 			os.makedirs(filename)
 		except os.error:
-			if (debug):
+			if debug:
 				print "Error: failed to create the directory"
 	else:
-		if (debug):
+		if debug:
 			print ("Found the directory")
 	return True
 
@@ -49,16 +49,16 @@ def remove_comments(buf="", debug=False):
 	"""remove comments from a buffer"""
 	#first pass remove the '//' comments
 	lines = buf.splitlines()
-	if (debug):
+	if debug:
 		print "buf:\n" + buf
 	bufx = ""
 	for line in lines:
 		line = line.partition("//")[0]
 		bufx = bufx + line + "\n"
-	if (debug):
+	if debug:
 		print "bufx:\n" + bufx
 
-	if (debug):
+	if debug:
 		print "working on /* */ comments\n\n\n"
 	#get rid of /*, */ comments
 	buf_part = bufx.partition("/*")
@@ -75,7 +75,7 @@ def remove_comments(buf="", debug=False):
 		pre_comment = ""
 		post_comment = ""
 
-	if (debug):
+	if debug:
 		print "bufy:\n" + bufy
 
 	return bufy
@@ -107,17 +107,18 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 	for key in keywords:
 		index = buf.find (key)
 		if (index == -1):
-			print "didn't find substring for " + key
+			if debug:
+				print "didn't find substring for " + key
 			continue
-		if (debug):
+		if debug:
 			print "found substring for " + key
 
 		substring = buf.__getslice__(index, len(buf)).splitlines()[0]
-		if (debug):
+		if debug:
 			print "substring: " + substring
 
 		
-		if (debug):
+		if debug:
 			print "found " + key + " substring: " + substring
 
 		substring = substring.strip()
@@ -140,7 +141,7 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 		module_string = module_string.strip(" ")
 		index = module_string.find(" ")
 		tags["module"] = module_string.__getslice__(0, index)
-		if (debug):
+		if debug:
 			print "module name: " + module_string
 			print tags["module"]
 
@@ -190,13 +191,13 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 			#print io + ": " + substring
 
 
-	if (debug):
+	if debug:
 		print "input count: " + str(input_count)
 		print "output count: " + str(output_count)
 		print "inout count: " + str(inout_count)
 		print "\n"
 			
-	if (debug):
+	if debug:
 		print "module name: " + tags["module"]
 		for key in tags["keywords"].keys():
 			print "key: " + key + ":" + tags["keywords"][key]

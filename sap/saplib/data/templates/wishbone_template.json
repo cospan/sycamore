@@ -4,8 +4,8 @@
 		"dir":true,
 		"files": {
 			"Makefile":{},
-			"README":{"location":"data/bus"},
-			"device_table_defines.v":{"location":"data/bus"},
+			"README":{"location":"data/bus", "tags":true},
+			"project_defines.v":{"location":"data/bus", "gen_script":"gen_project_defines"},
 			"mg_defines.v":{"location":"data/hdl/rtl"},
 			"device_rom_table.txt":{"gen_script":"gen_drt"},
 			"build_scripts":{"dir":true,
@@ -18,6 +18,7 @@
 					"sim_interface.py":{"location":"sim_scripts"}
 				}
 			},
+			"dependencies":{"dir":true},
 			"rtl":{ "dir":true,
 				"files":{
 					"top.v":{"gen_script":"gen_top"},

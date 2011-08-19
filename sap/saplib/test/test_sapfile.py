@@ -1,6 +1,8 @@
 import unittest
 import sapfile
 import json
+import os
+
 from gen import Gen
 
 class Test (unittest.TestCase):
@@ -96,6 +98,42 @@ class Test (unittest.TestCase):
 		file_tags = {"gen_script":"gen_top"}
 		result = self.sapfile.process_file("top", directory="~/sandbox", file_dict = file_tags, debug=False)
 		self.assertEqual(result, True)
+
+	def test_has_dependency(self):
+		#scan a file that is not a verilog file
+		result = self.sapfile.has_dependencies("simple_gpio", debug=False)
+		self.assertEqual(result, False)
+		#scan for a file that is a verilog file with a full path
+		file_location = os.getenv("SAPLIB_BASE") + "/data/hdl/rtl/wishbone/master_handler/uart/uart_io_handler.v"
+		result = self.sapfile.has_dependencies(file_location, debug=False)
+		self.assertEqual(result, True)
+		#scan a file that is a verilog file but not the full path
+		result = self.sapfile.has_dependencies("uart_io_handler.v", debug=False)
+		self.assertEqual(result, True)
+		
+		result = self.sapfile.has_dependencies("simple_gpio.v", debug=False)
+		self.assertEqual(result, False)
+
+	def test_get_list_of_dependencies(self):
+		deps = self.sapfile.get_list_of_dependencies("simple_gpio.v", debug=True)
+		self.assertEqual(len(deps) == 0, True)
+		deps = self.sapfile.get_list_of_dependencies("uart_io_handler.v", debug=True)
+		self.assertEqual(len(deps) > 0, True)
+
+
+	def test_is_module_in_file(self):
+		module_name = "uart"
+		filename = "simple_gpio.v"
+		result = self.sapfile.is_module_in_file(filename, module_name, debug=False)
+		self.assertEqual(result, False)
+		filename = "uart.v"
+		result = self.sapfile.is_module_in_file(filename, module_name, debug=False) 
+		self.assertEqual(result, True)
+
+	def test_find_module_filename(self):
+		module_name = "uart"
+		result = self.sapfile.find_module_filename(module_name, debug = False)
+		self.assertEqual(len(result) > 0, True)
 
 
 if __name__ == "__main__":

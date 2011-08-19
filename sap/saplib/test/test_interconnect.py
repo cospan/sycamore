@@ -22,7 +22,7 @@ class Test (unittest.TestCase):
 		except IOError as err:
 			print "File Error: " + str(err)
 
-		print "buf: " + interconnect_buffer
+#		print "buf: " + interconnect_buffer
 		self.gen_module = __import__("gen_interconnect")
 		for name in dir(self.gen_module):
 			obj = getattr(self.gen_module, name)

@@ -33,7 +33,8 @@ class GenDRT(Gen):
 		out_buf = out_buf + "00000000" + "\n"
 		out_buf = out_buf + "00000000" + "\n"
 
-		print "Number of slaves: " + str(len(tags["SLAVES"]))
+		if debug:
+			print "Number of slaves: " + str(len(tags["SLAVES"]))
 		for i in range (0, len(tags["SLAVES"])):
 			name = tags["SLAVES"][i]
 			absfilename = saputils.find_rtl_file_location(name)
@@ -42,10 +43,11 @@ class GenDRT(Gen):
 				"DRT_FLAGS",
 				"DRT_SIZE"
 			]
-			if (debug):
+			if debug:
 				print "filename: " + absfilename
+			local_debug = debug
 
-			slave_tags = saputils.get_module_tags(filename = absfilename, bus = "wishbone", keywords = slave_keywords, debug=True)
+			slave_tags = saputils.get_module_tags(filename = absfilename, bus = "wishbone", keywords = slave_keywords, debug=local_debug)
 
 			drt_id_buffer = "{0:0=8X}"
 			drt_flags_buffer = "{0:0=8X}"
@@ -54,7 +56,8 @@ class GenDRT(Gen):
 
 			offset = 0x01000000 * (i + 1)
 			for item in slave_tags["keywords"].keys():
-				print "keywords" + item + ":" + slave_tags["keywords"][item]
+				if debug:
+					print "keywords" + item + ":" + slave_tags["keywords"][item]
 			drt_id_buffer = drt_id_buffer.format(atoi(slave_tags["keywords"]["DRT_ID"]))
 			drt_flags_buffer = drt_flags_buffer.format(atoi(slave_tags["keywords"]["DRT_FLAGS"]))
 			drt_offset_buffer = drt_offset_buffer.format(offset)

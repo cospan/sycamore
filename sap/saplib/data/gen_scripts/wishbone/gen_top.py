@@ -8,21 +8,44 @@ class GenTop(Gen):
 	def __init__(self):
 		print "in GenTop"
 		self.wires=[]
+		self.tags = {}
 		return
+
+	def add_ports_to_wires(self):
+		"""add all the ports to wires list so that no item adds wirs"""
+		bindings = self.tags["CONSTRAINTS"]["bind"]
+		for name in bindings.keys():
+			self.wires.append(bindings[name]["port"])
+
+
+	def generate_ports(self):
+		"""create the ports string"""
+		port_buf = ""
+		bindings = self.tags["CONSTRAINTS"]["bind"]
+		for name in bindings.keys():
+			port_buf = port_buf + "\t" + bindings[name]["direction"] + "\t" + bindings[name]["port"] + ";\n"
+		return port_buf
+				
 
 	def gen_script (self, tags = {}, buf = "", debug = False):
 		"""Generate the Top Module"""
 		slave_list = tags["SLAVES"]
 		num_slaves = len(slave_list) + 1
-
+		self.tags = tags
 		if debug:
 			print "found " + str(len(slave_list)) + " slaves"
 			for slave in slave_list:
 				print slave
 
+		#remove all the ports from the possible wires
+		self.add_ports_to_wires()
+		self.wires.append("clk")
+		self.wires.append("rst")
+
 		template = Template(buf)
 
 		header = ""
+		port_buf = self.generate_ports()
 		wr_buf = ""
 		wi_buf = ""
 		wm_buf = ""
@@ -155,14 +178,14 @@ class GenTop(Gen):
 
 		for i in range (0, num_slaves):
 			wi_buf = wi_buf + "\t//slave " + str(i) + "\n"
-			wi_buf = wi_buf + "\t.s" + str(i) + "_we_i(wbs" + str(i) + "_we_o),\n"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_we_o(wbs" + str(i) + "_we_i),\n"
 			wi_buf = wi_buf + "\t.s" + str(i) + "_cyc_o(wbs" + str(i) + "_cyc_i),\n"
 			wi_buf = wi_buf + "\t.s" + str(i) + "_stb_o(wbs" + str(i) + "_stb_i),\n"
 			wi_buf = wi_buf + "\t.s" + str(i) + "_ack_i(wbs" + str(i) + "_ack_o),\n"
 			wi_buf = wi_buf + "\t.s" + str(i) + "_dat_o(wbs" + str(i) + "_dat_i),\n"
 			wi_buf = wi_buf + "\t.s" + str(i) + "_dat_i(wbs" + str(i) + "_dat_o),\n"
 			wi_buf = wi_buf + "\t.s" + str(i) + "_adr_o(wbs" + str(i) + "_adr_i),\n"
-			wi_buf = wi_buf + "\t.s" + str(i) + "_int_i(wbs" + str(i) + "_int_o"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_int_i(wbs" + str(i) + "_int_o)"
 
 			if (i < num_slaves - 1):
 				wi_buf = wi_buf + ",\n"
@@ -171,7 +194,7 @@ class GenTop(Gen):
 
 		wi_buf = wi_buf + "\t);"
 	
-		if (debug):
+		if debug:
 			print "wi_buf: \n" + wi_buf
 
 		#instantiate the io handler
@@ -205,11 +228,11 @@ class GenTop(Gen):
 		wm_buf = wm_buf + "\t.wb_we_o(wbm_we_o),\n"
 		wm_buf = wm_buf + "\t.wb_msk_o(wbm_msk_o),\n"
 		wm_buf = wm_buf + "\t.wb_sel_o(wbm_sel_o),\n"
-		wm_buf = wm_buf + "\t.wb_ack_i(wbm_ack_i),\n\n"
+		wm_buf = wm_buf + "\t.wb_ack_i(wbm_ack_i)\n\n"
 
 		wm_buf = wm_buf + "\t);"
 
-		if (debug):
+		if debug:
 			print "wm_buf: \n" + wm_buf
 
 
@@ -256,7 +279,7 @@ class GenTop(Gen):
 
 		
 		
-		top_buffer = header + "\n\n" + wr_buf + "\n\n" + io_buf + "\n\n" + wi_buf + "\n\n" +  wm_buf + "\n\n"
+		top_buffer = header + "\n\n" + port_buf + "\n\n" + wr_buf + "\n\n" + io_buf + "\n\n" + wi_buf + "\n\n" +  wm_buf + "\n\n"
 		for slave_buf in slave_buffer_list:
 			top_buffer = top_buffer + "\n\n" + slave_buf
 
@@ -319,7 +342,7 @@ class GenTop(Gen):
 		if (index != -1):
 			out_buf = out_buf + str(index)
 
-		out_buf = out_buf + "{\n"
+		out_buf = out_buf + "(\n"
 
 		pindex = 0
 		last = len(module_tags["ports"]["input"].keys())

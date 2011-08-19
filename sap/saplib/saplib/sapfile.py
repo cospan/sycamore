@@ -1,5 +1,6 @@
 import os
 import saputils
+import glob
 from gen import Gen
 from inspect import isclass
 
@@ -10,6 +11,8 @@ class SapFile:
 	def __init__ (self):
 		self.buf = ""
 		self.tags = {}
+		self.verilog_file_list = []
+		self.verilog_dependency_list = []
 		return
 
 	def read_file(self, filename):
@@ -18,7 +21,6 @@ class SapFile:
 			filein = saputils.open_linux_file(filename)
 			self.buf = filein.read()
 		except IOError as err:
-			print ("File Error: " + str(err));
 			return False
 		return True
 
@@ -74,6 +76,8 @@ class SapFile:
 		if (len(directory) == 0):
 			return False
 		
+		if (filename.endswith(".v")):
+			self.verilog_file_list.append(filename)
 		
 		if (debug):	
 			print "in process file"
@@ -91,22 +95,27 @@ class SapFile:
 				
 			result = self.read_file(file_location + "/" +  filename)
 			if (not result):
-				print "searching for file...",
+				if debug:
+					print "searching for file...",
 				absfilename = saputils.find_rtl_file_location(filename)
 				result = self.read_file(absfilename)
 				if result:
-					print "found file!"
+					if debug:
+						print "found file!"
 				else:
-					print "failed to find file"
+					if debug:
+						print "failed to find file"
 			if (len(self.buf) == 0):
-				print "File wasn't found!"
+				if debug:
+					print "File wasn't found!"
 				return False
 
-			if (debug):
+			if debug:
 				print "file content: " + self.buf
 
 		elif (not file_dict.has_key("gen_script")):
-			print "didn't find file location"
+			if debug:
+				print "didn't find file location"
 			return False
 
 
@@ -136,4 +145,248 @@ class SapFile:
 		#write the file to the specified directory
 		result = self.write_file(directory, filename)
 
+		if (self.has_dependencies(filename)):
+			deps = self.get_list_of_dependencies(filename) 
+			for d in deps:
+				result = self.find_module_filename(d)
+				if (len(result) == 0):
+					print "Error couldn't find dependency filename"
+					continue
+				f = self.find_module_filename(d)
+				if (not self.verilog_dependency_list.__contains__(f) and
+					not self.verilog_file_list.__contains__(f)):
+					if debug:
+						print "found dependency: " + f
+					self.verilog_dependency_list.append(f)
+				
 		return True
+
+
+	def has_dependencies(self, filename, debug = False):
+		"""look in a verilog module, and search for anything that requires a depency, return true if found"""
+
+		if debug:
+			print "input file: " + filename
+		#filename needs to be a verilog file
+		if (filename.partition(".")[2] != "v"):
+			if debug:
+				print "File is not a recognized verilog source"
+			return False
+
+		fbuf = ""
+		#the name is a verilog file, try and open is
+		try:
+			filein = open(filename)
+			fbuf = filein.read()
+			filein.close()
+		except IOError as err:
+			if debug:
+				print "the file is not a full path... searching RTL"
+			#didn't find with full path, search for it
+			try: 
+				filepath = saputils.find_rtl_file_location(filename)
+				filein = open(filepath)	
+				fbuf = filein.read()
+				filein.close()
+			except IOError as err_int:
+				if debug:
+					print "couldn't find file in the RTL directory"
+				return False
+
+
+		#we have an open file!
+		if debug:
+			print "found file!"
+
+		#strip out everything we can't use
+		fbuf = saputils.remove_comments(fbuf)
+
+		#modules have lines that start with a '.'
+		str_list = fbuf.splitlines()
+
+		for item in str_list:
+			item = item.strip()
+			if (item.startswith(".")):
+				print "found a module!"
+				return True
+
+		return False
+
+	def get_list_of_dependencies(self, filename, debug=False):
+		deps = []
+		if debug:
+			print "input file: " + filename
+		#filename needs to be a verilog file
+		if (filename.partition(".")[2] != "v"):
+			if debug:
+				print "File is not a recognized verilog source"
+			return False
+
+		fbuf = ""
+		#the name is a verilog file, try and open is
+		try:
+			filein = open(filename)
+			fbuf = filein.read()
+			filein.close()
+		except IOError as err:
+			if debug:
+				print "the file is not a full path... searching RTL"
+			#didn't find with full path, search for it
+			try: 
+				filepath = saputils.find_rtl_file_location(filename)
+				filein = open(filepath)	
+				fbuf = filein.read()
+				filein.close()
+			except IOError as err_int:
+				if debug:
+					print "couldn't find file in the RTL directory"
+				return False
+
+
+		#we have an open file!
+		if debug:
+			print "found file!"
+
+		#strip out everything we can't use
+		fbuf = saputils.remove_comments(fbuf)
+
+		#remove the ports list and the module name
+		fbuf = fbuf.partition(")")[2]
+
+		#modules have lines that start with a '.'
+		str_list = fbuf.splitlines()
+	
+		module_token = ""
+		done = False
+		while (not done): 
+			for i in range (0, len(str_list)):
+				line = str_list[i]
+				#remove white spaces
+				line = line.strip()
+				if (line.startswith(".") and line.endswith(",")):
+					if debug:
+						print "found a possible module... with line: " + line
+					module_token = line
+					break
+				#check if we reached the last line
+				if (i >= len(str_list) - 1):
+					done = True
+
+			if (not done):
+				#found a possible module
+				#partitoin the fbuf
+				module_string = fbuf.partition(module_token)[0]
+				fbuf = fbuf.partition(module_token)[2]
+				fbuf = fbuf.partition(";")[2]
+				str_list = fbuf.splitlines()
+
+				module_string = module_string.partition("(")[0]
+				mlist = module_string.splitlines()
+				#work backwords
+				#look for the last line that has a '('
+				for i in range (0, len(mlist)):
+					mstr = mlist[len(mlist) - 1 - i]
+					mstr = mstr.strip()
+					if (mstr.__contains__(" ")):
+						if debug:
+							print "found: " + mstr.partition(" ")[0]
+						deps.append(mstr.partition(" ")[0])
+						break
+				
+
+		return deps
+		
+	
+	def find_module_filename (self, module_name, debug = False):
+		filename = ""
+		"""Returns the filename that contains the module"""
+		base = os.getenv("SAPLIB_BASE") + "/data/hdl"
+		cwd = os.getcwd()
+
+		os.chdir(base)
+		if (debug):
+			print "changed dir to " + base
+
+		verilog_files = []
+		for root, dir, files in os.walk(base):
+			filelist = [os.path.join(root, fi) for fi in files if fi.endswith(".v")]
+
+			for f in filelist:
+				verilog_files.append(f)
+
+		print "files:"
+		for f in verilog_files:
+			if debug:
+				print "checking: " + f
+			if (self.is_module_in_file(f, module_name)):
+				if debug:
+					print "Found!, stripping directory info..."
+				while (len(f.partition("/")[2])):
+					f = f.partition("/")[2]
+				if debug:
+					print "name of file: " + f
+				os.chdir(cwd)
+				return f
+
+		#filename = self.recursive_find_module(module_name, debug)
+
+		#put everything back to where its supposed to be	
+		os.chdir(cwd)
+		if debug:
+			print "didn't find module name"
+		return ""
+
+	def is_module_in_file(self, filename, module_name, debug = False):
+		"""check the file for the module"""
+		
+		fbuf = ""
+		#the name is a verilog file, try and open is
+		try:
+			filein = open(filename)
+			fbuf = filein.read()
+			filein.close()
+		except IOError as err:
+			if debug:
+				print "the file is not a full path... searching RTL"
+			#didn't find with full path, search for it
+			try: 
+				filepath = saputils.find_rtl_file_location(filename)
+				filein = open(filepath)	
+				fbuf = filein.read()
+				filein.close()
+			except IOError as err_int:
+				if debug:
+					print "couldn't find file in the RTL directory"
+				return False
+		if debug:
+			print "opened file: " + filename
+		fbuf = saputils.remove_comments(fbuf)
+		done = False
+		module_string = fbuf.partition("module")[2]
+		while (not done):
+			if debug:
+				print "searching through: " + module_string
+			module_string = module_string.strip()
+			module_string = module_string.partition(" ")[0]
+			module_string = module_string.strip()
+			if (len(module_string) == 0):
+				done = True
+			if (module_string.endswith("(")):
+				module_string = module_string.strip("(")
+			if debug:
+				print "looking at: " + module_string
+
+			if (module_string == module_name):
+				if debug:
+					print "found " + module_string + " in " + filename
+				return True
+				
+			elif(len(module_string.partition("module")[2]) > 0):
+				if debug:
+					print "found another module in the file"
+				module_string = module_string.partition("module")[2]
+			else:
+				done = True
+
+		return False
+

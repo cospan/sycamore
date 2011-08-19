@@ -32,8 +32,8 @@ class Test (unittest.TestCase):
 		except IOError as err:
 			print "File Error: " + str(err)
 
-		result = self.gen.gen_script(tags, buf = "", debug = True)
-		print result
+		result = self.gen.gen_script(tags, buf = "", debug = False)
+#		print result
 		self.assertEqual(len(result) > 0, True)
 
 

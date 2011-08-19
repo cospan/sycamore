@@ -149,6 +149,18 @@ class SapProject:
 		fdict = {"location":""}
 		file_dest = self.project_tags["BASE_DIR"] + "/rtl/bus/interface"
 		result = self.filegen.process_file(filename = interface_filename, file_dict=fdict , directory=file_dest)
+
+		if debug:
+			print "copy over the dependencies..."
+		print "verilog files: "
+		for f in self.filegen.verilog_file_list:
+			print f
+		print "dependent files: "
+		for d in self.filegen.verilog_dependency_list:
+			fdict = {"location":""}
+			file_dest = self.project_tags["BASE_DIR"] + "/dependencies"
+			result = self.filegen.process_file(filename = d, file_dict = fdict, directory = file_dest)
+			print d
 		return True
 		
 	def recursive_structure_generator(self, 
