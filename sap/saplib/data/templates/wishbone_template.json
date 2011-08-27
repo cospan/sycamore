@@ -5,9 +5,9 @@
 		"files": {
 			"Makefile":{},
 			"README":{"location":"data/bus", "tags":true},
-			"project_defines.v":{"location":"data/bus", "gen_script":"gen_project_defines"},
 			"mg_defines.v":{"location":"data/hdl/rtl"},
-			"device_rom_table.txt":{"gen_script":"gen_drt"},
+			"project_gen.tcl":{"location":"data/tool_scripts/xilinx", "gen_script":"gen_xilinx"},
+			"project_defines.v":{"location":"data/bus", "gen_script":"gen_project_defines"},
 			"build_scripts":{"dir":true,
 				"files":{
 					"generate_synth_drt.py":{}
@@ -17,6 +17,8 @@
 				"files":{
 					"sim_interface.py":{"location":"sim_scripts"}
 				}
+			},
+			"constraints":{"dir":true
 			},
 			"dependencies":{"dir":true},
 			"rtl":{ "dir":true,
@@ -36,7 +38,8 @@
 							},
 							"slave":{"dir":true,
 								"files":{
-									"device_rom_table.v":{"location":"data/hdl/rtl/wishbone/slave/device_rom_table"}
+									"device_rom_table.v":{"location":"data/hdl/rtl/wishbone/slave/device_rom_table"},
+									"device_rom_table.txt":{"gen_script":"gen_drt"}
 								}
 							},
 							"interface":{"dir":true}
@@ -50,7 +53,7 @@
 					"interface":{"dir":true}
 				}
 			},
-			"linux examples":{"dir":true}
+			"python_examples":{"dir":true}
 		}
 	}
 }

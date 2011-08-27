@@ -48,7 +48,7 @@ class Test (unittest.TestCase):
 		#print "buf: " + top_buffer
 
 		result = self.gen.gen_script(tags, buf = top_buffer, debug=False)
-#		print "Top file: \n" + result
+		print "Top file: \n" + result
 
 		self.assertEqual(len(result) > 0, True)
 

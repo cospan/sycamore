@@ -49,7 +49,7 @@ input [31:0] data;
 input uart_ready;
 
 input send_en;
-input [15:0] data_count;
+input [27:0] data_count;
 
 output reg [7:0] byte;
 output reg uart_byte_en;
@@ -74,7 +74,7 @@ reg[3:0]	r_nibble_count		= 	4'h0;
 
 reg r_data_ready				= 	0;
 reg r_uart_wait					=	0;
-reg [15:0] local_data_count     =   16'h0;
+reg [27:0] local_data_count     =   28'h0;
 
 reg	[31:0]	r_status			=	0;
 reg [31:0]	r_address			=	0;
@@ -106,7 +106,7 @@ always @ (posedge clk) begin
 		r_STATE			<=	STATE_IDLE;
 		r_nibble_count	<=	4'h0;
 		byte			<= 	8'h0;
-        local_data_count <= 16'h0;
+        local_data_count <= 28'h0;
 	end
 
 	else begin

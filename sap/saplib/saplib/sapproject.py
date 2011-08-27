@@ -2,6 +2,8 @@ import sapfile
 import saputils
 import json
 import os
+from os.path import exists
+import shutil
 
 class SapProject:
 	"""Generates SAP Projects"""
@@ -131,6 +133,7 @@ class SapProject:
 		self.filegen.set_tags(self.project_tags)
 
 		#generate the project directories and files
+		saputils.create_dir(self.project_tags["BASE_DIR"])		
 		#print "Parent dir: " + self.project_tags["BASE_DIR"]
 		for key in self.template_tags["PROJECT_TEMPLATE"]["files"]:
 			self.recursive_structure_generator(
@@ -144,6 +147,27 @@ class SapProject:
 			file_dest = self.project_tags["BASE_DIR"] + "/rtl/bus/slave"
 			result = self.filegen.process_file(filename = slave, file_dict = fdict, directory=file_dest)
 			#each slave
+
+		#Copy the user specified constraint files to the constraints directory
+		for constraint_fname in self.project_tags["CONSTRAINTS"]["constraint_files"]:
+			sap_abs_base = os.getenv("SAPLIB_BASE")
+			abs_proj_base = self.project_tags["BASE_DIR"]
+			if (sap_abs_base.startswith("~")):
+				sap_abs_base = os.path.expanduser("~") + sap_abs_base.strip("~")
+			if (abs_proj_base.startswith("~")):
+				abs_proj_base = os.path.expanduser("~") + abs_proj_base.strip("~")
+			#attempt to open the file directly
+			if (exists(os.getcwd() + "/" + constraint_fname)):
+				#copy the file over to the output constraints folder	
+				shutil.copy (os.getcwd() + "/" + constriant_fname, abs_proj_base + "/constraints/" + constraint_fname)
+			elif (exists(sap_abs_base + "/data/hdl/constraints/" + constraint_fname)): 
+				shutil.copy (sap_abs_base + "/data/hdl/constraints/" + constraint_fname, abs_proj_base + "/constraints/" + constraint_fname)
+			else:
+				print "Couldn't find constraint: " + constraint_fname + ", searched in current directory and " + sap_abs_base + " /data/hdl/constraints"
+
+
+			#if that failed search the constraints directory in miracle_grow
+
 		#Generate the IO handler
 		interface_filename = self.project_tags["INTERFACE"]
 		fdict = {"location":""}

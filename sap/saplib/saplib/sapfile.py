@@ -29,7 +29,6 @@ class SapFile:
 		if location.startswith("~"):
 			home = True
 			location = location.strip("~//")
-
 		try:
 			fileout = None
 			if (home):

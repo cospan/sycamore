@@ -41,7 +41,7 @@ class Test (unittest.TestCase):
 			print "File Error: " + str(err)
 
 		result = self.gen.gen_script(tags = self.tags, buf=ioh_buf, debug = True)
-#		print "out_buf: \n" + result
+		print "out_buf: \n" + result
 		self.assertEqual(len(result) > 0, True)
 
 

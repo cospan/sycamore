@@ -22,6 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+`include "mg_defines.v"
+
 module wishbone_master (
 	clk,
 	rst,
@@ -201,7 +203,6 @@ end
                         wb_stb_o    <= 0;
                         wb_cyc_o    <= 0;
                         wb_we_o     <= 0;
-                        out_en      <= 1;
                         out_data    <= wb_dat_i;
                         rw_count    <= rw_count - 1;
                         out_en      <= 1;
@@ -228,7 +229,6 @@ end
                         wb_stb_o    <= 0;
                         wb_cyc_o    <= 0;
                         wb_we_o     <= 0;
-                        out_en      <= 1;
                         out_data    <= wb_dat_i;
                         rw_count    <= rw_count - 1;
                         out_en      <= 1;

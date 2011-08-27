@@ -23,7 +23,13 @@ class GenTop(Gen):
 		port_buf = ""
 		bindings = self.tags["CONSTRAINTS"]["bind"]
 		for name in bindings.keys():
-			port_buf = port_buf + "\t" + bindings[name]["direction"] + "\t" + bindings[name]["port"] + ";\n"
+			port_name = bindings[name]["port"]
+			if (port_name.__contains__("[") and port_name.__contains__(":")):
+				port_name = "[" + port_name.partition("[")[2] + "\t" + port_name.partition("[")[0]
+				port_buf = port_buf + "\t" + bindings[name]["direction"] + "\t" + port_name + ";\n"
+			else:
+				port_buf = port_buf + "\t" + bindings[name]["direction"] + "\t\t" + port_name + ";\n"
+
 		return port_buf
 				
 
@@ -39,8 +45,6 @@ class GenTop(Gen):
 
 		#remove all the ports from the possible wires
 		self.add_ports_to_wires()
-		self.wires.append("clk")
-		self.wires.append("rst")
 
 		template = Template(buf)
 
@@ -71,6 +75,10 @@ class GenTop(Gen):
 
 		#declare the wires
 		wr_buf = wr_buf + "\t//inupt handler signals\n"
+		wr_buf = wr_buf + "\tinput\t\tclk;\n"
+		self.wires.append("clk")
+		wr_buf = wr_buf + "\tinput\t\trst;\n"
+		self.wires.append("rst")
 		wr_buf = wr_buf + "\twire\t[31:0]\tin_command;\n"
 		self.wires.append("in_command")
 		wr_buf = wr_buf + "\twire\t[31:0]\tin_address;\n"
@@ -83,17 +91,18 @@ class GenTop(Gen):
 		self.wires.append("ih_ready")
 
 		wr_buf = wr_buf + "\t//output handler signals\n"
-		wr_buf = wr_buf + "\twire\t[31:0]\tout_status\n"
+		wr_buf = wr_buf + "\twire\t[31:0]\tout_status;\n"
 		self.wires.append("out_status")
-		wr_buf = wr_buf + "\twire\t[31:0]\tout_address\n"
+		wr_buf = wr_buf + "\twire\t[31:0]\tout_address;\n"
 		self.wires.append("out_address")
-		wr_buf = wr_buf + "\twire\t[31:0]\tout_data\n"
+		wr_buf = wr_buf + "\twire\t[31:0]\tout_data;\n"
 		self.wires.append("out_data")
-		wr_buf = wr_buf + "\twire\t[27:0]\tout_data_count\n"
+		wr_buf = wr_buf + "\twire\t[27:0]\tout_data_count;\n"
 		self.wires.append("out_data_count")
-		wr_buf = wr_buf + "\twire\t\toh_ready\n"
+		wr_buf = wr_buf + "\twire\t\toh_ready;\n"
 		self.wires.append("oh_ready")
-		wr_buf = wr_buf + "\twire\t\toh_en\n\n"
+		wr_buf = wr_buf + "\twire\t\toh_en;\n\n"
+		self.wires.append("oh_en")
 
 		wr_buf = wr_buf + "\t//master signals\n"
 		wr_buf = wr_buf + "\twire\t\tmaster_ready;\n"

@@ -1,5 +1,5 @@
 
-SUBDIRS = wishbone
+SUBDIRS = wishbone xilinx
 
 all:
 	@for i in $(SUBDIRS); do \
@@ -7,6 +7,7 @@ all:
 	(cd $$i; make all); done
 	pycompile gen.py
 	mv gen.pyc ../gen_modules/
+
 
 .PHONY: all
 	

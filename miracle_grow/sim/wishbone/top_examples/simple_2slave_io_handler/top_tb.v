@@ -65,8 +65,8 @@ wire [31:0] out_status;
 wire [31:0] out_address;
 wire [31:0] out_data;
 wire        out_en;
-wire [15:0] out_data_count;
-wire 		out_ready;
+wire [27:0] out_data_count;
+reg 		out_ready;
 
 reg         stimulus_uart_ready;
 wire        uart_byte_en;
@@ -249,12 +249,11 @@ initial begin
 
 	$dumpfile ("design.vcd");
 	$dumpvars (0, top_tb);
-	$dumpvars (0, wm);
 	fd_in = $fopen(`INPUT_FILE, "r");
 	fd_out = $fopen(`OUTPUT_FILE, "w");
 
 	rst				<= 0;
-	#4
+	#10
 		rst				<= 1;
 		//clear wishbone signals
         gpio1_in        <= 32'h01234567;
@@ -289,6 +288,7 @@ initial begin
 end
 
 integer test;
+/*
 initial begin
     stimulus_uart_ready             <=1;    
     test                            <= 0;
@@ -305,24 +305,25 @@ initial begin
 
     end
 end
-/*
+*/
 always @ (posedge clk) begin
     if (rst) begin
-        stimulus_uart_ready         <= 1;
+        out_ready         <= 1;
         test = 0;
     end
     else begin
-        if (uart_byte_en) begin
+        if (out_en) begin
             //test = $fputc (fd_out, out_byte);
             $display("%c", out_byte);
 
-            stimulus_uart_ready     <= 0;
+			out_ready	<= 0;
+            //stimulus_uart_ready     <= 0;
             #10
-            stimulus_uart_ready     <= 1;
+			out_ready	<= 1;
+            //stimulus_uart_ready     <= 1;
         end
     end
 end
-*/
 initial begin
 //    $monitor ("%t: in_byte: %c out_byte: %c ih_ready: %h oh_en: %h, uart_out_en: %h", $time, stimulus_in_byte, out_byte, in_ready, out_en, uart_byte_en);
 

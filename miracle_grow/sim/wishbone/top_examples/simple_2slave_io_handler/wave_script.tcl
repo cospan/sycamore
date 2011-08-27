@@ -20,13 +20,9 @@ set signals [list]
 #lappend signals "ih.buffer"
 #lappend signals "ih.r_count"
 
-lappend signals "wishbone_master_tb.clk"
-lappend	signals "wishbone_master_tb.rst"
-lappend signals "wishbone_master_tb.in_command"
-lappend signals "wishbone_master_tb.in_ready"
-lappend signals "wishbone_master_tb.out_en"
-lappend signals "wishbone_master_tb.master_ready"
-lappend signals "wb.state"
+lappend signals "top_tb.clk"
+lappend signals "top_tb.out_ready"
+lappend signals "top_tb.out_en"
 
 set num_added [gtkwave::addSignalsFromList $signals]
 

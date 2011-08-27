@@ -381,7 +381,7 @@ always @ (posedge clk) begin
 					//send  character hex value
 					out_byte 			<= lout_status[31:28] + CHAR_HEX_OFFSET;
 				end
-				lout_status 			<= (lout_status[28:0]) +  4'h0;
+				lout_status 			<= (lout_status[31:0] << 4);
 				uart_out_byte_en		<= 1;
 				uart_wait_for_tx		<= 1;
 				out_nibble_count		<= out_nibble_count + 1;
@@ -402,7 +402,7 @@ always @ (posedge clk) begin
 					out_byte 	<= lout_address[31:28] + CHAR_HEX_OFFSET;
 				end
 
-				lout_address 			<= (lout_address[28:0]) +  4'h0;
+				lout_address 			<= (lout_address[31:0] << 4);
 				uart_out_byte_en		<= 1;
 				uart_wait_for_tx		<= 1;
 				out_nibble_count		<= out_nibble_count + 1;
@@ -424,7 +424,7 @@ always @ (posedge clk) begin
 					out_byte 	<= lout_data[31:28] + CHAR_HEX_OFFSET;
 				end
 
-				lout_data 				<= (lout_data[28:0] + 4'h0);
+				lout_data 				<= (lout_data[28:0] << 4);
 				uart_out_byte_en		<= 1;
 				uart_wait_for_tx		<= 1;
 				out_nibble_count		<= out_nibble_count + 1;

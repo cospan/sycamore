@@ -1,0 +1,22 @@
+what needs to be tested
+
+confirm disp_en signal goes high
+	-debug_led[0]
+
+confirm DCM locks
+	-debug_led[1] 
+
+confirm vsync is high
+	-debug_led[2]
+
+confirm hsync is high
+	-debug_led[3]
+
+confirm data_en is high
+	-debug_led[4]
+
+pclk
+	-debug_led[5]
+
+debug_flag_en toggle
+	-debug_led[6]

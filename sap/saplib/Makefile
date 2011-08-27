@@ -2,7 +2,7 @@ export PYTHONPATH=PYTHONPATH:./saplib:./saplib/sapgen:./data/gen_modules
 export SAPLIB_BASE=$(PWD)
 
 PYTHON_FILES = sapfile.py sapproject.py saplib.py saputils.py
-TEST_PYTHON_FILES = test_sapfile.py test_sapproject.py test_saplib.py test_saputils.py test_interconnect.py test_drt.py
+TEST_PYTHON_FILES = test_sapfile.py test_sapproject.py test_saplib.py test_saputils.py test_interconnect.py test_drt.py test_xilinx.py
 
 MODULES = ./data/gen_scripts
 
@@ -48,6 +48,9 @@ test_drt:
 
 test_project_defines:
 	python test/test_project_defines.py
+
+test_xilinx:
+	python test/test_xilinx.py
 
 test_help:
 	echo $(PWD)

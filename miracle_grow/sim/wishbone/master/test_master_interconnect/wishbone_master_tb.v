@@ -106,7 +106,7 @@ wire 		out_en;
 wire [31:0] out_status;
 wire [31:0] out_address;
 wire [31:0]	out_data;
-wire [15:0] out_data_count;
+wire [27:0] out_data_count;
 
 //wishbone signals
 wire		wbm_we_o;

@@ -82,7 +82,7 @@ class GenInterconnect(Gen):
 			data_block_buf = data_block_buf + " or s" + str(i) + "_dat_i"
 		data_block_buf = data_block_buf + ") begin\n\tcase (slave_select)\n"
 		for i in range (0, num_slaves):
-			data_block_buf = data_block_buf + "\t\tADDR_" + str(i) + ": begin\n\t\t\tm_dat_o = s" + str(i) + "_dat_i;\n\t\tend\n";
+			data_block_buf = data_block_buf + "\t\tADDR_" + str(i) + ": begin\n\t\t\tm_dat_o <= s" + str(i) + "_dat_i;\n\t\tend\n";
 		data_block_buf = data_block_buf + "\t\tdefault: begin\n\t\t\tm_dat_o <= 32\'hx;\n\t\tend\n\tendcase\nend\n\n"
 
 		#ack in block
@@ -92,7 +92,7 @@ class GenInterconnect(Gen):
 			ack_block_buf = ack_block_buf + " or s" + str(i) + "_ack_i"
 		ack_block_buf = ack_block_buf + ") begin\n\tcase (slave_select)\n"
 		for i in range (0, num_slaves):
-			ack_block_buf = ack_block_buf + "\t\tADDR_" + str(i) + ": begin\n\t\t\tm_ack_o = s" + str(i) + "_ack_i;\n\t\tend\n";
+			ack_block_buf = ack_block_buf + "\t\tADDR_" + str(i) + ": begin\n\t\t\tm_ack_o <= s" + str(i) + "_ack_i;\n\t\tend\n";
 		ack_block_buf = ack_block_buf + "\t\tdefault: begin\n\t\t\tm_ack_o <= 1\'hx;\n\t\tend\n\tendcase\nend\n\n"
 
 
@@ -103,7 +103,7 @@ class GenInterconnect(Gen):
 			int_block_buf = int_block_buf + " or s" + str(i) + "_int_i"
 		int_block_buf = int_block_buf + ") begin\n\tcase (slave_select)\n"
 		for i in range (0, num_slaves):
-			int_block_buf = int_block_buf + "\t\tADDR_" + str(i) + ": begin\n\t\t\tm_int_o = s" + str(i) + "_int_i;\n\t\tend\n";
+			int_block_buf = int_block_buf + "\t\tADDR_" + str(i) + ": begin\n\t\t\tm_int_o <= s" + str(i) + "_int_i;\n\t\tend\n";
 		int_block_buf = int_block_buf + "\t\tdefault: begin\n\t\t\tm_int_o <= 1\'hx;\n\t\tend\n\tendcase\nend\n\n"
 
 
