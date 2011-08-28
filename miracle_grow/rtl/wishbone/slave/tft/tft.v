@@ -36,7 +36,7 @@ SOFTWARE.
 
 	DRT_ID:10
 	DRT_FLAGS:1
-	DRT_SIZE:2
+	DRT_SIZE:4
 
 */
 
@@ -95,8 +95,9 @@ output				vsync;
 output				data_en;
 
 //parameters
-parameter	ADDR_FLAGS 	= 32'h00000000;
-parameter	ADDR_COLOR	= 32'h00000001;
+parameter	ADDR_FLAGS 		= 32'h00000000;
+parameter	ADDR_COLOR		= 32'h00000001;
+parameter	ADDR_CLK_DIV	= 32'h00000002;
 
 parameter	TFT_FLAG_EN			= 0;
 parameter	TFT_FLAG_ONESHOT 	= 1;
@@ -120,6 +121,7 @@ reg [15:0]			v_back_porch;
 reg [15:0]			h_pulse;
 reg [15:0]			h_front_porch;
 reg [15:0]			h_back_porch;
+reg [15:0]			clock_divide;
 
 wire				lock;
 
@@ -127,7 +129,8 @@ tft_pclk_gen clk_gen(
 	.clk(clk),
 	.rst(rst),
 	.lock(lock),
-	.pclk(pclk)
+	.pclk(pclk),
+	.clock_divide(clock_divide)
 );
 
 //debug enable when display is enable, if this goes on, then this means that Wishbone is communicating everything
@@ -219,6 +222,9 @@ always @ (posedge clk) begin
 		green_in			<= 8'h0;
 		blue_in				<= 8'h0;
 
+		//50MHz clock/(3) / 2 ~ 8.3MHz
+		clock_divide			<= 16'h03;
+
     end
 
     else begin
@@ -248,6 +254,9 @@ always @ (posedge clk) begin
 						green_in <= wbs_dat_i[15:8];
 						blue_in <= wbs_dat_i[7:0];
 	    			end
+					ADDR_CLK_DIV: begin
+						clock_divide	<= wbs_dat_i[15:0];
+					end
     				default: begin
 			    	end
 		    	endcase
@@ -267,6 +276,10 @@ always @ (posedge clk) begin
 						wbs_dat_o[15:8]		<= green_in;
 						wbs_dat_o[7:0]		<= blue_in;
 				    end
+					ADDR_CLK_DIV: begin
+						wbs_dat_o[31:16] <= 16'h00;
+						wbs_dat_o[15:0] <= clock_divide[15:0];
+					end
 				    default: begin
 				    end
 

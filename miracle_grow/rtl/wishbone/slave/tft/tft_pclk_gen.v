@@ -36,12 +36,14 @@ module tft_pclk_gen (
 	rst,
 
 	pclk,
+	clock_divide,
 	lock
 );
 
 
 input clk;
 input rst;
+input [15:0] clock_divide;
 //I need this statement because of simulation only in the real design, the pclk will transition when rst is low
 output lock;
 
@@ -97,7 +99,8 @@ output lock;
 output reg	pclk = 0;
 assign lock = 1;
 
-reg	[4:0]	delay;
+reg	[15:0]	delay;
+
 
 
 
@@ -109,7 +112,7 @@ always @ (posedge clk) begin
 	else begin
 		if (delay == 0) begin
 			pclk	<= ~pclk;
-			delay    <= 3;
+			delay    <= clock_divide;
 		end
 		else begin
 		    delay <= delay - 1;
