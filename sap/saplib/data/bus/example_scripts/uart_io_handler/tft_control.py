@@ -30,12 +30,20 @@ if __name__== "__main__":
 	print "index = " + str(lcd_index)
 	if (lcd_index != -1):
 		print "address = " + hex(syc.get_address_from_dev_index(lcd_index))
-		set_color(syc, lcd_index, 0, 255, 0)
+		set_color(syc, lcd_index, 0, 0, 0)
 		turn_on(syc, lcd_index)
+		set_color(syc, lcd_index, 255, 0, 0)
 		if (is_on(syc, lcd_index)):
 			print "lcd is on"
 		else:
 			print "lcd is off"
+		time.sleep(2);
+		set_color(syc, lcd_index, 0, 255, 0)
+		time.sleep(2);
+		set_color(syc, lcd_index, 0, 0, 255)
+		time.sleep(2);
+		set_color(syc, lcd_index, 255, 255, 255)
+		turn_off(syc, lcd_index)
 	else:
 		print "index out of range"
 

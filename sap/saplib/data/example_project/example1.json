@@ -54,7 +54,7 @@
 			"phy_uart_out":{
 				"port":"tx",
 				"direction":"output"
-			},
+			}
 		}
 	}
 }

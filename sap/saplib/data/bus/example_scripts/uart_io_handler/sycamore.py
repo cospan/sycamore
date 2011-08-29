@@ -55,6 +55,7 @@ class Sycamore:
 		write_cmd = "L000000000000001%0.8X" + data_string
 		write_cmd = (write_cmd) % (address + offset)
 #		print "out string: " + write_cmd
+		self.ser.flushInput()
 		self.ser.write(write_cmd)
 		write_resp = self.ser.read(25)
 		if (len(write_resp) == 0):
