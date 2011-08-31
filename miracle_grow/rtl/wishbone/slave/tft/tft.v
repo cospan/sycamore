@@ -7,11 +7,17 @@
  *	getting SOMETHING on the screen
  *
  * 8/28/2011
+ *	Version 0.0.02
  *	getting things on the screen but the screen suddenly goes into reset,
  *	adding debug wishbone commands to rule out possible signal attenuation
  *	due to poor connectors, if the initial test of slowing down the clock
  *	doesn't work I'll add more code to slow down all the LCD variables
  *	(horizontal/vertical front porch, back porch and pulses)
+ *
+ * 8/29/2011
+ *	Version 0.0.03
+ *	Things are working on the LCD, it only displays solid colors written
+ *	from the host, but now the physical layer is confirmed
  **/
 
 /*

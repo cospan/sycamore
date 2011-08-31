@@ -21,7 +21,7 @@ DRT_DEV_OFFSET[x * 4] + 0:		Device ID (this is associated with the flags registe
 	(Addr: 31-0	)	: device ID number (see below)
 DRT_DEV_OFFSET[x * 4] + 1:		FLAGS
 	(Addr: 0 )		: standard device (can use generic drivers)
-DRT_DEV_OFFSET[x * 4] + 2:		Offset from 0x00 	(NEED A NAME)
+DRT_DEV_OFFSET[x * 4] + 2:		Offset from 0x00 	(NEED A NAME, not used yet)
 DRT_DEV_OFFSET[x * 4] + 3:		Size of address space for device (NEED A NAME)
 
 
@@ -32,7 +32,7 @@ THIS IS NOT BY ANY MEANS FINAL, BUT MAKING DEVICE IDENTIFICATION NUMBER
 0002	: UART
 0003	: I2C
 0004	: SPI
-0005	: ???
+0005	: MEM
 0006	: ???
 0007	: ???
 0008	: ???
