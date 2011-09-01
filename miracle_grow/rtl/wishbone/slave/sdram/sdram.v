@@ -47,11 +47,11 @@ module sdram (
 	wbs_cyc_i,
 	wbs_dat_i,
 	wbs_stb_i,
-	wbs_ack_o;
-	wbs_dat_i;
+	wbs_ack_o,
+	wbs_dat_i,
 	wbs_dat_o,
-	wbs_adr_i;
-	wbs_int_o;
+	wbs_adr_i,
+	wbs_int_o,
 );
 
 input 				clk;
@@ -123,7 +123,7 @@ always @ (posedge clk) begin
 				end
 			endcase
 		end
-		wbs_ack_i;
+		wbs_ack_o	<= 1;
 	end
 end
 

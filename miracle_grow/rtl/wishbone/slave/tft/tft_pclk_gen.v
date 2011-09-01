@@ -47,20 +47,23 @@ input [15:0] clock_divide;
 //I need this statement because of simulation only in the real design, the pclk will transition when rst is low
 output lock;
 
-/*
+
 `ifdef VENDOR_XILINX
 
 	output pclk;
 
 	wire clk_fb;
-	BUFG	CLKO_BUFG_INST (.I(clk_out), .O(clk_fb));
+	wire out_clk;
+	wire clk_div;
+	BUFG	CLKO_BUFG_INST (.I(out_clk), .O(clk_fb));
+	BUFG    CLKO_BUFG_OUT (.I(clk_div), .O(pclk));
 
    DCM_SP #(
-   	.CLKDV_DIVIDE(5.0),
+   	.CLKDV_DIVIDE(16.0),
 	.CLKFX_DIVIDE(1),
     .CLKFX_MULTIPLY(4),
     .CLKIN_DIVIDE_BY_2("FALSE"),
-    .CLKIN_PERIOD(20.000),
+    .CLKIN_PERIOD(0.0),
     .CLKOUT_PHASE_SHIFT("NONE"),
     .CLK_FEEDBACK("1X"),
     .DESKEW_ADJUST("SYSTEM_SYNCHRONOUS"),
@@ -69,13 +72,13 @@ output lock;
     .PHASE_SHIFT(0),
     .STARTUP_WAIT("FALSE")
    ) DCM_SP_INST (
-      .CLK0(clk_out),
+      .CLK0(out_clk),
 	  .CLK180(),
       .CLK270(),
       .CLK2X(),
       .CLK2X180(),
       .CLK90(),  
-      .CLKDV(pclk),
+      .CLKDV(clk_div),
       .CLKFX(),
       .CLKFX180(),
       .LOCKED(lock),
@@ -93,7 +96,7 @@ output lock;
 
 
 `else
-*/
+
 //For debug simply connect clk to pclk
 
 output reg	pclk = 0;
@@ -121,6 +124,6 @@ always @ (posedge clk) begin
 
 end
 
-//`endif
+`endif
 
 endmodule 
