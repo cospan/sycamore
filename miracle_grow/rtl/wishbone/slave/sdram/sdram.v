@@ -2,7 +2,10 @@
 
 /*
  * 8/29/2011
- *	importing the opencores SDRAM controller
+ *	Generated Generic Slave
+ *
+ * 9/02/2011
+ *	Attaching to ddr_controller.v
  *
  */
 
@@ -38,6 +41,8 @@ SOFTWARE.
 
 */
 
+`define MEM_READ 0
+`define MEM_WRITE 1
 
 module sdram (
 	clk,
@@ -52,6 +57,20 @@ module sdram (
 	wbs_dat_o,
 	wbs_adr_i,
 	wbs_int_o,
+
+	mem_clk,
+	mem_clk_n,
+	mem_clk_fb,
+	mem_cke,
+	mem_cs,
+	mem_ras,
+	mem_cas,
+	mem_we,
+	mem_dm,
+	mem_dqs,
+	mem_ba,
+	mem_addr,
+	mem_data
 );
 
 input 				clk;
@@ -67,6 +86,20 @@ output reg  [31:0]	wbs_dat_o;
 output reg			wbs_ack_o;
 output reg			wbs_int_o;
 
+output				mem_clk;
+output				mem_clk_n;
+input				mem_clk_fb;
+output				mem_cke;
+output				mem_cs;
+output				mem_ras;
+output				mem_cas;
+output				mem_we;
+output [1:0]		mem_dm;
+output [1:0]		mem_dqs;
+output [1:0]		mem_ba;
+output [22:0]		mem_addr;
+output [15:0]		mem_data;
+
 reg	[3:0]			usr_cmd;
 reg					usr_cmd_vld;
 reg	[23:0]			usr_addr;
@@ -76,20 +109,6 @@ wire				usr_data_out_vld;
 wire				ddr_busy;
 wire				ddr_ack;
 wire				ddr_ready;
-
-wire				mem_clk;
-wire				mem_clk_n;
-wire				mem_clk_fb;
-wire				mem_cke;
-wire				mem_cs;
-wire				mem_ras;
-wire				mem_cas;
-wire				mem_we;
-wire [1:0]			mem_dm;
-wire [1:0]			mem_dqs;
-wire [1:0]			mem_ba;
-wire [22:0]			mem_addr;
-wire [15:0]			mem_data;
 
 ddr_controller ddr (
 	.clk(clk),
@@ -120,16 +139,21 @@ ddr_controller ddr (
 	.mem_data(mem_data)
 );
 
-parameter			ADDR_0	=	32'h00000000;
-parameter			ADDR_1	=	32'h00000001;
-parameter			ADDR_2	=	32'h00000002;
-
+//this is an odd number and usually wont be called
+parameter	ADDR_STATUS = 32'h00FFFFFF;
 //blocks
 always @ (posedge clk) begin
+	usr_cmd_vld	<= 0;
 	if (rst) begin
 		wbs_dat_o	<= 32'h0;
 		wbs_ack_o	<= 0;
 		wbs_int_o	<= 0;
+
+		usr_cmd		<= 0;
+		usr_cmd_vld	<= 0;
+
+		usr_addr	<= 24'h0;
+		usr_data_in	<= 31'h0;
 	end
 
 	//when the master acks our ack, then put our ack down
@@ -137,48 +161,48 @@ always @ (posedge clk) begin
 		wbs_ack_o <= 0;
 	end
 
+	//Initiating an interaction with the ddr_controller
 	if (wbs_stb_i & wbs_cyc_i) begin
+		usr_addr	<= wbs_adr_i;	
 		//master is requesting somethign
 		if (wbs_we_i) begin
 			//write request
-			case (wbs_adr_i) 
-				ADDR_0: begin
-					//writing something to address 0
-				end
-				ADDR_1: begin
-					//writing something to address 1
-				end
-				ADDR_2: begin
-					//writing something to address 3
-				end
-				default: begin
-				end
-				//ADDRESS DEFINE : begin
-
-				//	do something
-				//end
-			endcase
+			if (~ddr_ready) begin
+				wbs_dat_o	<= 32'hFFFFFFFF;
+				wbs_ack_o		<= 1;
+			end
+			else begin
+				usr_data_in	<= wbs_dat_i;
+				usr_cmd		<= `MEM_WRITE;
+				usr_cmd_vld	<= 1;
+			end
 		end
 
 		else begin 
-			//read request
-			case (wbs_adr_i)
-				ADDR_0: begin
-					//reading something from address 0
+			if (wbs_adr_i == ADDR_STATUS) begin
+				wbs_dat_o		<= 0;
+				wbs_dat_o[0]	<= ddr_ready;
+				wbs_dat_o[1]	<= ddr_ack;
+				wbs_dat_o[2]	<= ddr_busy;
+			end
+			else begin
+				//read request
+				if (ddr_ready) begin
+					usr_cmd		<= `MEM_READ;
+					usr_cmd_vld	<= 1;
 				end
-				ADDR_1: begin
-					//reading something from address 1
-				end
-				ADDR_2: begin
-					//reading soething from address 2
-				end
-				default: begin
-				end
-			endcase
+			end
 		end
+	end
+
+	//response from the ddr_controller
+	if ((usr_cmd	== `MEM_WRITE) && (ddr_ack)) begin
+		wbs_ack_o	<= 1;	
+	end
+	else if ((usr_cmd == `MEM_READ) && (usr_data_out_vld)) begin
 		wbs_ack_o	<= 1;
+		wbs_dat_o	<= usr_data_out;
 	end
 end
-
 
 endmodule

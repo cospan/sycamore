@@ -112,20 +112,20 @@ parameter	CAS_LATENCY 			= 3'h6; //speed grade -75
 parameter INIT_200US_DELAY = 50 * 200;
 parameter OPTIONAL_LMR = 0;
 
-input 				rst;
-input 				clk;
+input 								rst;
+input 								clk;
 
-input [3:0] 		usr_cmd;
-input 				usr_cmd_vld;
+input [3:0] 						usr_cmd;
+input 								usr_cmd_vld;
 
 input [(USR_ADDR_SIZE - 1):0] 		usr_addr;
-input [31:0]		usr_data_in;
-output reg [31:0]	usr_data_out;
-output reg			usr_data_out_vld;
+input [31:0]						usr_data_in;
+output reg [31:0]					usr_data_out;
+output reg							usr_data_out_vld;
 
-output reg			ddr_busy;
-output reg			ddr_ack;
-output reg			ddr_ready;
+output reg							ddr_busy;
+output reg							ddr_ack;
+output reg							ddr_ready;
 
 output								mem_clk;
 output								mem_clk_n;
@@ -142,9 +142,9 @@ inout [(`DDR_DATA_SIZE - 1):0]	mem_data;
 
 input 								mem_clk_fb;
 
-assign mem_clk_n			=	mem_clk;
-wire				ddr_2x_clk;
-wire				dcm_lock;
+assign mem_clk_n			=		mem_clk;
+wire								ddr_2x_clk;
+wire								dcm_lock;
 
 ddr_dcm dcm (
    	.clk(clk),
@@ -227,26 +227,43 @@ parameter	USER_CMD_READ			= 0;
 parameter	USER_CMD_WRITE			= 1;
 
 
-//low level commands
 
-wire local_user_cmd_vld;
+//Crossing clock domains YUCK!
+
+//IN
+wire l_user_cmd_vld;
 reg	usr_cmd_vld_prev;
 reg	vld_pos_edge;
 
 always @ (posedge clk) begin
 	usr_cmd_vld_prev	<= usr_cmd_vld;
 end
-assign local_user_cmd_vld	= (usr_cmd_vld & ~usr_cmd_vld_prev);
+assign l_user_cmd_vld	= (usr_cmd_vld & ~usr_cmd_vld_prev);
 
+
+//OUT
+reg user_clk_prev;
+wire pos_edge_usr_clock;
+always @ (posedge ddr_2x_clk) begin
+	user_clk_prev	<= clk;
+end
+assign pos_edge_usr_clock	= (clk & ~user_clk_prev);
+
+
+//Main State Machine
 reg	[7:0] 	ddr_cmd_state;
 reg			ddr_cmd_ack;
 reg	[31:0]	ddr_cmd_count;
 reg	[15:0]	ddr_refresh_timeout;
 reg	[3:0]	data_rw_count;
 
+reg	[(USR_ADDR_SIZE - 1):0]	l_usr_addr;
+reg	[31:0]	l_usr_data_in;
+reg			l_write;
+
 //memory bi-directional bus
 reg	[(`DDR_DATA_SIZE - 1):0]	mem_data_out;
-assign		mem_data [(`DDR_DATA_SIZE - 1): 0]	= (usr_cmd == USER_CMD_WRITE) ? mem_data_out: `DDR_DATA_SIZE'hz; 
+assign		mem_data [(`DDR_DATA_SIZE - 1): 0]	= (l_write) ? mem_data_out: `DDR_DATA_SIZE'hz; 
 
 //detect slow clock edge
 reg			prev_usr_clk;
@@ -279,7 +296,12 @@ parameter	CMD_SR_IDLE		=	8'h12;
 
 //DDR Control
 always @ (posedge ddr_2x_clk) begin
-	if (local_user_cmd_vld) begin
+	if (pos_edge_usr_clk) begin
+		//put the ack down since the user should have gotten this by now
+		ddr_ack	<= 0;
+		usr_data_out_vld <= 1;	
+	end
+	if (l_user_cmd_vld) begin
 		vld_pos_edge	<= 1;
 	end
 	if (ddr_cmd_count > 0) begin
@@ -290,7 +312,9 @@ always @ (posedge ddr_2x_clk) begin
 		mem_cas			<= 1;
 		mem_we			<= 1;
 		ddr_cmd_ack		<= 1;
-	
+		l_usr_addr	<= 0;
+		l_usr_data_in	<= 0;
+		l_write		<= 0;
 	
 	end
 
@@ -331,6 +355,7 @@ always @ (posedge ddr_2x_clk) begin
 					ddr_cmd_ack		<=	0;
 				end
 				if (ddr_cmd_count == 0) begin
+					ddr_busy	<= 0;
 					if (init_state == RAM_READY) begin
 //NOT REALLY SURE WHERE TO PUT mem_cke
 						mem_cke	<= 1;
@@ -343,7 +368,10 @@ always @ (posedge ddr_2x_clk) begin
 						//we are not in the intialization sequence
 						if (vld_pos_edge & ~mem_clk) begin
 							vld_pos_edge	<= 0;
-		
+							ddr_busy		<= 1;	
+							l_usr_addr	<= usr_addr;
+							l_usr_data_in	<= usr_data_in;
+					
 							//set the active row, and active bank
 							if (usr_addr[DDR_ADDR_SIZE - 1]) begin
 							//high bank was selected
@@ -361,16 +389,25 @@ always @ (posedge ddr_2x_clk) begin
 							mem_we			<= 1;
 
 							ddr_cmd_count	<= ACTIVE_TO_RW;
+/*WERE NOT REALLY DONE HERE, but this will help out with pipelining 
+this state maching will not accept new commands until it is IDLE
+and that wont happen until a read or write is finished
+*/
+							ddr_ack	<= 1;
+
+
 
 							//ACTIVATE COMMAND
 							//READ
 							if (usr_cmd == USER_CMD_READ) begin
 //this could be changed later in order to turn off precharge for faster busrt mode
+								l_write		<= 0;
 								ddr_cmd_state	<= CMD_READ_PRE;
 							end
 							else begin
 //this could be changed later in order to turn off precharge for faster busrt mode
 								ddr_cmd_state	<= CMD_WRITE_PRE;
+								l_write		<= 1;
 							end //user command
 						end//user command is valid
 						else begin
@@ -546,7 +583,7 @@ always @ (posedge ddr_2x_clk) begin
 					mem_cas			<= 0;
 					mem_we			<= 1;
 
-					mem_addr		<= usr_addr[(DDR_COLUMN_SIZE - 1): 0];
+					mem_addr		<= l_usr_addr[(DDR_COLUMN_SIZE - 1):0];
 					mem_addr[10]	<= 1;
 					ddr_cmd_count	<= (CAS_LATENCY * 2);
 					data_rw_count	<= BURST_LENGTH - 1;
@@ -565,6 +602,7 @@ always @ (posedge ddr_2x_clk) begin
 //IF CONSECUTIVE READS ARE DESIRED CODE CAN BE ISERTED HERE TO JUMP BACK TO THE CMD_READ or CMD_READ_PRE command
 						ddr_cmd_count	<= PRECHARGE_DELAY; 
 						ddr_cmd_state	<= CMD_IDLE;
+						usr_data_out_vld	<= 1;
 					end
 				end
 			end
@@ -596,7 +634,7 @@ always @ (posedge ddr_2x_clk) begin
 					mem_we			<= 0;
 					mem_dqs			<= 0;
 
-					mem_addr		<= usr_addr[(DDR_COLUMN_SIZE - 1): 0];
+					mem_addr		<= l_usr_addr[(DDR_COLUMN_SIZE - 1):0];
 					//auto precharge
 					mem_addr[10]	<= 1;
 					ddr_cmd_count	<= WRITE_CMD_TO_STROBE;
@@ -612,7 +650,7 @@ always @ (posedge ddr_2x_clk) begin
 					mem_dqs	<= ~mem_dqs;
 					if (data_rw_count >= 1) begin
 //MAKE SURE TO ENABLE THE usr_write VARIABLE TO SWITCH mem_data TRISTATE
-						mem_data_out	<= usr_data_in[31:16];	
+						mem_data_out	<= l_usr_data_in[31:16];	
 						data_rw_count	<= data_rw_count - 1;
 						
 					end
