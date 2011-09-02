@@ -27,6 +27,7 @@ SOFTWARE.
  * Exercise the tft core by 
 
 */
+`timescale 100ps/1ps
 `define TIMEOUT_COUNT 20
 `define INPUT_FILE "master_input_test_data.txt"  
 `define OUTPUT_FILE "master_output_test_data.txt"
@@ -184,7 +185,8 @@ integer waiting;
 
 integer data_count;
 
-always #2 clk = ~clk;
+
+always #200 clk = ~clk;
 
 
 initial begin
@@ -200,7 +202,7 @@ initial begin
 	fd_out = $fopen(`OUTPUT_FILE, "w");
 
 		rst				<= 0;
-	#4
+	#400
 		rst				<= 1;
 
 		//clear the handler signals
@@ -212,7 +214,7 @@ initial begin
 		//clear wishbone signals
 
 	
-	#20
+	#2000
 		rst				<= 0;
 		out_ready 		<= 1;
 
@@ -225,7 +227,7 @@ initial begin
 			read_count = $fscanf (fd_in, "%h:%h:%h\n", in_command, in_address, in_data);
 			$display ("read %d items", read_count);
 			$display ("read: C:A:D = %h:%h:%h", in_command, in_address, in_data);
-			#4
+			#400
 			case (in_command)
 				`COMMAND_WSTREAM_C: begin
 					/*the data will hold the count of the number of bytes 
@@ -239,9 +241,9 @@ initial begin
 					data_count		= in_data;
 					in_ready 		<= 1;
 					timeout_count	=	`TIMEOUT_COUNT;
-					#2
+					#200
 					in_ready		<= 0;
-					#4
+					#400
 					while (data_count > 0 && timeout_count > 0) begin
 						$display ("in stream loop data_count: %d, timeout_count %d", data_count, timeout_count);
 						if (master_ready) begin
@@ -251,16 +253,16 @@ initial begin
 							read_count = $fscanf(fd_in, ":%h", in_data);
 							$display ("read %d items", read_count);
 							$display ("sending data: %h", in_data); 
-							#4
+							#400
 							in_ready		<= 1;
-							#4
+							#400
 							in_ready		<= 0;
 							if (data_count == 0) begin
 								timeout_count <= -1;
 							end
 						end
 						else begin
-							#2
+							#200
 							timeout_count	<= timeout_count - 1;
 
 						end
@@ -280,7 +282,7 @@ initial begin
 							timeout_count	= -1;
 						end
 						else begin
-							#2
+							#200
 							timeout_count 	= timeout_count - 1;
 						end
 					end
@@ -300,9 +302,9 @@ initial begin
 					data_count		= in_data;
 					in_ready 		<= 1;
 					timeout_count	=	`TIMEOUT_COUNT;
-					#2
+					#200
 					in_ready		<= 0;
-					#4
+					#400
 					while (data_count > 0 && timeout_count > 0) begin
 						$display ("in stream loop data_count: %d, timeout_count %d", data_count, timeout_count);
 						if (master_ready) begin
@@ -312,16 +314,16 @@ initial begin
 							read_count = $fscanf(fd_in, ":%h", in_data);
 							$display ("read %d items", read_count);
 							$display ("sending data: %h", in_data); 
-							#4
+							#400
 							in_ready		<= 1;
-							#4
+							#400
 							in_ready		<= 0;
 							if (data_count == 0) begin
 								timeout_count <= -1;
 							end
 						end
 						else begin
-							#2
+							#200
 							timeout_count	<= timeout_count - 1;
 
 						end
@@ -341,7 +343,7 @@ initial begin
 							timeout_count	= -1;
 						end
 						else begin
-							#2
+							#200
 							timeout_count 	= timeout_count - 1;
 						end
 					end
@@ -364,9 +366,9 @@ initial begin
 					data_count		= in_data;
 					in_ready 		<= 1;
 					timeout_count	=	`TIMEOUT_COUNT;
-					#2
+					#200
 					in_ready		<= 1;
-					#2
+					#200
 					$fwrite (fd_out, "command: %h:%h:%h response:", in_command, in_address, in_data);
 					while (data_count > 0 && timeout_count > 0) begin
 						if (out_en) begin
@@ -376,7 +378,7 @@ initial begin
 							timeout_count = `TIMEOUT_COUNT;
 						end
 						else begin
-							#2
+							#200
 							timeout_count = timeout_count - 1;
 						end
 					end
@@ -392,9 +394,9 @@ initial begin
 					data_count		= in_data;
 					in_ready 		<= 1;
 					timeout_count	=	`TIMEOUT_COUNT;
-					#2
+					#200
 					in_ready		<= 1;
-					#2
+					#200
 					$fwrite (fd_out, "%h:%h:%h response:", in_command, in_address, in_data);
 					while (data_count > 0 && timeout_count > 0) begin
 						if (out_en) begin
@@ -404,7 +406,7 @@ initial begin
 							timeout_count = `TIMEOUT_COUNT;
 						end
 						else begin
-							#2
+							#200
 							timeout_count = timeout_count - 1;
 						end
 					end
@@ -417,10 +419,10 @@ initial begin
 					//just send the command normally
 					in_ready 		<= 1;
 					timeout_count	= `TIMEOUT_COUNT;
-					#2
+					#200
 					in_ready		<= 0;
 					out_ready 		<= 1;
-					#2
+					#200
 					$fwrite (fd_out, "command: %h:%h:%h response: ", in_command, in_address, in_data);
 					while (timeout_count > 0) begin
 						if (out_en) begin
@@ -430,7 +432,7 @@ initial begin
 							timeout_count	= -1;
 						end
 						else begin
-							#2
+							#200
 							timeout_count 	= timeout_count - 1;
 						end
 					end
@@ -442,7 +444,7 @@ initial begin
 			endcase
 		end
 	end
-	#10000
+	#1000000
 	waiting = 0;
 	$fclose (fd_in);
 	$fclose (fd_out);

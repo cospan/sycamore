@@ -29,7 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
 SOFTWARE.
 */
-`timescale 1ns/1ps
+`timescale 100ps/1ps
 `include "project_defines.v"  //this holds the define for SIM, VENDOR_FPGA and VENDOR_XILINX
 
 module ddr_dcm (
@@ -160,44 +160,27 @@ input		ddr_fb_clk_in;
 
 
 //simulation
-parameter DELAY	= 4;
-parameter PERIOD = 1;
+parameter DELAY	= 1;
 
-wire		sim_clk;
-reg			sim_2x_clk;
-reg	[7:0]	count;
-reg	[7:0]	count_2x;
+
+reg			sim_clk = 0;
+reg			sim_2x_clk = 0;
+reg			count;
 
 assign fb_clock_out	=	1;
 assign ddr_clk		=	sim_clk;
 assign ddr_2x_clk	=	sim_2x_clk;
 
-initial begin
-	sim_clk	= 1'b0;
-	#(PERIOD);
-	forever
-		#(PERIOD) sim_clk	= ~sim_clk;
-end
 
-always @ (posedge sim_clk) begin
+always #25 sim_2x_clk = ~sim_2x_clk;
+
+always @ (posedge sim_2x_clk) begin
 	if (rst) begin
-		count	<= 0;	
 	end
 	else begin	
-		if (count_2x >= DELAY) begin
-			count_2x <= 0;
-			sim_2x_clk	<= ~sim_2x_clk;
-			if (count >= (DELAY >> 1)) begin
-				sim_clk	<= ~sim_clk;
-			end
-			else begin
-				count	<= count + 1;
-			end
-		end
-		else begin
-			count_2x = count_2x + 1;
-		end
+		sim_clk	<= ~sim_clk;
 	end
+
 end
 `endif
 

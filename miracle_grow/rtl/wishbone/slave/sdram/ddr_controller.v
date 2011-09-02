@@ -4,6 +4,8 @@
  * 8/29/2011
  *	initial
  *
+ * 9/01/2011
+ *	core is compiling
  */
 
 /*
@@ -140,7 +142,7 @@ inout [(`DDR_DATA_SIZE - 1):0]	mem_data;
 
 input 								mem_clk_fb;
 
-wire				ddr_clk;
+assign mem_clk_n			=	mem_clk;
 wire				ddr_2x_clk;
 wire				dcm_lock;
 
@@ -148,7 +150,7 @@ ddr_dcm dcm (
    	.clk(clk),
 	.rst(rst),
 	
-	.ddr_clk(ddr_clk),
+	.ddr_clk(mem_clk),
 	.ddr_2x_clk(ddr_2x_clk),
 	.dcm_lock(dcm_lock),
 
@@ -229,6 +231,7 @@ parameter	USER_CMD_WRITE			= 1;
 
 wire local_user_cmd_vld;
 reg	usr_cmd_vld_prev;
+reg	vld_pos_edge;
 
 always @ (posedge clk) begin
 	usr_cmd_vld_prev	<= usr_cmd_vld;
@@ -276,6 +279,9 @@ parameter	CMD_SR_IDLE		=	8'h12;
 
 //DDR Control
 always @ (posedge ddr_2x_clk) begin
+	if (local_user_cmd_vld) begin
+		vld_pos_edge	<= 1;
+	end
 	if (ddr_cmd_count > 0) begin
 		ddr_cmd_count = ddr_cmd_count - 1;
 		//NOP command
@@ -286,6 +292,14 @@ always @ (posedge ddr_2x_clk) begin
 		ddr_cmd_ack		<= 1;
 	
 	
+	end
+
+	//refresh timeout, this is disabled during initialization
+	if (init_state	!= RAM_READY) begin
+			refresh_timeout	<= 0;	
+	end
+	else begin
+			refresh_timeout	<= refresh_timeout + 1;
 	end
 
 	if (rst) begin
@@ -301,6 +315,8 @@ always @ (posedge ddr_2x_clk) begin
 		mem_dm			<= 	0;	//not going to use the data masks
 		mem_dqs			<= 	0;
 		mem_data_out	<=	0;
+		mem_ba			<= 	0;
+		mem_addr		<= 	0;
 		refresh_timeout	<= 	0;
 		init_state		<= INIT_00;
 		en_dll			<= 0;
@@ -318,13 +334,15 @@ always @ (posedge ddr_2x_clk) begin
 					if (init_state == RAM_READY) begin
 //NOT REALLY SURE WHERE TO PUT mem_cke
 						mem_cke	<= 1;
-						if (refresh_timeout >= REFRESH_TIMEOUT_CYC) begin
+						if (mem_clk && (refresh_timeout >= REFRESH_TIMEOUT_CYC)) begin
+							$display ("REFRESH!!");
 							ddr_cmd_state	<= CMD_AUTO_RFSH;
+							refresh_timeout	<= 0;
 						end
 
 						//we are not in the intialization sequence
-						if (local_user_cmd_vld) begin
-
+						if (vld_pos_edge & ~mem_clk) begin
+							vld_pos_edge	<= 0;
 		
 							//set the active row, and active bank
 							if (usr_addr[DDR_ADDR_SIZE - 1]) begin
@@ -366,59 +384,81 @@ always @ (posedge ddr_2x_clk) begin
 	
 					end //system is ready
 					else begin
+						
 //we are in the INIT
 						case (init_state)
 							INIT_00: begin
 								//this should probably be removed
-								mem_cke		<= 0;
-								init_state	<= INIT_01;
+
+								if (mem_clk == 0) begin
+									mem_cke		<= 0;
+									init_state	<= INIT_01;
+								end
 							end
 							INIT_01: begin
 								//apply stable clocks and wait 200uS
-								en_dll	<= 1;
-								usr_str_reduced	<= 0;
-								ddr_cmd_state	<= CMD_LEXT_REG;
-								init_state	<= INIT_02;
+								if (mem_clk == 1) begin
+									en_dll	<= 1;
+									usr_str_reduced	<= 0;
+									ddr_cmd_state	<= CMD_LEXT_REG;
+									init_state	<= INIT_02;
+								end
 							end
 							INIT_02: begin
-								mem_cs		<= 0;
-								mem_ras		<= 1;
-								mem_cas		<= 1;
-								mem_we		<= 1;
-								mem_cke		<= 1;
-								init_state	<= INIT_03;
+								if (mem_clk == 0) begin
+									mem_cs		<= 0;
+									mem_ras		<= 1;
+									mem_cas		<= 1;
+									mem_we		<= 1;
+									mem_cke		<= 1;
+									init_state	<= INIT_03;
+								end
 							end	
 							INIT_03: begin
-								ddr_cmd_state	<= CMD_PRECHARGE;	
-								init_state	<= INIT_04;
+								if (mem_clk == 1) begin
+									ddr_cmd_state	<= CMD_PRECHARGE;	
+									init_state	<= INIT_04;
+								end
 							end
 							INIT_04: begin
-								en_dll	<= 1;
-								usr_str_reduced	<= 0;
-								ddr_cmd_state	<= CMD_LEXT_REG;
-								init_state	<= INIT_05;
+								if (mem_clk == 1) begin
+									en_dll	<= 1;
+									usr_str_reduced	<= 0;
+									ddr_cmd_state	<= CMD_LEXT_REG;
+									init_state	<= INIT_05;
+								end
 							end
 							INIT_05: begin
 								//configure register
-								ddr_cmd_state	<= CMD_LBASE_REG;
-								init_state		<= INIT_06;
+								if (mem_clk == 1) begin
+									ddr_cmd_state	<= CMD_LBASE_REG;
+									init_state		<= INIT_06;
+								end
 							end
 							INIT_06: begin
-								ddr_cmd_state	<= CMD_PRECHARGE;
-								init_state	<= INIT_07;
+								if (mem_clk == 1) begin
+									ddr_cmd_state	<= CMD_PRECHARGE;
+									init_state	<= INIT_07;
+								end
 							end
 							INIT_07: begin
-								ddr_cmd_state	<= CMD_AUTO_RFSH;
-								init_state	<=	INIT_08;
+								if (mem_clk == 1) begin
+									ddr_cmd_state	<= CMD_AUTO_RFSH;
+									init_state	<=	INIT_08;
+								end
 							end
 							INIT_08: begin
-								ddr_cmd_state	<= CMD_AUTO_RFSH;
-								init_state	<=	INIT_09;
+								if (mem_clk == 1) begin
+									ddr_cmd_state	<= CMD_AUTO_RFSH;
+									init_state	<=	INIT_09;
+								end
 							end
 							INIT_09: begin
-								reset_dll	<= 1;
-								ddr_cmd_state	<=	CMD_LBASE_REG;
-								init_state	<=	RAM_READY;
+								if (mem_clk == 1) begin
+									reset_dll	<= 1;
+									ddr_cmd_state	<=	CMD_LBASE_REG;
+									init_state	<=	RAM_READY;
+								end
 							end
 							RAM_READY: begin
 							//do nothing, were inited!
@@ -759,12 +799,6 @@ always @ (posedge ddr_2x_clk) begin
 			mem_cke	<= usr_cke;
 		end
 */
-		if (init_state	!= RAM_READY) begin
-			refresh_timeout	<= 0;	
-		end
-		else begin
-			refresh_timeout	<= refresh_timeout + 1;
-		end
 	end
 end
 endmodule
