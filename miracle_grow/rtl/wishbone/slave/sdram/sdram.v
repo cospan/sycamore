@@ -67,6 +67,59 @@ output reg  [31:0]	wbs_dat_o;
 output reg			wbs_ack_o;
 output reg			wbs_int_o;
 
+reg	[3:0]			usr_cmd;
+reg					usr_cmd_vld;
+reg	[23:0]			usr_addr;
+reg [31:0]			usr_data_in;
+wire [31:0]			usr_data_out;
+wire				usr_data_out_vld;
+wire				ddr_busy;
+wire				ddr_ack;
+wire				ddr_ready;
+
+wire				mem_clk;
+wire				mem_clk_n;
+wire				mem_clk_fb;
+wire				mem_cke;
+wire				mem_cs;
+wire				mem_ras;
+wire				mem_cas;
+wire				mem_we;
+wire [1:0]			mem_dm;
+wire [1:0]			mem_dqs;
+wire [1:0]			mem_ba;
+wire [22:0]			mem_addr;
+wire [15:0]			mem_data;
+
+ddr_controller ddr (
+	.clk(clk),
+	.rst(rst),
+
+	.usr_cmd(usr_cmd),
+	.usr_cmd_vld(usr_cmd_vld),
+	.usr_addr(usr_addr),
+	.usr_data_in(usr_data_in),
+	.usr_data_out(usr_data_out),
+	.usr_data_out_vld(usr_data_out_vld),
+
+	.ddr_busy(ddr_busy),
+	.ddr_ack(ddr_ack),
+	.ddr_ready(ddr_ready),
+	
+	.mem_clk(mem_clk),
+	.mem_clk_n(mem_clk_n),
+	.mem_cke(mem_cke),
+	.mem_cs(mem_cs),
+	.mem_ras(mem_ras),
+	.mem_cas(mem_cas),
+	.mem_we(mem_we),
+	.mem_dm(mem_dm),
+	.mem_dqs(mem_dqs),
+	.mem_ba(mem_ba),
+	.mem_addr(mem_addr),
+	.mem_data(mem_data)
+);
+
 parameter			ADDR_0	=	32'h00000000;
 parameter			ADDR_1	=	32'h00000001;
 parameter			ADDR_2	=	32'h00000002;

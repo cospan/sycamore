@@ -16,17 +16,11 @@ set signals [list]
 lappend signals "wishbone_master_tb.clk"
 lappend	signals "wishbone_master_tb.rst"
 lappend signals "wishbone_master_tb.in_command"
-lappend signals "fb.send_frame"
-lappend signals "fb.core.vis_x_pos"
-lappend signals "fb.core.vis_y_pos"
-lappend signals "disp_en"
-lappend signals "vsync"
-lappend signals "hsync"
-lappend	signals "data_en"
-lappend signals "pclk"
-lappend signals "red"
-lappend signals "green"
-lappend signals "blue"
+lappend signals "wishbone_master_tb.ram.mem_clk"
+lappend signals "wishbone_master_tb.ram.ddr.ddr_clk"
+lappend signals "wishbone_master_tb.ram.ddr.ddr_2x_clk"
+lappend signals "wishbone_master_tb.ram.ddr.init_state"
+lappend signals "wishbone_master_tb.ram.ddr.ddr_cmd_state"
 
 
 set num_added [gtkwave::addSignalsFromList $signals]

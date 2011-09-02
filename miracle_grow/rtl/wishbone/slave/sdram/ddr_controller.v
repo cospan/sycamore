@@ -28,6 +28,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
 SOFTWARE.
 */
+`define DDR_DATA_SIZE 16
 
 module ddr_controller (
 	clk,
@@ -63,7 +64,7 @@ module ddr_controller (
 
 );
 
-parameter 	DDR_DATA_SIZE 			= 16;
+//parameter 	`DDR_DATA_SIZE 			= 16;
 parameter	DDR_ROW_SIZE 			= 13;
 parameter	DDR_COLUMN_SIZE			= 10;
 parameter	DDR_BANK_SIZE 			= 2; 	//NOTE: THIS IS A HARD VALUE! HERE FOR OTHER MACROS
@@ -112,10 +113,10 @@ parameter OPTIONAL_LMR = 0;
 input 				rst;
 input 				clk;
 
-input [4:0] 		usr_cmd;
+input [3:0] 		usr_cmd;
 input 				usr_cmd_vld;
 
-input [(DDR_ADDR_SIZE - 1):0] 		usr_addr;
+input [(USR_ADDR_SIZE - 1):0] 		usr_addr;
 input [31:0]		usr_data_in;
 output reg [31:0]	usr_data_out;
 output reg			usr_data_out_vld;
@@ -135,16 +136,15 @@ output reg [(DDR_MASK_SIZE - 1): 0]	mem_dm;
 output reg [(DDR_DQS_SIZE - 1): 0]	mem_dqs;
 output reg [(DDR_BANK_SIZE - 1):0]	mem_ba;
 output reg [(DDR_ADDR_SIZE - 1):0]	mem_addr;
-output reg [(DDR_DATA_SIZE - 1):0]	mem_data;
+inout [(`DDR_DATA_SIZE - 1):0]	mem_data;
+
+input 								mem_clk_fb;
 
 wire				ddr_clk;
 wire				ddr_2x_clk;
 wire				dcm_lock;
 
-ddr_dcm #(
-   	.CLOCK_DIVIDER(CLOCK_133_DIVIDER),
-	.CLOCK_MULTIPLIER(CLOCK_133_MULTIPLIER)
-	) dcm (
+ddr_dcm dcm (
    	.clk(clk),
 	.rst(rst),
 	
@@ -181,7 +181,7 @@ parameter		INIT_08	=	8'h08;
 parameter		INIT_09	=	8'h09;
 
 //INIT_DDR_READY
-parameter		RAM_RDY	=	8'h0A;
+parameter		RAM_READY	=	8'h0A;
 
 
 
@@ -221,8 +221,8 @@ reg			usr_str_reduced;
 reg			reset_dll;
 
 
-parameter	USER_CMD_READ			= 4'h0;
-parameter	USER_CMD_WRITE			= 4'h1;
+parameter	USER_CMD_READ			= 0;
+parameter	USER_CMD_WRITE			= 1;
 
 
 //low level commands
@@ -242,8 +242,8 @@ reg	[15:0]	ddr_refresh_timeout;
 reg	[3:0]	data_rw_count;
 
 //memory bi-directional bus
-reg	[(DDR_DATA_SIZE - 1):0]	mem_data_out;
-assign		mem_data [(DDR_DATA_SIZE - 1): 0]	= (usr_write) ? mem_data_out: Z; 
+reg	[(`DDR_DATA_SIZE - 1):0]	mem_data_out;
+assign		mem_data [(`DDR_DATA_SIZE - 1): 0]	= (usr_cmd == USER_CMD_WRITE) ? mem_data_out: `DDR_DATA_SIZE'hz; 
 
 //detect slow clock edge
 reg			prev_usr_clk;
@@ -263,15 +263,16 @@ parameter	CMD_READ		=	8'h05;
 parameter	CMD_READ_DATA	=	8'h06;
 parameter	CMD_WRITE_PR	=	8'h07;
 parameter	CMD_WRITE		=	8'h08;
-parameter	CMD_WRITE_DATA	=	8'h09;
-parameter	CMD_BST			=	8'h0A;
-parameter	CMD_AUTO_RFSH	=	8'h0B;
-parameter	CMD_LMR			=	8'h0C;
-parameter	CMD_LBASE_REG	=	8'h0D;
-parameter	CMD_LEXT_BASE	=	8'h0E;
-parameter	CMD_PRECHRG		=	8'h0F;
-parameter	CMD_SELF_RFSH	=	8'h10;
-parameter	CMD_SR_IDLE		=	8'h11;
+parameter	CMD_WRITE_PRE	=	8'h09;
+parameter	CMD_WRITE_DATA	=	8'h0A;
+parameter	CMD_BST			=	8'h0B;
+parameter	CMD_AUTO_RFSH	=	8'h0C;
+parameter	CMD_LMR			=	8'h0D;
+parameter	CMD_LBASE_REG	=	8'h0E;
+parameter	CMD_LEXT_REG	=	8'h0F;
+parameter	CMD_PRECHARGE	=	8'h10;
+parameter	CMD_SELF_RFSH	=	8'h11;
+parameter	CMD_SR_IDLE		=	8'h12;
 
 //DDR Control
 always @ (posedge ddr_2x_clk) begin
@@ -314,47 +315,46 @@ always @ (posedge ddr_2x_clk) begin
 					ddr_cmd_ack		<=	0;
 				end
 				if (ddr_cmd_count == 0) begin
-					if (refresh_timeout >= REFRESH_TIMEOUT_CYC) begin
-						ddr_cmd_state	<= CMD_AUTO_RFSH;
-					end
-					else begin
-						if (init_state == RAM_RDY) begin
+					if (init_state == RAM_READY) begin
 //NOT REALLY SURE WHERE TO PUT mem_cke
-							mem_cke	<= 1;
-							//we are not in the intialization sequence
-							if (local_user_cmd_vld) begin
+						mem_cke	<= 1;
+						if (refresh_timeout >= REFRESH_TIMEOUT_CYC) begin
+							ddr_cmd_state	<= CMD_AUTO_RFSH;
+						end
+
+						//we are not in the intialization sequence
+						if (local_user_cmd_vld) begin
 
 		
-								//set the active row, and active bank
-								if (usr_addr[DDR_ADDR_SIZE - 1]) begin
-								//high bank was selected
-									mem_ba[1:0]	<= 2'h2;
-								end
-								else begin
-									//low bank was selected
-									mem_ba[1:0]	<= 2'h1;
-								end
-								mem_addr[DDR_ROW_SIZE - 1: 0]	<= usr_addr[(USR_ADDR_SIZE - 2):DDR_COLUMN_SIZE];
-	
-								mem_cs			<= 0;
-								mem_ras			<= 0;
-								mem_cas			<= 1;
-								mem_we			<= 1;
-
-								ddr_cmd_count	<= ACTIVE_TO_RW;
-
-								//ACTIVATE COMMAND
-								//READ
-								if (usr_cmd == USER_CMD_READ) begin
-//this could be changed later in order to turn off precharge for faster busrt mode
-									ddr_cmd_state	<= CMD_READ_PRE;
-								end
-								else begin
-//this could be changed later in order to turn off precharge for faster busrt mode
-									ddr_cmd_state	<= CMD_WRITE_PRE;
-								end
+							//set the active row, and active bank
+							if (usr_addr[DDR_ADDR_SIZE - 1]) begin
+							//high bank was selected
+								mem_ba[1:0]	<= 2'h2;
 							end
-						end
+							else begin
+								//low bank was selected
+								mem_ba[1:0]	<= 2'h1;
+							end
+							mem_addr[DDR_ROW_SIZE - 1: 0]	<= usr_addr[(USR_ADDR_SIZE - 2):DDR_COLUMN_SIZE];
+	
+							mem_cs			<= 0;
+							mem_ras			<= 0;
+							mem_cas			<= 1;
+							mem_we			<= 1;
+
+							ddr_cmd_count	<= ACTIVE_TO_RW;
+
+							//ACTIVATE COMMAND
+							//READ
+							if (usr_cmd == USER_CMD_READ) begin
+//this could be changed later in order to turn off precharge for faster busrt mode
+								ddr_cmd_state	<= CMD_READ_PRE;
+							end
+							else begin
+//this could be changed later in order to turn off precharge for faster busrt mode
+								ddr_cmd_state	<= CMD_WRITE_PRE;
+							end //user command
+						end//user command is valid
 						else begin
 							//NOP this bitch!
 							mem_cs			<= 0;
@@ -362,8 +362,9 @@ always @ (posedge ddr_2x_clk) begin
 							mem_cas			<= 1;
 							mem_we			<= 1;
 							ddr_cmd_ack		<= 1;
-						end
-					end
+						end	//user command is not valid
+	
+					end //system is ready
 					else begin
 //we are in the INIT
 						case (init_state)
@@ -386,9 +387,9 @@ always @ (posedge ddr_2x_clk) begin
 								mem_we		<= 1;
 								mem_cke		<= 1;
 								init_state	<= INIT_03;
-							end
+							end	
 							INIT_03: begin
-								ddr_cmd_state	<= CMD_PRECHRG;	
+								ddr_cmd_state	<= CMD_PRECHARGE;	
 								init_state	<= INIT_04;
 							end
 							INIT_04: begin
@@ -396,7 +397,6 @@ always @ (posedge ddr_2x_clk) begin
 								usr_str_reduced	<= 0;
 								ddr_cmd_state	<= CMD_LEXT_REG;
 								init_state	<= INIT_05;
-
 							end
 							INIT_05: begin
 								//configure register
@@ -418,20 +418,20 @@ always @ (posedge ddr_2x_clk) begin
 							INIT_09: begin
 								reset_dll	<= 1;
 								ddr_cmd_state	<=	CMD_LBASE_REG;
-								init_state	<=	INIT_RDY;
+								init_state	<=	RAM_READY;
 							end
-							RAM_RDY: begin
+							RAM_READY: begin
 							//do nothing, were inited!
 							end
 							default: begin
 								init_state	<= INIT_00;
 							end
 						endcase
-					end
+					end //in the init state
 				end
 			end
 			CMD_DESELECT: begin
-				//prevents new commands from beign executed by the DDR SDRAM
+			//prevents new commands from beign executed by the DDR SDRAM
 				mem_cs			<= 1;		
 				ddr_cmd_ack		<= 1;
 				ddr_cmd_state	<= CMD_IDLE;
@@ -517,13 +517,13 @@ always @ (posedge ddr_2x_clk) begin
 				//wait this amount of time and then read the data from the RAM
 				if (ddr_cmd_count == 0) begin
 					if (data_rw_count >= 1) begin
-						user_data_out[31:16] <= mem_data; 
+						usr_data_out[31:16] <= mem_data[15:0]; 
 						data_rw_count <= data_rw_count - 1;	
 					end
 					else begin
 						usr_data_out[15:0]	<= mem_data;	
 //IF CONSECUTIVE READS ARE DESIRED CODE CAN BE ISERTED HERE TO JUMP BACK TO THE CMD_READ or CMD_READ_PRE command
-						data_cmd_count	<= PRECHARGE_DELAY 
+						ddr_cmd_count	<= PRECHARGE_DELAY; 
 						ddr_cmd_state	<= CMD_IDLE;
 					end
 				end
@@ -565,20 +565,20 @@ always @ (posedge ddr_2x_clk) begin
 
 				end
 			end
-			CMD_WRTIE_DATA: begin
+			CMD_WRITE_DATA: begin
 				//wai this amount of time and then write the data to RAM
 				if (ddr_cmd_count == 0) begin
 //WILL THIS FLIP THE BITS ON ALL THE mem_dqs?
 					mem_dqs	<= ~mem_dqs;
 					if (data_rw_count >= 1) begin
 //MAKE SURE TO ENABLE THE usr_write VARIABLE TO SWITCH mem_data TRISTATE
-						mem_data_out	<= user_data_in[31:16];	
+						mem_data_out	<= usr_data_in[31:16];	
 						data_rw_count	<= data_rw_count - 1;
 						
 					end
 					else begin
-						mem_data_out	<= user_data_in[15:0];
-						data_cmd_count	<= PRECHARGE_DELAY;
+						mem_data_out	<= usr_data_in[15:0];
+						ddr_cmd_count	<= PRECHARGE_DELAY;
 						ddr_cmd_state	<= CMD_IDLE;
 					end
 				end
@@ -601,8 +601,8 @@ always @ (posedge ddr_2x_clk) begin
 				//if mem_addr[10] <= 1 then you can select BA[1] or BA[0] for precharge
 
 //DO I NEED A DELAY?
-*/
 			end
+*/
 			CMD_AUTO_RFSH: begin
 				//used during normal operation of the DDR SDRAM and is analogos to CAS before RAS refresh
 				//this command is nonpersistent, so it must be issued each time a refresh is requried
@@ -611,7 +611,7 @@ always @ (posedge ddr_2x_clk) begin
 				mem_ras			<= 0;
 				mem_cas			<= 0;
 				mem_we			<= 1;
-				data_cmd_count	<= AUTO_REFRESH_DELAY; 
+				ddr_cmd_count	<= AUTO_REFRESH_DELAY; 
 				ddr_cmd_state	<= CMD_IDLE;
 
 //DO I NEED A DELAY?
@@ -661,18 +661,14 @@ always @ (posedge ddr_2x_clk) begin
 			end
 */
 			CMD_LBASE_REG: begin
+				mem_addr	<= 0;
 				if (ddr_cmd_count	== 0) begin
 					mem_ba[1:0]		<= 2'h0;
 					mem_addr[2:0]	<= BURST_LENGTH;
 					mem_addr[3]		<= 0;	//sequential
 					mem_addr[6:4]	<= CAS_LATENCY;
 					if (reset_dll) begin
-						mem_addr[(DDR_ADDR_SIZE - 1):9)] <= 0;
 						mem_addr[8]	<= 1;
-						mem_addr[7]	<= 0;
-					end
-					else begin
-						mem_addr[(DDR_ADDR_SIZE - 1):7]	<= 0;
 					end
 
 					mem_cs			<= 0;
@@ -697,7 +693,7 @@ always @ (posedge ddr_2x_clk) begin
 					mem_cas			<= 0;
 					mem_we			<= 0;
 					if (en_dll) begin
-						ddr_cmd_count	<= DLL_EN_DELAY
+						ddr_cmd_count	<= DLL_EN_DELAY;
 					end
 					else begin
 						ddr_cmd_count		<= LMR_DELAY;
@@ -709,7 +705,7 @@ always @ (posedge ddr_2x_clk) begin
 			end
 
 //DON'T NEED THIS RIGHT NOW CAUSE i'M USING AUTO_PRECHARGE
-			CMD_PRECHRG: begin
+			CMD_PRECHARGE: begin
 				if (ddr_cmd_count	== 0) begin
 					//used to deactivate the open row in a particular bank or the open row in all banks.
 					//the value on the BA0, BA1 input selects the bank and the A10 input selects whether a single
@@ -720,7 +716,7 @@ always @ (posedge ddr_2x_clk) begin
 					mem_we			<= 0;
 
 					//both banks will go to precharge
-					addr[10]		<= 1;
+					mem_addr[10]		<= 1;
 					ddr_cmd_state	<= CMD_IDLE;
 					ddr_cmd_count	<= PRECHARGE_DELAY;
 				end
