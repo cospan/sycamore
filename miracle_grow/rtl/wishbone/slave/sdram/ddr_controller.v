@@ -37,13 +37,13 @@ module ddr_controller (
 	rst,
 
 	//ddr control
-	usr_cmd,
-	usr_cmd_vld,
+	user_cmd,
+	user_cmd_vld,
 
-	usr_addr,
-	usr_data_in,
-	usr_data_out,
-	usr_data_out_vld,
+	user_addr,
+	user_data_in,
+	user_data_out,
+	user_data_out_vld,
 
 	ddr_busy,
 	ddr_ack,
@@ -115,17 +115,17 @@ parameter OPTIONAL_LMR = 0;
 input 								rst;
 input 								clk;
 
-input [3:0] 						usr_cmd;
-input 								usr_cmd_vld;
+input [3:0] 						user_cmd;
+input 								user_cmd_vld;
 
-input [(USR_ADDR_SIZE - 1):0] 		usr_addr;
-input [31:0]						usr_data_in;
-output reg [31:0]					usr_data_out;
-output reg							usr_data_out_vld;
+input [(USR_ADDR_SIZE - 1):0] 		user_addr;
+input [31:0]						user_data_in;
+output reg [31:0]					user_data_out;
+output reg							user_data_out_vld;
 
 output reg							ddr_busy;
 output reg							ddr_ack;
-output reg							ddr_ready;
+output								ddr_ready;
 
 output								mem_clk;
 output								mem_clk_n;
@@ -185,23 +185,24 @@ parameter		INIT_09	=	8'h09;
 //INIT_DDR_READY
 parameter		RAM_READY	=	8'h0A;
 
+assign ddr_ready	= init_state == (RAM_READY);
 
 
 //SIMULATION HOOKS
 `ifdef SIM
-	reg				usr_clk;
+	reg				user_clk;
 	parameter		SIM_DELAY =	16;
 	reg	[15:0]		sim_count;
 	//the user clock needs to be slower than the DDR clock
 always @ (posedge clk) begin
 	if (rst) begin
 		sim_count	<= 16'h00;
-		usr_clk		<= 0;
+		user_clk		<= 0;
 	end
 	else begin
 		if (sim_count >= SIM_DELAY) begin
 			sim_count	<= 0;
-			usr_clk		<= ~usr_clk;
+			user_clk		<= ~user_clk;
 		end
 		else begin
 			sim_count	<= sim_count + 1;
@@ -210,16 +211,16 @@ always @ (posedge clk) begin
 end
 `else
 	//real thing
-	wire			usr_clk;
-	assign	usr_clk	=	clk;
+	wire			user_clk;
+	assign	user_clk	=	clk;
 `endif
 
 
 //this should be controlled by user to initialize the RAM again
 reg	[31:0]	count;
-reg			usr_cke;
+reg			user_cke;
 reg			en_dll;
-reg			usr_str_reduced;
+reg			user_str_reduced;
 reg			reset_dll;
 
 
@@ -232,22 +233,23 @@ parameter	USER_CMD_WRITE			= 1;
 
 //IN
 wire l_user_cmd_vld;
-reg	usr_cmd_vld_prev;
+reg	user_cmd_vld_prev;
 reg	vld_pos_edge;
 
-always @ (posedge clk) begin
-	usr_cmd_vld_prev	<= usr_cmd_vld;
+
+always @ (posedge ddr_2x_clk) begin
+	user_cmd_vld_prev	<= user_cmd_vld;
 end
-assign l_user_cmd_vld	= (usr_cmd_vld & ~usr_cmd_vld_prev);
+assign l_user_cmd_vld	= (user_cmd_vld & ~user_cmd_vld_prev);
 
 
 //OUT
 reg user_clk_prev;
-wire pos_edge_usr_clock;
+wire pos_edge_user_clock;
 always @ (posedge ddr_2x_clk) begin
 	user_clk_prev	<= clk;
 end
-assign pos_edge_usr_clock	= (clk & ~user_clk_prev);
+assign pos_edge_user_clock	= (clk & ~user_clk_prev);
 
 
 //Main State Machine
@@ -257,8 +259,8 @@ reg	[31:0]	ddr_cmd_count;
 reg	[15:0]	ddr_refresh_timeout;
 reg	[3:0]	data_rw_count;
 
-reg	[(USR_ADDR_SIZE - 1):0]	l_usr_addr;
-reg	[31:0]	l_usr_data_in;
+reg	[(USR_ADDR_SIZE - 1):0]	l_user_addr;
+reg	[31:0]	l_user_data_in;
 reg			l_write;
 
 //memory bi-directional bus
@@ -266,9 +268,9 @@ reg	[(`DDR_DATA_SIZE - 1):0]	mem_data_out;
 assign		mem_data [(`DDR_DATA_SIZE - 1): 0]	= (l_write) ? mem_data_out: `DDR_DATA_SIZE'hz; 
 
 //detect slow clock edge
-reg			prev_usr_clk;
-wire		pos_edge_usr_clk;
-assign		pos_edge_usr_clk	=	~prev_usr_clk & usr_clk;
+reg			prev_user_clk;
+wire		pos_edge_user_clk;
+assign		pos_edge_user_clk	=	~prev_user_clk & user_clk;
 
 
 //refresh timeout
@@ -296,10 +298,11 @@ parameter	CMD_SR_IDLE		=	8'h12;
 
 //DDR Control
 always @ (posedge ddr_2x_clk) begin
-	if (pos_edge_usr_clk) begin
+	if (pos_edge_user_clk) begin
 		//put the ack down since the user should have gotten this by now
 		ddr_ack	<= 0;
-		usr_data_out_vld <= 1;	
+		user_data_out_vld 	<= 1;	
+		vld_pos_edge		<= user_cmd_vld;
 	end
 	if (l_user_cmd_vld) begin
 		vld_pos_edge	<= 1;
@@ -312,9 +315,8 @@ always @ (posedge ddr_2x_clk) begin
 		mem_cas			<= 1;
 		mem_we			<= 1;
 		ddr_cmd_ack		<= 1;
-		l_usr_addr	<= 0;
-		l_usr_data_in	<= 0;
-		l_write		<= 0;
+		l_user_addr	<= 0;
+		l_user_data_in	<= 0;
 	
 	end
 
@@ -351,11 +353,12 @@ always @ (posedge ddr_2x_clk) begin
 	else begin
 		case (ddr_cmd_state)
 			CMD_IDLE: begin
-				if (pos_edge_usr_clk) begin
+				if (pos_edge_user_clk) begin
 					ddr_cmd_ack		<=	0;
 				end
 				if (ddr_cmd_count == 0) begin
 					ddr_busy	<= 0;
+					l_write		<= 0;
 					if (init_state == RAM_READY) begin
 //NOT REALLY SURE WHERE TO PUT mem_cke
 						mem_cke	<= 1;
@@ -369,11 +372,11 @@ always @ (posedge ddr_2x_clk) begin
 						if (vld_pos_edge & ~mem_clk) begin
 							vld_pos_edge	<= 0;
 							ddr_busy		<= 1;	
-							l_usr_addr	<= usr_addr;
-							l_usr_data_in	<= usr_data_in;
+							l_user_addr	<= user_addr;
+							l_user_data_in	<= user_data_in;
 					
 							//set the active row, and active bank
-							if (usr_addr[DDR_ADDR_SIZE - 1]) begin
+							if (user_addr[DDR_ADDR_SIZE - 1]) begin
 							//high bank was selected
 								mem_ba[1:0]	<= 2'h2;
 							end
@@ -381,7 +384,7 @@ always @ (posedge ddr_2x_clk) begin
 								//low bank was selected
 								mem_ba[1:0]	<= 2'h1;
 							end
-							mem_addr[DDR_ROW_SIZE - 1: 0]	<= usr_addr[(USR_ADDR_SIZE - 2):DDR_COLUMN_SIZE];
+							mem_addr[DDR_ROW_SIZE - 1: 0]	<= user_addr[(USR_ADDR_SIZE - 2):DDR_COLUMN_SIZE];
 	
 							mem_cs			<= 0;
 							mem_ras			<= 0;
@@ -399,13 +402,13 @@ and that wont happen until a read or write is finished
 
 							//ACTIVATE COMMAND
 							//READ
-							if (usr_cmd == USER_CMD_READ) begin
-//this could be changed later in order to turn off precharge for faster busrt mode
+							if (user_cmd == USER_CMD_READ) begin
+//this could be changed later in order to turn off precharge for faster busert mode
 								l_write		<= 0;
 								ddr_cmd_state	<= CMD_READ_PRE;
 							end
 							else begin
-//this could be changed later in order to turn off precharge for faster busrt mode
+//this could be changed later in order to turn off precharge for faster busert mode
 								ddr_cmd_state	<= CMD_WRITE_PRE;
 								l_write		<= 1;
 							end //user command
@@ -436,7 +439,7 @@ and that wont happen until a read or write is finished
 								//apply stable clocks and wait 200uS
 								if (mem_clk == 1) begin
 									en_dll	<= 1;
-									usr_str_reduced	<= 0;
+									user_str_reduced	<= 0;
 									ddr_cmd_state	<= CMD_LEXT_REG;
 									init_state	<= INIT_02;
 								end
@@ -460,7 +463,7 @@ and that wont happen until a read or write is finished
 							INIT_04: begin
 								if (mem_clk == 1) begin
 									en_dll	<= 1;
-									usr_str_reduced	<= 0;
+									user_str_reduced	<= 0;
 									ddr_cmd_state	<= CMD_LEXT_REG;
 									init_state	<= INIT_05;
 								end
@@ -530,7 +533,7 @@ and that wont happen until a read or write is finished
 				//selects the row
 
 				//set the active row, and active bank
-				if (usr_addr[DDR_ADDR_SIZE - 1]) begin
+				if (user_addr[DDR_ADDR_SIZE - 1]) begin
 					//high bank was selected
 					mem_ba[1:0]	<= 2'h2;
 				end
@@ -546,7 +549,7 @@ and that wont happen until a read or write is finished
 				//	bit 22 - 10	=	row address
 				//	bit 9  - 0	=	column address
 				//for this exmample the bank bit takes up 1 bit (top)_, the row address takes up 
-				mem_addr[DDR_ROW_SIZE - 1: 0]	<= usr_addr[(USR_ADDR_SIZE - 2):DDR_COLUMN_SIZE];
+				mem_addr[DDR_ROW_SIZE - 1: 0]	<= user_addr[(USR_ADDR_SIZE - 2):DDR_COLUMN_SIZE];
 
 				mem_cs			<= 0;
 				mem_ras			<= 0;
@@ -568,7 +571,7 @@ and that wont happen until a read or write is finished
 					mem_cas			<= 0;
 					mem_we			<= 1;
 
-					mem_addr		<= usr_addr[(DDR_COLUMN_SIZE - 1): 0];
+					mem_addr		<= user_addr[(DDR_COLUMN_SIZE - 1): 0];
 					//no auto precharge
 					mem_addr[10]	<= 0;
 					ddr_cmd_count	<= (CAS_LATENCY * 2);
@@ -583,7 +586,7 @@ and that wont happen until a read or write is finished
 					mem_cas			<= 0;
 					mem_we			<= 1;
 
-					mem_addr		<= l_usr_addr[(DDR_COLUMN_SIZE - 1):0];
+					mem_addr		<= l_user_addr[(DDR_COLUMN_SIZE - 1):0];
 					mem_addr[10]	<= 1;
 					ddr_cmd_count	<= (CAS_LATENCY * 2);
 					data_rw_count	<= BURST_LENGTH - 1;
@@ -594,15 +597,15 @@ and that wont happen until a read or write is finished
 				//wait this amount of time and then read the data from the RAM
 				if (ddr_cmd_count == 0) begin
 					if (data_rw_count >= 1) begin
-						usr_data_out[31:16] <= mem_data[15:0]; 
+						user_data_out[31:16] <= mem_data[15:0]; 
 						data_rw_count <= data_rw_count - 1;	
 					end
 					else begin
-						usr_data_out[15:0]	<= mem_data;	
+						user_data_out[15:0]	<= mem_data;	
 //IF CONSECUTIVE READS ARE DESIRED CODE CAN BE ISERTED HERE TO JUMP BACK TO THE CMD_READ or CMD_READ_PRE command
 						ddr_cmd_count	<= PRECHARGE_DELAY; 
 						ddr_cmd_state	<= CMD_IDLE;
-						usr_data_out_vld	<= 1;
+						user_data_out_vld	<= 1;
 					end
 				end
 			end
@@ -617,7 +620,7 @@ and that wont happen until a read or write is finished
 					mem_cas			<= 0;
 					mem_we			<= 0;
 
-					mem_addr		<= usr_addr[(DDR_COLUMN_SIZE - 1): 0];
+					mem_addr		<= user_addr[(DDR_COLUMN_SIZE - 1): 0];
 					//no auto precharge
 					mem_addr[10]	<= 0;
 					ddr_cmd_count 	<= WRITE_CMD_TO_STROBE;				
@@ -634,7 +637,7 @@ and that wont happen until a read or write is finished
 					mem_we			<= 0;
 					mem_dqs			<= 0;
 
-					mem_addr		<= l_usr_addr[(DDR_COLUMN_SIZE - 1):0];
+					mem_addr		<= l_user_addr[(DDR_COLUMN_SIZE - 1):0];
 					//auto precharge
 					mem_addr[10]	<= 1;
 					ddr_cmd_count	<= WRITE_CMD_TO_STROBE;
@@ -649,13 +652,13 @@ and that wont happen until a read or write is finished
 //WILL THIS FLIP THE BITS ON ALL THE mem_dqs?
 					mem_dqs	<= ~mem_dqs;
 					if (data_rw_count >= 1) begin
-//MAKE SURE TO ENABLE THE usr_write VARIABLE TO SWITCH mem_data TRISTATE
-						mem_data_out	<= l_usr_data_in[31:16];	
+//MAKE SURE TO ENABLE THE user_write VARIABLE TO SWITCH mem_data TRISTATE
+						mem_data_out	<= l_user_data_in[31:16];	
 						data_rw_count	<= data_rw_count - 1;
 						
 					end
 					else begin
-						mem_data_out	<= usr_data_in[15:0];
+						mem_data_out	<= user_data_in[15:0];
 						ddr_cmd_count	<= PRECHARGE_DELAY;
 						ddr_cmd_state	<= CMD_IDLE;
 					end
@@ -763,7 +766,7 @@ and that wont happen until a read or write is finished
 				if (ddr_cmd_count	== 0) begin
 					mem_ba[1:0]		<= 2'h1;
 					mem_addr[0]		<= ~en_dll;
-					mem_addr[1]		<= usr_str_reduced;
+					mem_addr[1]		<= user_str_reduced;
 					mem_addr[(DDR_ADDR_SIZE - 1):2]	<= 0;
 
 					mem_cs			<= 0;
@@ -811,10 +814,10 @@ and that wont happen until a read or write is finished
 				mem_ras			<= 0;
 				mem_cas			<= 0;
 				mem_we			<= 0;
-				ddr_cmd_state	<= usr_cmd;
+				ddr_cmd_state	<= user_cmd;
 			end
 			CMD_SR_IDLE: begin
-				if (~usr_cke) begin
+				if (~user_cke) begin
 					mem_cke			<= 0;
 				end
 				else begin
@@ -834,7 +837,7 @@ and that wont happen until a read or write is finished
 
 /*
 		if (state != SELF_RFSH) begin
-			mem_cke	<= usr_cke;
+			mem_cke	<= user_cke;
 		end
 */
 	end

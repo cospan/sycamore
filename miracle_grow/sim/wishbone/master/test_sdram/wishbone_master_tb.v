@@ -61,6 +61,14 @@ wire		wbm_ack_o;
 wire		wbm_int_o;
 
 
+
+//sdram stimulus signals
+parameter DEMO_DATA = 16'h1EAF;
+wire	[15:0]	sdram_data_in;
+wire	ddr_write_en;
+
+assign sdram_data_in	= (wbs1_we_o) ? 16'hZ : DEMO_DATA; 
+
 wishbone_master wm (
 	.clk(clk),
 	.rst(rst),
@@ -137,8 +145,11 @@ sdram ram (
 	.wbs_ack_o(wbs1_ack_i),
 	.wbs_dat_o(wbs1_dat_i),
 	.wbs_adr_i(wbs1_adr_o),
-	.wbs_int_o(wbs1_int_i)
+	.wbs_int_o(wbs1_int_i),
 
+		
+	.mem_data(sdram_data_in),
+	.mem_we(ddr_write_en)
 );
 
 wishbone_interconnect wi (
@@ -186,7 +197,7 @@ integer waiting;
 integer data_count;
 
 
-always #400 clk = ~clk;
+always #100 clk = ~clk;
 
 
 initial begin
@@ -202,7 +213,7 @@ initial begin
 	fd_out = $fopen(`OUTPUT_FILE, "w");
 
 		rst				<= 0;
-	#40
+	#800
 		rst				<= 1;
 
 		//clear the handler signals
@@ -213,12 +224,12 @@ initial begin
 		out_ready		<= 32'h0;
 		//clear wishbone signals
 
-	
-	#600
+		//sim data signals
+	#4000
 		rst				<= 0;
 		out_ready 		<= 1;
 
-	#40000
+	#50000
 	if (fd_in == 0) begin
 		$display ("input stimulus file was not found");
 	end
@@ -242,7 +253,7 @@ initial begin
 					data_count		= in_data;
 					in_ready 		<= 1;
 					timeout_count	=	`TIMEOUT_COUNT;
-					#500
+					#400
 					in_ready		<= 0;
 					#800
 					while (data_count > 0 && timeout_count > 0) begin

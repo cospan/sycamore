@@ -100,12 +100,12 @@ output [1:0]		mem_ba;
 output [22:0]		mem_addr;
 output [15:0]		mem_data;
 
-reg	[3:0]			usr_cmd;
-reg					usr_cmd_vld;
-reg	[23:0]			usr_addr;
-reg [31:0]			usr_data_in;
-wire [31:0]			usr_data_out;
-wire				usr_data_out_vld;
+reg	[3:0]			user_cmd;
+reg					user_cmd_vld;
+reg	[23:0]			user_addr;
+reg [31:0]			user_data_in;
+wire [31:0]			user_data_out;
+wire				user_data_out_vld;
 wire				ddr_busy;
 wire				ddr_ack;
 wire				ddr_ready;
@@ -114,12 +114,12 @@ ddr_controller ddr (
 	.clk(clk),
 	.rst(rst),
 
-	.usr_cmd(usr_cmd),
-	.usr_cmd_vld(usr_cmd_vld),
-	.usr_addr(usr_addr),
-	.usr_data_in(usr_data_in),
-	.usr_data_out(usr_data_out),
-	.usr_data_out_vld(usr_data_out_vld),
+	.user_cmd(user_cmd),
+	.user_cmd_vld(user_cmd_vld),
+	.user_addr(user_addr),
+	.user_data_in(user_data_in),
+	.user_data_out(user_data_out),
+	.user_data_out_vld(user_data_out_vld),
 
 	.ddr_busy(ddr_busy),
 	.ddr_ack(ddr_ack),
@@ -143,17 +143,17 @@ ddr_controller ddr (
 parameter	ADDR_STATUS = 32'h00FFFFFF;
 //blocks
 always @ (posedge clk) begin
-	usr_cmd_vld	<= 0;
+	user_cmd_vld	<= 0;
 	if (rst) begin
 		wbs_dat_o	<= 32'h0;
 		wbs_ack_o	<= 0;
 		wbs_int_o	<= 0;
 
-		usr_cmd		<= 0;
-		usr_cmd_vld	<= 0;
+		user_cmd		<= 0;
+		user_cmd_vld	<= 0;
 
-		usr_addr	<= 24'h0;
-		usr_data_in	<= 31'h0;
+		user_addr	<= 24'h0;
+		user_data_in	<= 31'h0;
 	end
 
 	//when the master acks our ack, then put our ack down
@@ -163,7 +163,7 @@ always @ (posedge clk) begin
 
 	//Initiating an interaction with the ddr_controller
 	if (wbs_stb_i & wbs_cyc_i) begin
-		usr_addr	<= wbs_adr_i;	
+		user_addr	<= wbs_adr_i;	
 		//master is requesting somethign
 		if (wbs_we_i) begin
 			//write request
@@ -172,9 +172,9 @@ always @ (posedge clk) begin
 				wbs_ack_o		<= 1;
 			end
 			else begin
-				usr_data_in	<= wbs_dat_i;
-				usr_cmd		<= `MEM_WRITE;
-				usr_cmd_vld	<= 1;
+				user_data_in	<= wbs_dat_i;
+				user_cmd		<= `MEM_WRITE;
+				user_cmd_vld	<= 1;
 			end
 		end
 
@@ -188,20 +188,20 @@ always @ (posedge clk) begin
 			else begin
 				//read request
 				if (ddr_ready) begin
-					usr_cmd		<= `MEM_READ;
-					usr_cmd_vld	<= 1;
+					user_cmd		<= `MEM_READ;
+					user_cmd_vld	<= 1;
 				end
 			end
 		end
 	end
 
 	//response from the ddr_controller
-	if ((usr_cmd	== `MEM_WRITE) && (ddr_ack)) begin
+	if ((user_cmd	== `MEM_WRITE) && (ddr_ack)) begin
 		wbs_ack_o	<= 1;	
 	end
-	else if ((usr_cmd == `MEM_READ) && (usr_data_out_vld)) begin
+	else if ((user_cmd == `MEM_READ) && (user_data_out_vld)) begin
 		wbs_ack_o	<= 1;
-		wbs_dat_o	<= usr_data_out;
+		wbs_dat_o	<= user_data_out;
 	end
 end
 
