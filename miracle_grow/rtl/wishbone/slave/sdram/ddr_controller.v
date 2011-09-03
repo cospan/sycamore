@@ -80,7 +80,7 @@ parameter	DDR_ADDR_SIZE			= DDR_ROW_SIZE + DDR_COLUMN_SIZE;
 
 //parameter 	REFRESH_TIMEOUT_INT		= 1560;	//tREFI = 5ns * 1560	= 7.8uS
 parameter	REFRESH_TIMEOUT_CYC		= 14000;	//tREFC = 5ns * 		= 70uS 
-parameter	DLL_EN_DELAY			= 400; 	//200 * 2 clock cycles whenever the DLL is enabled (the state machine is at 2x ddr_clk)
+parameter	DLL_EN_DELAY			= 40000; 	//200us * 2 clock cycles whenever the DLL is enabled (the state machine is at 2x ddr_clk)
 parameter	LMR_DELAY				= 3; 	//tMRD 	= 5nS * 3 	= 15ns
 parameter	AUTO_REFRESH_DELAY		= 15; 	//trFC 	= 5ns * 15 	= 75ns
 parameter	SRFSH_NON_READ			= 15;	//tXSNR	= 5ns * 15	= 75ns
@@ -107,7 +107,7 @@ parameter	WRITE_CMD_TO_STROBE		= 2;	//TDQSS	= 1 Cycle * 2	= 2
 //Clock rate = 100 MHz
 //CAS Latency = 2
 
-parameter	CAS_LATENCY 			= 3'h6; //speed grade -75
+parameter	CAS_LATENCY 			= 3'h2; //speed grade -75
 
 parameter INIT_200US_DELAY = 50 * 200;
 parameter OPTIONAL_LMR = 0;
@@ -273,6 +273,7 @@ wire		pos_edge_user_clk;
 assign		pos_edge_user_clk	=	~prev_user_clk & user_clk;
 
 
+//reg			test	=	0;
 //refresh timeout
 reg	[15:0]	refresh_timeout;
 
@@ -346,9 +347,10 @@ always @ (posedge ddr_2x_clk) begin
 		refresh_timeout	<= 	0;
 		init_state		<= INIT_00;
 		en_dll			<= 0;
-	
+		user_data_out_vld<= 0;	
 		data_rw_count	<= 0;
 		reset_dll		<= 0;	
+		//test			<= 0;
 	end
 	else begin
 		case (ddr_cmd_state)
@@ -597,15 +599,19 @@ and that wont happen until a read or write is finished
 				//wait this amount of time and then read the data from the RAM
 				if (ddr_cmd_count == 0) begin
 					if (data_rw_count >= 1) begin
+						$display ("Reading top word");
 						user_data_out[31:16] <= mem_data[15:0]; 
-						data_rw_count <= data_rw_count - 1;	
+						data_rw_count <= 0;	
+						//test	<= ~test;
 					end
 					else begin
+						$display ("Reading bottom word");
 						user_data_out[15:0]	<= mem_data;	
 //IF CONSECUTIVE READS ARE DESIRED CODE CAN BE ISERTED HERE TO JUMP BACK TO THE CMD_READ or CMD_READ_PRE command
 						ddr_cmd_count	<= PRECHARGE_DELAY; 
 						ddr_cmd_state	<= CMD_IDLE;
 						user_data_out_vld	<= 1;
+						//test	<= ~test;
 					end
 				end
 			end

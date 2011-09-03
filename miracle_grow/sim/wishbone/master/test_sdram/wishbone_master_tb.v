@@ -66,6 +66,7 @@ wire		wbm_int_o;
 parameter DEMO_DATA = 16'h1EAF;
 wire	[15:0]	sdram_data_in;
 wire	ddr_write_en;
+wire	ddr_ready;
 
 assign sdram_data_in	= (wbs1_we_o) ? 16'hZ : DEMO_DATA; 
 
@@ -149,7 +150,8 @@ sdram ram (
 
 		
 	.mem_data(sdram_data_in),
-	.mem_we(ddr_write_en)
+	.mem_we(ddr_write_en),
+	.debug_ddr_ready(ddr_ready)
 );
 
 wishbone_interconnect wi (
@@ -192,7 +194,7 @@ integer read_count;
 integer timeout_count;
 integer ch;
 
-integer waiting;
+reg waiting;
 
 integer data_count;
 
@@ -205,7 +207,6 @@ initial begin
 	read_count		= 	0;
 	data_count		=	0;
 	timeout_count	=	0;
-	waiting			=	1;
 
 	$dumpfile ("design.vcd");
 	$dumpvars (0, wishbone_master_tb);
@@ -234,6 +235,11 @@ initial begin
 		$display ("input stimulus file was not found");
 	end
 	else begin
+		while (waiting == 1) begin
+			#1000
+			$display();
+		end
+
 		while (!$feof(fd_in)) begin
 			//read in a command
 			read_count = $fscanf (fd_in, "%h:%h:%h\n", in_command, in_address, in_data);
@@ -457,10 +463,21 @@ initial begin
 		end
 	end
 	#1000000
-	waiting = 0;
 	$fclose (fd_in);
 	$fclose (fd_out);
 	$finish();
+end
+
+always @ (posedge clk) begin
+	if (rst) begin
+		waiting			<=	1;
+	end
+	else begin
+		if (ddr_ready) begin
+			waiting 		<= 	0;
+		end
+	end
+
 end
 
 endmodule

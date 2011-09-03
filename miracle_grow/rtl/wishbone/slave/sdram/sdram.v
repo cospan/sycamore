@@ -70,7 +70,9 @@ module sdram (
 	mem_dqs,
 	mem_ba,
 	mem_addr,
-	mem_data
+	mem_data,
+
+	debug_ddr_ready
 );
 
 input 				clk;
@@ -100,6 +102,8 @@ output [1:0]		mem_ba;
 output [22:0]		mem_addr;
 output [15:0]		mem_data;
 
+output				debug_ddr_ready;
+
 reg	[3:0]			user_cmd;
 reg					user_cmd_vld;
 reg	[23:0]			user_addr;
@@ -109,6 +113,8 @@ wire				user_data_out_vld;
 wire				ddr_busy;
 wire				ddr_ack;
 wire				ddr_ready;
+
+assign	debug_ddr_ready	= ddr_ready;
 
 ddr_controller ddr (
 	.clk(clk),

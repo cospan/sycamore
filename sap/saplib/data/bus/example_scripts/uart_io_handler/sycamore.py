@@ -200,6 +200,9 @@ class Sycamore:
 				time.sleep(2)
 				print "lcd disable"
 				lcd_disable = ("L000000000000001%0.8X00000000") % (address_offset)
+
+			elif (device_id == 5):
+				print "found DDR Ram"
 	
 	def open_serial(self, dev_name='/dev/ttyUSB0', baudrate=9600):
 		self.ser = serial.Serial(dev_name, baudrate)
