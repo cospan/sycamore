@@ -142,6 +142,7 @@ ddr_controller ddr (
 	.mem_dqs(mem_dqs),
 	.mem_ba(mem_ba),
 	.mem_addr(mem_addr),
+	.mem_clk_fb(mem_clk_fb),
 	.mem_data(mem_data)
 );
 

@@ -56,27 +56,28 @@ input		ddr_fb_clk_in;
 //defaults to 100MHz
 `ifdef VENDOR_XILINX
 	
-	wire	dcm1_clk;
-	wire	dcm1_clk_out;
 	wire	fb_clk_in;
+
+	wire	ddr_clk_pre;
 	
+	wire	dcm2_clk_in_pre;
 	wire	dcm2_clk_in;
 	wire	dcm2_synth_clk_out;
 	wire	dcm2_clk_out;
-	wire	dcm2_fb_clk_in;
+	wire	dcm2_clk_fb_pre;
+	wire	dcm2_clk_fb;
 
 	wire	dcm1_lock;
 	wire	dcm2_lock;
 	assign	dcm_lock	=	(dcm1_lock & dcm2_lock);
 
 	//DCM1
-   	IBUFG dcm1_in_ibuf (.I(clk), .O(dcm1_clk));
-   	BUFG  dcm1_out_buf (.I(dcm1_clk_out), .O(ddr_clk));
+   	BUFG  dcm1_out_buf (.I(ddr_clk_pre), .O(ddr_clk));
    	IBUFG dcm1_fb_ibuf (.I(ddr_fb_clk_in), .O(fb_clk_in)); 
 
-   	BUFG  dcm2_in_buf (.I(dcm1_clk), .O(dcm2_clk_in));
+   	BUFG  dcm2_in_buf (.I(dcm2_clk_in_pre), .O(dcm2_clk_in));
    	BUFG  dcm2_out_buf (.I(dcm2_synth_clk_out), .O(ddr_2x_clk));
-   	BUFG  dcm2_fb_buf (.I(dcm2_clk_out), .O(dcm2_fb_clk_in));
+   	BUFG  dcm2_fb_buf (.I(dcm2_clk_fb_pre), .O(dcm2_clk_fb));
 
 
 
@@ -98,7 +99,7 @@ input		ddr_fb_clk_in;
 		.PHASE_SHIFT(0), 
 		.STARTUP_WAIT("FALSE") ) 
          DCM_SP_INST1 (	.CLKFB(fb_clk_in), 
-                        .CLKIN(dcm1_clk), 
+                        .CLKIN(clk), 
                         .DSSEN(0), 
                         .PSCLK(0), 
                         .PSEN(0), 
@@ -107,8 +108,8 @@ input		ddr_fb_clk_in;
                         .CLKDV(), 
                         .CLKFX(), 
                         .CLKFX180(), 
-                        .CLK0(dcm2_clk_in), 
-                        .CLK2X(dcm1_clk_out), 
+                        .CLK0(dcm2_clk_in_pre), 
+                        .CLK2X(ddr_clk_pre), 
                         .CLK2X180(), 
                         .CLK90(), 
                         .CLK180(), 
@@ -134,7 +135,7 @@ input		ddr_fb_clk_in;
         .FACTORY_JF(16'hC080), 
 		.PHASE_SHIFT(0), 
 		.STARTUP_WAIT("FALSE") ) 
-         DCM_SP_INST2 (	.CLKFB(dcm2_fb_clk_in), 
+         DCM_SP_INST2 (	.CLKFB(dcm2_clk_fb), 
                         .CLKIN(dcm2_clk_in), 
                         .DSSEN(0), 
                         .PSCLK(0), 
@@ -144,7 +145,7 @@ input		ddr_fb_clk_in;
                         .CLKDV(), 
                         .CLKFX(dcm2_synth_clk_out), 
                         .CLKFX180(), 
-                        .CLK0(dcm2_clk_out), 
+                        .CLK0(dcm2_clk_fb_pre), 
                         .CLK2X(), 
                         .CLK2X180(), 
                         .CLK90(), 

@@ -56,11 +56,11 @@
 				"direction":"output"
 			},
 
-			"s1_mem_ck":{
+			"s1_mem_clk":{
 				"port":"SD_CK_P",
 				"direction":"output"
 			},
-			"s1_mem_ck_n":{
+			"s1_mem_clk_n":{
 				"port":"SD_CK_N",
 				"direction":"output"
 			},

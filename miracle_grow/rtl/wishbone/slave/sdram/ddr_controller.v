@@ -154,7 +154,7 @@ ddr_dcm dcm (
 	.ddr_2x_clk(ddr_2x_clk),
 	.dcm_lock(dcm_lock),
 
-	.ddr_fb_clk_in(dcm_fb_in)
+	.ddr_fb_clk_in(mem_clk_fb)
 );
  
 //Initialization sequence
@@ -309,7 +309,7 @@ always @ (posedge ddr_2x_clk) begin
 		vld_pos_edge	<= 1;
 	end
 	if (ddr_cmd_count > 0) begin
-		ddr_cmd_count = ddr_cmd_count - 1;
+		ddr_cmd_count <= ddr_cmd_count - 1;
 		//NOP command
 		mem_cs			<= 0;
 		mem_ras			<= 1;

@@ -57,7 +57,7 @@ class GenTop(Gen):
 		footer = ""
 
 		header = "module top (\n"
-		header = header + "\tclk,\n"
+		header = header + "\tin_clk,\n"
 		header = header + "\trst,\n"
 
 		#bindings = tags["CONSTRAINTS"]["bind"]
@@ -76,8 +76,10 @@ class GenTop(Gen):
 
 		#declare the wires
 		wr_buf = wr_buf + "\t//inupt handler signals\n"
-		wr_buf = wr_buf + "\tinput\t\tclk;\n"
+		wr_buf = wr_buf + "\tinput\t\tin_clk;\n"
+		wr_buf = wr_buf + "\twire\t\tclk;\n"
 		self.wires.append("clk")
+		self.wires.append("in_clk")
 		wr_buf = wr_buf + "\tinput\t\trst;\n"
 		self.wires.append("rst")
 		wr_buf = wr_buf + "\twire\t[31:0]\tin_command;\n"
@@ -124,6 +126,10 @@ class GenTop(Gen):
 		self.wires.append("wbm_ack_o")
 		wr_buf = wr_buf + "\twire\t\twbm_int_o;\n\n"
 		self.wires.append("wbm_int_o")
+
+		#put the in clock on the global buffer
+		wr_buf = wr_buf + "\t//add a global clock buffer to the input clock\n"
+		wr_buf = wr_buf + "\tIBUFG clk_ibuf(.I(in_clk), .O(clk));\n\n"
 
 		wr_buf = wr_buf + "\t//slave signals\n\n"
 
@@ -316,6 +322,11 @@ class GenTop(Gen):
 			"output",
 			"inout"
 		]
+		#add a prename to all the slaves
+		pre_name = ""
+		if (index != -1):
+			pre_name = "s" + str(index) + "_"
+
 
 		for io in io_types:
 			for port in module_tags["ports"][io].keys():
@@ -340,9 +351,15 @@ class GenTop(Gen):
 					if (port.startswith(name)):	
 						out_buf = out_buf + name + str(index) + port.partition(name)[2]
 					else:
-						out_buf = out_buf + port
+						if (port == "clk" or port == "rst"):
+							out_buf = out_buf + port
+						else:
+							out_buf = out_buf + pre_name + port
 				else:
-					out_buf = out_buf + port
+					if (port == "clk" or port == "rst"):
+						out_buf = out_buf + port
+					else:
+						out_buf = out_buf + pre_name + port
 				out_buf = out_buf + ";\n"
 
 		out_buf = out_buf + "\n\n"
@@ -354,8 +371,7 @@ class GenTop(Gen):
 			out_buf = out_buf + str(index)
 
 		out_buf = out_buf + "(\n"
-
-		pre_name = "s" + str(index) + "_"
+		
 		pindex = 0
 		last = len(module_tags["ports"]["input"].keys())
 		last = last + len(module_tags["ports"]["output"].keys())
@@ -381,11 +397,18 @@ class GenTop(Gen):
 					#add name and index if required
 					if ((len(name) > 0) and (index != -1)):
 						if (port.startswith(name)):	
-							out_buf = out_buf + pre_name + name + str(index) + port.partition(name)[2]
+							out_buf = out_buf + name + str(index) + port.partition(name)[2]
 						else:
-							out_buf = out_buf + pre_name + port
+							if (port == "clk" or port == "rst"):
+								out_buf = out_buf + port
+							else:
+								out_buf = out_buf + pre_name + port
+							
 					else:
-						out_buf = out_buf + pre_name +  port
+						if (port == "clk" or port == "rst"):
+							out_buf = out_buf + port
+						else:
+							out_buf = out_buf + pre_name +  port
 				out_buf = out_buf + ")"
 				pindex = pindex + 1
 				if (pindex == last):
