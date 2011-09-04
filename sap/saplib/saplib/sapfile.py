@@ -160,6 +160,43 @@ class SapFile:
 				
 		return True
 
+	def resolve_dependencies(self, filename, debug = False):
+		"""given a filename determine if there are any modules it depends on, recursively search for any files found in order to extrapolate all dependencies"""
+		result = True
+		ldebug = debug
+		if debug:
+			print "in resolve dependencies"
+		local_file_list = []
+		if debug: 
+			print "working on filename: " + filename
+		if (self.has_dependencies(filename, debug = ldebug)):
+			if debug:
+				print "found dependencies!"
+			deps = self.get_list_of_dependencies(filename, debug = ldebug)
+			for d in deps:
+				dep_filename = self.find_module_filename(d, debug = ldebug)
+				if (len(dep_filename) == 0):
+					print "Couldn't find dependency filename for module " + d
+					continue
+				else :
+					print "found the filename: " + dep_filename
+				#check this file out for dependecies, then append that on to the local list
+				result = self.resolve_dependencies(dep_filename, debug = ldebug)
+				if debug:
+					if result == True:
+						print "found all sub dependencies for: " + dep_filename
+				local_file_list.append(dep_filename)
+
+		#go through the local file list and add anything found to the list of dependencies or verilog files
+		for f in local_file_list:
+			if (not self.verilog_dependency_list.__contains__(f) and
+				not self.verilog_file_list.__contains__(f)):
+	
+				if debug:
+					print "found dependency: " + f
+				self.verilog_dependency_list.append(f)
+
+		return result
 
 	def has_dependencies(self, filename, debug = False):
 		"""look in a verilog module, and search for anything that requires a depency, return true if found"""
@@ -274,12 +311,24 @@ class SapFile:
 			if (not done):
 				#found a possible module
 				#partitoin the fbuf
+				if debug:
+					print "module token " + module_token
 				module_string = fbuf.partition(module_token)[0]
 				fbuf = fbuf.partition(module_token)[2]
 				fbuf = fbuf.partition(";")[2]
 				str_list = fbuf.splitlines()
 
-				module_string = module_string.partition("(")[0]
+				#module_string = module_string.partition("(")[0]
+				while (len(module_string.partition(";")[2]) > 0):
+					module_string = module_string.partition(";")[2]
+							
+				module_string = module_string.strip("(")	
+				module_string = module_string.strip()
+
+				if debug:
+					print "module string: " + module_string
+
+
 				mlist = module_string.splitlines()
 				#work backwords
 				#look for the last line that has a '('
@@ -315,8 +364,8 @@ class SapFile:
 
 		print "files:"
 		for f in verilog_files:
-			if debug:
-				print "checking: " + f
+			#if debug:
+			#	print "checking: " + f
 			if (self.is_module_in_file(f, module_name)):
 				if debug:
 					print "Found!, stripping directory info..."

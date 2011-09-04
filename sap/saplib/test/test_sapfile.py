@@ -110,15 +110,22 @@ class Test (unittest.TestCase):
 		#scan a file that is a verilog file but not the full path
 		result = self.sapfile.has_dependencies("uart_io_handler.v", debug=False)
 		self.assertEqual(result, True)
+	
+		#scan a file that has multiple levels of dependencies
+		result = self.sapfile.has_dependencies("sdram.v", debug=False)
+		self.assertEqual(result, True)
 		
 		result = self.sapfile.has_dependencies("simple_gpio.v", debug=False)
 		self.assertEqual(result, False)
 
 	def test_get_list_of_dependencies(self):
-		deps = self.sapfile.get_list_of_dependencies("simple_gpio.v", debug=True)
+		deps = self.sapfile.get_list_of_dependencies("simple_gpio.v", debug=False)
 		self.assertEqual(len(deps) == 0, True)
-		deps = self.sapfile.get_list_of_dependencies("uart_io_handler.v", debug=True)
+		deps = self.sapfile.get_list_of_dependencies("uart_io_handler.v", debug=False)
 		self.assertEqual(len(deps) > 0, True)
+		deps = self.sapfile.get_list_of_dependencies("sdram.v", debug=False)
+		self.assertEqual(len(deps) > 0, True)
+
 
 
 	def test_is_module_in_file(self):
@@ -134,6 +141,12 @@ class Test (unittest.TestCase):
 		module_name = "uart"
 		result = self.sapfile.find_module_filename(module_name, debug = False)
 		self.assertEqual(len(result) > 0, True)
+	
+	def test_resolve_dependencies(self):
+		filename = "sdram.v"
+		result = self.sapfile.resolve_dependencies(filename, debug = True)
+		"dependencies found for " + filename
+		self.assertEqual(result, True)
 
 
 if __name__ == "__main__":

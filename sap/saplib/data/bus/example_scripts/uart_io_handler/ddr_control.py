@@ -6,13 +6,13 @@ import sycamore
 def write_mem(syc, mem_index, mem_address, data):
 	syc.write_data(mem_index, mem_address, data)
 
-def read_mem(syc, mem_index, mem_address, data):
+def read_mem(syc, mem_index, mem_address):
 	mem_data = syc.read_data(mem_index, mem_address)
 	return mem_data
 
 if __name__=="__main__":
 	syc = sycamore.Sycamore()
-	mem_index = syc.get_device_index(5)
+	mem_index = syc.get_device_index(10)
 	
 	mem_size = 2**23
 	mem_test = True
@@ -25,23 +25,23 @@ if __name__=="__main__":
 		print "mem address = " + hex(syc.get_address_from_dev_index(mem_index))
 		for addr in range (0, (mem_size / 4)):
 			mem_data = read_mem(syc, mem_index, addr * 4)
-			print ".",	
-			if (mem_data != addr):
-				print "first read failed at address: " + str(addr * 4)+ " data: " + str(mem_data) + " != " + str(addr * 4) 
-				break
+			print "data: " + hex(mem_data) + " at: " + hex(addr)
 
-		print "populating memory"
-		for addr in range (0, mem_size * 4):
+			if (mem_data != (addr * 4)):
+				print "Fail Initial read!" 
+				break
+		print "populating first 10 memory locations"
+		for addr in range (0, 10):
 			write_mem(syc, mem_index, addr * 4, addr * 4)
-			print ".",	
+			print "address: " + str(addr)	
 		
 		print " "
-		print "reading memory"
-		for addr in range (0, mem_size * 4):
+		print "reading first 10 memory locations"
+		for addr in range (0, 10):
 			mem_data = read_mem(syc, mem_index, addr * 4)
-			print ".",	
+			print "data: " + hex(mem_data) + " at: " + hex(addr)
 			if (mem_data != addr):
-				print "first read failed at address: " + str(addr * 4)+ " data: " + str(mem_data) + " != " + str(addr * 4) 
+				print "Fail Initial read!" 
 				mem_test	= False
 				break
 

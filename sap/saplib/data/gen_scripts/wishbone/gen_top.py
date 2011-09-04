@@ -280,9 +280,10 @@ class GenTop(Gen):
 					buf_bind = buf_bind + "\tassign\t" + key + "\t=\t" + bindings[key]["port"] + ";\n"
 				elif (bindings[key]["direction"] == "output"):
 					buf_bind = buf_bind + "\tassign\t" + bindings[key]["port"] + "\t=\t" + key + "\t;\n"
-				else:
-					buf_bind = buf_bind + "\tassign\t" + key + "\t= (" + bindings[key]["enable"] + ") ?\t" + bindings[key]["port"] + " : x;\n"
-					buf_bind = buf_bind + "\tassign\t" + bindings[key]["port"] + "\t= (~" + bindings[key]["enable"] + ") ?\t" + key + " : x;\n"
+				#else:
+
+				#	buf_bind = buf_bind + "\tassign\t" + key + "\t= (" + bindings[key]["enable"] + ") ?\t" + bindings[key]["port"] + " : x;\n"
+				#	buf_bind = buf_bind + "\tassign\t" + bindings[key]["port"] + "\t= (~" + bindings[key]["enable"] + ") ?\t" + key + " : x;\n"
 
 	
 

@@ -6,65 +6,47 @@
 	"TEMPLATE":"wishbone_template.json",
 	"INTERFACE":"uart_io_handler.v",
 	"SLAVES":[
-		"sdram.v"
+		"tft.v"
 	],
 
 	"CONSTRAINTS":{
 		"constraint_files":[
-			"s3esk_ddr.ucf"
+			"s3esk_tft.ucf"
 		],
 		"device":"xc3s500efg320",
 		"bind": {
-			"mem_addr[12:0]":{
-				"port":"SD_A[12:0]",
+			"red[7:0]":{
+				"port":"tft_red[7:0]",
 				"direction":"output"
 			},
-			"mem_ba[1:0]":{
-				"port":"SD_BA[1:0]",
+			"green[7:0]":{
+				"port":"tft_green[7:0]",
 				"direction":"output"
 			},
-			"mem_data[15:0]":{
-				"port":"SD_DQ[15:0]",
-				"direction":"inout"
-			},
-			"mem_dm[1:0]":{
-				"port":"SD_DM[1:0]",
+			"blue[7:0]":{
+				"port":"tft_blue[7:0]",
 				"direction":"output"
 			},
-			"mem_dqs[1:0]":{
-				"port":"SD_DQS[1:0]",
+			"disp_en":{
+				"port":"tft_disp_en",
 				"direction":"output"
 			},
-			"mem_cas":{
-				"port":"SD_CAS",
+			"hsync":{
+				"port":"tft_hsync",
 				"direction":"output"
 			},
-			"mem_ras":{
-				"port":"SD_RAS",
+			"vsync":{
+				"port":"tft_vsync",
 				"direction":"output"
 			},
-			"mem_cke":{
-				"port":"SD_CKE",
+			"data_en":{
+				"port":"tft_data_en",
 				"direction":"output"
 			},
-			"mem_cs":{
-				"port":"SD_CS",
+			"pclk":{
+				"port":"tft_pclk",
 				"direction":"output"
 			},
-			"mem_we":{
-				"port":"SD_WE",
-				"direction":"output"
-			},
-
-			"mem_ck":{
-				"port":"SD_CK_P",
-				"direction":"output"
-			},
-			"mem_ck_n":{
-				"port":"SD_CK_N",
-				"direction":"output"
-			},
-
 			"phy_uart_in":{
 				"port":"rx",
 				"direction":"input"
