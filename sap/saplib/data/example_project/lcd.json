@@ -15,35 +15,35 @@
 		],
 		"device":"xc3s500efg320",
 		"bind": {
-			"red[7:0]":{
+			"s1_red[7:0]":{
 				"port":"tft_red[7:0]",
 				"direction":"output"
 			},
-			"green[7:0]":{
+			"s1_green[7:0]":{
 				"port":"tft_green[7:0]",
 				"direction":"output"
 			},
-			"blue[7:0]":{
+			"s1_blue[7:0]":{
 				"port":"tft_blue[7:0]",
 				"direction":"output"
 			},
-			"disp_en":{
+			"s1_disp_en":{
 				"port":"tft_disp_en",
 				"direction":"output"
 			},
-			"hsync":{
+			"s1_hsync":{
 				"port":"tft_hsync",
 				"direction":"output"
 			},
-			"vsync":{
+			"s1_vsync":{
 				"port":"tft_vsync",
 				"direction":"output"
 			},
-			"data_en":{
+			"s1_data_en":{
 				"port":"tft_data_en",
 				"direction":"output"
 			},
-			"pclk":{
+			"s1_pclk":{
 				"port":"tft_pclk",
 				"direction":"output"
 			},

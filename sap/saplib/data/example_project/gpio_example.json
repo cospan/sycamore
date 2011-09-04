@@ -23,27 +23,27 @@
 				"port":"TX",
 				"direction":"output"
 			},
-			"gpio_out[7:0]":{
+			"s1_gpio_out[7:0]":{
 				"port":"led[7:0]",
 				"direction":"output"
 			},
-			"gpio_in[3:0]":{
+			"s1_gpio_in[3:0]":{
 				"port":"switch[3:0]",
 				"direction":"input"
 			},
-			"gpio_in[4]":{
+			"s1_gpio_in[4]":{
 				"port":"btn_north",
 				"direction":"input"
 			},
-			"gpio_in[5]":{
+			"s1_gpio_in[5]":{
 				"port":"btn_south",
 				"direction":"input"
 			},
-			"gpio_in[6]":{
+			"s1_gpio_in[6]":{
 				"port":"btn_east",
 				"direction":"input"
 			},
-			"gpio_in[7]":{
+			"s1_gpio_in[7]":{
 				"port":"btn_west",
 				"direction":"input"
 			}

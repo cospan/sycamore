@@ -100,7 +100,7 @@ output [1:0]		mem_dm;
 output [1:0]		mem_dqs;
 output [1:0]		mem_ba;
 output [22:0]		mem_addr;
-output [15:0]		mem_data;
+inout [15:0]		mem_data;
 
 output				debug_ddr_ready;
 

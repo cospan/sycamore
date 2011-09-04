@@ -15,52 +15,52 @@
 		],
 		"device":"xc3s500efg320",
 		"bind": {
-			"mem_addr[12:0]":{
+			"s1_mem_addr[12:0]":{
 				"port":"SD_A[12:0]",
 				"direction":"output"
 			},
-			"mem_ba[1:0]":{
+			"s1_mem_ba[1:0]":{
 				"port":"SD_BA[1:0]",
 				"direction":"output"
 			},
-			"mem_data[15:0]":{
+			"s1_mem_data[15:0]":{
 				"port":"SD_DQ[15:0]",
 				"direction":"inout"
 			},
-			"mem_dm[1:0]":{
+			"s1_mem_dm[1:0]":{
 				"port":"SD_DM[1:0]",
 				"direction":"output"
 			},
-			"mem_dqs[1:0]":{
+			"s1_mem_dqs[1:0]":{
 				"port":"SD_DQS[1:0]",
 				"direction":"output"
 			},
-			"mem_cas":{
+			"s1_mem_cas":{
 				"port":"SD_CAS",
 				"direction":"output"
 			},
-			"mem_ras":{
+			"s1_mem_ras":{
 				"port":"SD_RAS",
 				"direction":"output"
 			},
-			"mem_cke":{
+			"s1_mem_cke":{
 				"port":"SD_CKE",
 				"direction":"output"
 			},
-			"mem_cs":{
+			"s1_mem_cs":{
 				"port":"SD_CS",
 				"direction":"output"
 			},
-			"mem_we":{
+			"s1_mem_we":{
 				"port":"SD_WE",
 				"direction":"output"
 			},
 
-			"mem_ck":{
+			"s1_mem_ck":{
 				"port":"SD_CK_P",
 				"direction":"output"
 			},
-			"mem_ck_n":{
+			"s1_mem_ck_n":{
 				"port":"SD_CK_N",
 				"direction":"output"
 			},

@@ -13,22 +13,22 @@ class GenTop(Gen):
 
 	def add_ports_to_wires(self):
 		"""add all the ports to wires list so that no item adds wirs"""
-		bindings = self.tags["CONSTRAINTS"]["bind"]
-		for name in bindings.keys():
-			self.wires.append(bindings[name]["port"])
+		#bindings = self.tags["CONSTRAINTS"]["bind"]
+		for name in self.bindings.keys():
+			self.wires.append(self.bindings[name]["port"])
 
 
 	def generate_ports(self):
 		"""create the ports string"""
 		port_buf = ""
-		bindings = self.tags["CONSTRAINTS"]["bind"]
-		for name in bindings.keys():
-			port_name = bindings[name]["port"]
+		#bindings = self.tags["CONSTRAINTS"]["bind"]
+		for name in self.bindings.keys():
+			port_name = self.bindings[name]["port"]
 			if (port_name.__contains__("[") and port_name.__contains__(":")):
 				port_name = "[" + port_name.partition("[")[2] + "\t" + port_name.partition("[")[0]
-				port_buf = port_buf + "\t" + bindings[name]["direction"] + "\t" + port_name + ";\n"
+				port_buf = port_buf + "\t" + self.bindings[name]["direction"] + "\t" + port_name + ";\n"
 			else:
-				port_buf = port_buf + "\t" + bindings[name]["direction"] + "\t\t" + port_name + ";\n"
+				port_buf = port_buf + "\t" + self.bindings[name]["direction"] + "\t\t" + port_name + ";\n"
 
 		return port_buf
 				
@@ -38,6 +38,7 @@ class GenTop(Gen):
 		slave_list = tags["SLAVES"]
 		num_slaves = len(slave_list) + 1
 		self.tags = tags
+		self.bindings = self.tags["CONSTRAINTS"]["bind"]
 		if debug:
 			print "found " + str(len(slave_list)) + " slaves"
 			for slave in slave_list:
@@ -59,11 +60,11 @@ class GenTop(Gen):
 		header = header + "\tclk,\n"
 		header = header + "\trst,\n"
 
-		bindings = tags["CONSTRAINTS"]["bind"]
-		for c_index in range(0, len(bindings.keys())):
-			name = bindings.keys()[c_index]	
-			header = header + "\t" + bindings[name]["port"]
-			if (c_index < len(bindings.keys()) - 1):
+		#bindings = tags["CONSTRAINTS"]["bind"]
+		for c_index in range(0, len(self.bindings.keys())):
+			name = self.bindings.keys()[c_index]	
+			header = header + "\t" + self.bindings[name]["port"]
+			if (c_index < len(self.bindings.keys()) - 1):
 				header = header + ","
 			header = header + "\n"
 
@@ -273,17 +274,17 @@ class GenTop(Gen):
 	
 		buf_bind = ""
 		#Generate the bindings
-		if (len(bindings.keys()) > 0):
+		if (len(self.bindings.keys()) > 0):
 			buf_bind = buf_bind + "\t//assigns\n"
-			for key in bindings.keys():
-				if (bindings[key]["direction"] == "input"):
-					buf_bind = buf_bind + "\tassign\t" + key + "\t=\t" + bindings[key]["port"] + ";\n"
-				elif (bindings[key]["direction"] == "output"):
-					buf_bind = buf_bind + "\tassign\t" + bindings[key]["port"] + "\t=\t" + key + "\t;\n"
+			for key in self.bindings.keys():
+				if (self.bindings[key]["direction"] == "input"):
+					buf_bind = buf_bind + "\tassign\t" + key + "\t=\t" + self.bindings[key]["port"] + ";\n"
+				elif (self.bindings[key]["direction"] == "output"):
+					buf_bind = buf_bind + "\tassign\t" + self.bindings[key]["port"] + "\t=\t" + key + ";\n"
 				#else:
 
-				#	buf_bind = buf_bind + "\tassign\t" + key + "\t= (" + bindings[key]["enable"] + ") ?\t" + bindings[key]["port"] + " : x;\n"
-				#	buf_bind = buf_bind + "\tassign\t" + bindings[key]["port"] + "\t= (~" + bindings[key]["enable"] + ") ?\t" + key + " : x;\n"
+				#	buf_bind = buf_bind + "\tassign\t" + key + "\t= (" + self.bindings[key]["enable"] + ") ?\t" + self.bindings[key]["port"] + " : x;\n"
+				#	buf_bind = buf_bind + "\tassign\t" + self.bindings[key]["port"] + "\t= (~" + self.bindings[key]["enable"] + ") ?\t" + key + " : x;\n"
 
 	
 
@@ -354,6 +355,7 @@ class GenTop(Gen):
 
 		out_buf = out_buf + "(\n"
 
+		pre_name = "s" + str(index) + "_"
 		pindex = 0
 		last = len(module_tags["ports"]["input"].keys())
 		last = last + len(module_tags["ports"]["output"].keys())
@@ -364,14 +366,26 @@ class GenTop(Gen):
 				pdict = module_tags["ports"][io][port]
 				out_buf = out_buf + "\t\t." + port + "(" 			
 
-				#add name and index if required
-				if ((len(name) > 0) and (index != -1)):
-					if (port.startswith(name)):	
-						out_buf = out_buf + name + str(index) + port.partition(name)[2]
+				found_binding = False
+				inout_binding = ""
+				if (io == "inout"):
+					print "found inout!: " + port
+					bkeys = self.bindings.keys()
+					for bkey in bkeys:
+						if (bkey.startswith(pre_name + port)):
+							print "found: " + bkey
+							out_buf = out_buf + self.bindings[bkey]["port"]
+							found_binding = True
+
+				if( not found_binding):
+					#add name and index if required
+					if ((len(name) > 0) and (index != -1)):
+						if (port.startswith(name)):	
+							out_buf = out_buf + pre_name + name + str(index) + port.partition(name)[2]
+						else:
+							out_buf = out_buf + pre_name + port
 					else:
-						out_buf = out_buf + port
-				else:
-					out_buf = out_buf + port
+						out_buf = out_buf + pre_name +  port
 				out_buf = out_buf + ")"
 				pindex = pindex + 1
 				if (pindex == last):
