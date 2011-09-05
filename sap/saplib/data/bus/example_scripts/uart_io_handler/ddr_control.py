@@ -12,7 +12,7 @@ def read_mem(syc, mem_index, mem_address):
 
 if __name__=="__main__":
 	syc = sycamore.Sycamore()
-	mem_index = syc.get_device_index(10)
+	mem_index = syc.get_device_index(5)
 	
 	mem_size = 2**23
 	mem_test = True

@@ -38,7 +38,8 @@ module ddr_dcm (
 
 	ddr_clk,
 	ddr_2x_clk,
-	dcm_lock,
+	dcm1_lock,
+	dcm2_lock,
 
 	ddr_fb_clk_in
 );
@@ -48,18 +49,15 @@ input 		clk;
 input 		rst;
 output 		ddr_clk;
 output		ddr_2x_clk;
-output 		dcm_lock;
-
+output 		dcm1_lock;
+output		dcm2_lock;
 input		ddr_fb_clk_in;
 
 
-//defaults to 100MHz
 `ifdef VENDOR_XILINX
 	
 	wire	fb_clk_in;
-
 	wire	ddr_clk_pre;
-	
 	wire	dcm2_clk_in_pre;
 	wire	dcm2_clk_in;
 	wire	dcm2_synth_clk_out;
@@ -67,16 +65,21 @@ input		ddr_fb_clk_in;
 	wire	dcm2_clk_fb_pre;
 	wire	dcm2_clk_fb;
 
-	wire	dcm1_lock;
-	wire	dcm2_lock;
-	assign	dcm_lock	=	(dcm1_lock & dcm2_lock);
 
 	//DCM1
+//	BUFG  dcm1_clk_in ( .I(clk), .O(clk_in));
+	//2X output of the first DCM driver for the main clock
    	BUFG  dcm1_out_buf (.I(ddr_clk_pre), .O(ddr_clk));
+	//Input from the clock feedback pin for the first DCM
    	IBUFG dcm1_fb_ibuf (.I(ddr_fb_clk_in), .O(fb_clk_in)); 
 
+
+	//DCM2
+	//output of the first DCM
    	BUFG  dcm2_in_buf (.I(dcm2_clk_in_pre), .O(dcm2_clk_in));
+	//200MHz clock output used for the DDR state machine
    	BUFG  dcm2_out_buf (.I(dcm2_synth_clk_out), .O(ddr_2x_clk));
+	//feedback for the 200MHz DDR state machine
    	BUFG  dcm2_fb_buf (.I(dcm2_clk_fb_pre), .O(dcm2_clk_fb));
 
 
@@ -172,6 +175,8 @@ assign fb_clock_out	=	1;
 assign ddr_clk		=	sim_clk;
 assign ddr_2x_clk	=	sim_2x_clk;
 
+assign	dcm1_lock	=	1;
+assign	dcm2_lock	=	1;
 
 always #25 sim_2x_clk = ~sim_2x_clk;
 

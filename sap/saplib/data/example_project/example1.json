@@ -15,6 +15,10 @@
 		],
 		"device":"xc3s500efg320",
 		"bind": {
+			"s1_debug[7:0]":{
+				"port":"led[7:0]",
+				"direction":"output"
+			},
 			"s1_mem_addr[12:0]":{
 				"port":"SD_A[12:0]",
 				"direction":"output"

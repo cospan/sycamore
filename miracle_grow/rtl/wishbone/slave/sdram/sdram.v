@@ -72,7 +72,8 @@ module sdram (
 	mem_addr,
 	mem_data,
 
-	debug_ddr_ready
+	debug_ddr_ready,
+	debug
 );
 
 input 				clk;
@@ -103,18 +104,56 @@ output [22:0]		mem_addr;
 inout [15:0]		mem_data;
 
 output				debug_ddr_ready;
+output	[7:0]		debug;
 
 reg	[3:0]			user_cmd;
 reg					user_cmd_vld;
 reg	[23:0]			user_addr;
 reg [31:0]			user_data_in;
+reg					user_confirm;
 wire [31:0]			user_data_out;
 wire				user_data_out_vld;
 wire				ddr_busy;
 wire				ddr_ack;
 wire				ddr_ready;
 
+wire				dcm1_lock;
+wire				dcm2_lock;
+
+
+//debug signals
+wire	ddr_2x_clk;
+reg	ddr_clock_correct;
+reg	ddr_2x_clock_correct;
+reg	ddr_ack_correct;
+reg	ddr_data_valid_correct;
+reg	write_data_test;
+reg	read_data_test;
+reg	awesome;
+
 assign	debug_ddr_ready	= ddr_ready;
+assign	debug[0]	=	ddr_ready;
+assign	debug[1]	=	write_data_test;
+assign	debug[2]	=	read_data_test;
+assign	debug[3]	=	ddr_ack_correct;
+assign	debug[4]	=	ddr_data_valid_correct;
+assign	debug[5]	=	dcm1_lock;
+assign	debug[6]	=	dcm2_lock;
+assign	debug[7]	=	awesome;
+
+always @ (posedge ddr_2x_clk) begin
+	if (rst) begin
+		ddr_clock_correct		<= 0;
+		ddr_2x_clock_correct	<= 0;
+			end
+	else begin
+		//test whether the ddr_clock is 2X the normal clock rate (I don't have an oscilloscope that can handle that speed :(
+		//test whether the ddr_2x_clock is 4x the normal clock rate
+
+	end
+end
+
+
 
 ddr_controller ddr (
 	.clk(clk),
@@ -126,6 +165,7 @@ ddr_controller ddr (
 	.user_data_in(user_data_in),
 	.user_data_out(user_data_out),
 	.user_data_out_vld(user_data_out_vld),
+	.ddr_user_confirm(user_confirm),
 
 	.ddr_busy(ddr_busy),
 	.ddr_ack(ddr_ack),
@@ -143,7 +183,11 @@ ddr_controller ddr (
 	.mem_ba(mem_ba),
 	.mem_addr(mem_addr),
 	.mem_clk_fb(mem_clk_fb),
-	.mem_data(mem_data)
+	.mem_data(mem_data),
+
+	.ddr_2x_clk(ddr_2x_clk),
+	.dcm1_lock(dcm1_lock),
+	.dcm2_lock(dcm2_lock)
 );
 
 //this is an odd number and usually wont be called
@@ -151,6 +195,10 @@ parameter	ADDR_STATUS = 32'h00FFFFFF;
 //blocks
 always @ (posedge clk) begin
 	user_cmd_vld	<= 0;
+	user_confirm	<= 0;
+	if (ddr_ack) begin
+		//user_cmd		<= 0;
+	end
 	if (rst) begin
 		wbs_dat_o	<= 32'h0;
 		wbs_ack_o	<= 0;
@@ -161,6 +209,9 @@ always @ (posedge clk) begin
 
 		user_addr	<= 24'h0;
 		user_data_in	<= 31'h0;
+		ddr_ack_correct			<= 0;
+		ddr_data_valid_correct	<= 0;
+
 	end
 
 	//when the master acks our ack, then put our ack down
@@ -180,6 +231,9 @@ always @ (posedge clk) begin
 			end
 			else begin
 				user_data_in	<= wbs_dat_i;
+				if (wbs_dat_i == 32'h00001EAF) begin
+					write_data_test <= ~write_data_test;	
+				end
 				user_cmd		<= `MEM_WRITE;
 				user_cmd_vld	<= 1;
 			end
@@ -205,10 +259,20 @@ always @ (posedge clk) begin
 	//response from the ddr_controller
 	if ((user_cmd	== `MEM_WRITE) && (ddr_ack)) begin
 		wbs_ack_o	<= 1;	
+		ddr_ack_correct	<= ~ddr_ack_correct;
+		user_confirm	<= 1;
 	end
 	else if ((user_cmd == `MEM_READ) && (user_data_out_vld)) begin
 		wbs_ack_o	<= 1;
+		ddr_data_valid_correct	<= ~ddr_data_valid_correct;
 		wbs_dat_o	<= user_data_out;
+		user_confirm	<= 1;
+		if (user_data_out == 32'h0000000) begin
+			read_data_test	<= ~read_data_test;
+		end
+		if (user_data_out == 32'h00001EAF) begin
+			awesome			<= ~awesome;
+		end
 	end
 end
 
