@@ -211,6 +211,8 @@ always @ (posedge clk) begin
 		user_data_in	<= 31'h0;
 		ddr_ack_correct			<= 0;
 		ddr_data_valid_correct	<= 0;
+		read_data_test			<=	0;
+		write_data_test			<= 0;
 
 	end
 

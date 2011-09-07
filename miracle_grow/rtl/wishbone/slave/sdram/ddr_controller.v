@@ -154,21 +154,12 @@ output								dcm1_lock;
 output								dcm2_lock;
 
 //assign			mem_clk			=	ddr_clk;
-assign			mem_clk_n		=	~mem_clk;
-/*OBUF	ddr_df_clk (
-	.I(ddr_clk),
-	.O(mem_clk)
-);
-OBUF	ddr_df_n_clk (
-	.I(~ddr_clk),
-	.O(mem_clk_n)
-);
-*/
 ddr_dcm dcm (
    	.clk(clk),
 	.rst(rst),
 	
 	.ddr_clk(mem_clk),
+	.ddr_clk_n(mem_clk_n),
 	.ddr_2x_clk(ddr_2x_clk),
 	.dcm1_lock(dcm1_lock),
 	.dcm2_lock(dcm2_lock),
@@ -184,21 +175,21 @@ reg	[7:0]		init_state;
 parameter		INIT_00	=	8'h00;
 //INIT_01: Apply stable clocks, wait for 200uS
 parameter		INIT_01	=	8'h01;
-//INIT_04: CKE goes high with NOP
+//INIT_02: CKE goes high with NOP
 parameter		INIT_02	=	8'h02;
-//INIT_05: Precharge All, wait for tRP
+//INIT_03: Precharge All, wait for tRP
 parameter		INIT_03	=	8'h03;
-//INIT_07: Configure Extended mode register wait for tMRD
+//INIT_04: Configure Extended mode register wait for tMRD
 parameter		INIT_04	=	8'h04;
-//INIT_09: Configure load mode register and reset DLL, wait for tMRD
+//INIT_05: Configure load mode register and reset DLL, wait for tMRD
 parameter		INIT_05	=	8'h05;
-//INIT_0B: Precharge All, wait for tRP
+//INIT_06: Precharge All, wait for tRP
 parameter		INIT_06	=	8'h06;
-//INIT_0D: Issue Auto Refresh command, wait for tRFC
+//INIT_07: Issue Auto Refresh command, wait for tRFC
 parameter		INIT_07	=	8'h07;
-//INIT_0F: Issue Auto Refresh command, wait for tRFC
+//INIT_08: Issue Auto Refresh command, wait for tRFC
 parameter		INIT_08	=	8'h08;
-//INIT_11: Optional LMR command to clear DLL bit, wait for tMRD
+//INIT_09: Optional LMR command to clear DLL bit, wait for tMRD
 parameter		INIT_09	=	8'h09;
 
 //INIT_DDR_READY
@@ -355,8 +346,7 @@ always @ (posedge ddr_2x_clk) begin
 					ddr_busy	<= 0;
 					l_write		<= 0;
 					if (init_state == RAM_READY) begin
-//NOT REALLY SURE WHERE TO PUT mem_cke
-						mem_cke	<= 1;
+
 						if (mem_clk && (refresh_timeout >= REFRESH_TIMEOUT_CYC)) begin
 							$display ("REFRESH!!");
 							ddr_cmd_state	<= CMD_AUTO_RFSH;
@@ -364,7 +354,7 @@ always @ (posedge ddr_2x_clk) begin
 						end
 
 						//we are not in the intialization sequence
-						if (vld_pos_edge & ~mem_clk && (user_cmd != 0)) begin
+						if (vld_pos_edge & ~mem_clk) begin
 							vld_pos_edge	<= 0;
 							ddr_busy		<= 1;	
 							l_user_addr	<= user_addr;
@@ -408,14 +398,14 @@ and that wont happen until a read or write is finished
 								l_write		<= 1;
 							end //user command
 						end//user command is valid
-						else begin
+/*						else begin
 							//NOP this bitch!
 							mem_cs			<= 0;
 							mem_ras			<= 1;
 							mem_cas			<= 1;
 							mem_we			<= 1;
 						end	//user command is not valid
-	
+/*/	
 					end //system is ready
 					else begin
 						
@@ -423,9 +413,8 @@ and that wont happen until a read or write is finished
 						case (init_state)
 							INIT_00: begin
 								//this should probably be removed
-
+								mem_cs	<= 1;
 								if (mem_clk == 0) begin
-
 									mem_cke		<= 0;
 									if (dcm1_lock && dcm2_lock) begin
 										init_state	<= INIT_01;
@@ -470,6 +459,7 @@ and that wont happen until a read or write is finished
 								if (mem_clk == 1) begin
 									ddr_cmd_state	<= CMD_LBASE_REG;
 									init_state		<= INIT_06;
+									reset_dll		<= 1;
 								end
 							end
 							INIT_06: begin
@@ -697,7 +687,6 @@ and that wont happen until a read or write is finished
 				ddr_cmd_count	<= AUTO_REFRESH_DELAY; 
 				ddr_cmd_state	<= CMD_IDLE;
 
-//DO I NEED A DELAY?
 			end
 /*
 			CMD_LMR: begin
@@ -747,9 +736,9 @@ and that wont happen until a read or write is finished
 				mem_addr	<= 0;
 				if (ddr_cmd_count	== 0) begin
 					mem_ba[1:0]		<= 2'h0;
-					mem_addr[2:0]	<= BURST_LENGTH;
+					mem_addr[2:0]	<= 2'h1;	//burst length of two
 					mem_addr[3]		<= 0;	//sequential
-					mem_addr[6:4]	<= CAS_LATENCY;
+					mem_addr[6:4]	<= 3'h2;	//cas latency of two
 					if (reset_dll) begin
 						mem_addr[8]	<= 1;
 					end

@@ -37,6 +37,7 @@ module ddr_dcm (
 	rst,
 
 	ddr_clk,
+	ddr_clk_n,
 	ddr_2x_clk,
 	dcm1_lock,
 	dcm2_lock,
@@ -48,6 +49,7 @@ module ddr_dcm (
 input 		clk;
 input 		rst;
 output 		ddr_clk;
+output		ddr_clk_n;
 output		ddr_2x_clk;
 output 		dcm1_lock;
 output		dcm2_lock;
@@ -64,12 +66,14 @@ input		ddr_fb_clk_in;
 	wire	dcm2_clk_out;
 	wire	dcm2_clk_fb_pre;
 	wire	dcm2_clk_fb;
+	wire	clk_in;
 
 
 	//DCM1
 //	BUFG  dcm1_clk_in ( .I(clk), .O(clk_in));
 	//2X output of the first DCM driver for the main clock
    	BUFG  dcm1_out_buf (.I(ddr_clk_pre), .O(ddr_clk));
+	BUFG  dcm1_out_buf_n (.I(~ddr_clk_pre), .O(ddr_clk_n));
 	//Input from the clock feedback pin for the first DCM
    	IBUFG dcm1_fb_ibuf (.I(ddr_fb_clk_in), .O(fb_clk_in)); 
 
@@ -88,9 +92,9 @@ input		ddr_fb_clk_in;
 	//Attach the feedback from the external feedback
 	DCM_SP #( 
 		.CLK_FEEDBACK("2X"), 
-		.CLKDV_DIVIDE(2.0), 
-		.CLKFX_DIVIDE(1), 
-        .CLKFX_MULTIPLY(1), 
+		.CLKDV_DIVIDE(1.0), 
+		.CLKFX_DIVIDE(1.0), 
+        .CLKFX_MULTIPLY(1.0), 
 		.CLKIN_DIVIDE_BY_2("FALSE"), 
         .CLKIN_PERIOD(20.000), 
 		.CLKOUT_PHASE_SHIFT("NONE"), 
@@ -102,7 +106,8 @@ input		ddr_fb_clk_in;
 		.PHASE_SHIFT(0), 
 		.STARTUP_WAIT("FALSE") ) 
          DCM_SP_INST1 (	.CLKFB(fb_clk_in), 
-                        .CLKIN(clk), 
+		 				.CLKIN(clk),
+                        //.CLKIN(clk_in), 
                         .DSSEN(0), 
                         .PSCLK(0), 
                         .PSEN(0), 
@@ -126,8 +131,8 @@ input		ddr_fb_clk_in;
 	DCM_SP #( 
    		.CLK_FEEDBACK("1X"), 
 		.CLKDV_DIVIDE(2.0), 
-		.CLKFX_DIVIDE(1), 
-        .CLKFX_MULTIPLY(4), 
+		.CLKFX_DIVIDE(1.0), 
+        .CLKFX_MULTIPLY(4.0), 
 		.CLKIN_DIVIDE_BY_2("FALSE"), 
         .CLKIN_PERIOD(20.000), 
 		.CLKOUT_PHASE_SHIFT("NONE"), 

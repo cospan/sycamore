@@ -57,7 +57,7 @@ class GenTop(Gen):
 		footer = ""
 
 		header = "module top (\n"
-		header = header + "\tin_clk,\n"
+		header = header + "\tclk_in,\n"
 		header = header + "\trst,\n"
 
 		#bindings = tags["CONSTRAINTS"]["bind"]
@@ -76,10 +76,10 @@ class GenTop(Gen):
 
 		#declare the wires
 		wr_buf = wr_buf + "\t//inupt handler signals\n"
-		wr_buf = wr_buf + "\tinput\t\tin_clk;\n"
+		wr_buf = wr_buf + "\tinput\t\tclk_in;\n"
 		wr_buf = wr_buf + "\twire\t\tclk;\n"
 		self.wires.append("clk")
-		self.wires.append("in_clk")
+		self.wires.append("clk_in")
 		wr_buf = wr_buf + "\tinput\t\trst;\n"
 		self.wires.append("rst")
 		wr_buf = wr_buf + "\twire\t[31:0]\tin_command;\n"
@@ -129,7 +129,7 @@ class GenTop(Gen):
 
 		#put the in clock on the global buffer
 		wr_buf = wr_buf + "\t//add a global clock buffer to the input clock\n"
-		wr_buf = wr_buf + "\tIBUFG clk_ibuf(.I(in_clk), .O(clk));\n\n"
+		wr_buf = wr_buf + "\tIBUFG clk_ibuf(.I(clk_in), .O(clk));\n\n"
 
 		wr_buf = wr_buf + "\t//slave signals\n\n"
 
