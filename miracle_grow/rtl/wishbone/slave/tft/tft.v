@@ -60,6 +60,7 @@ module tft (
 	wbs_we_i,
 	wbs_cyc_i,
 	wbs_stb_i,
+	wbs_sel_i,
 	wbs_ack_o,
 	wbs_dat_i,
 	wbs_dat_o,
@@ -86,6 +87,7 @@ input 				rst;
 input 				wbs_we_i;
 input 				wbs_stb_i;
 input 				wbs_cyc_i;
+input		[3:0]	wbs_sel_i;
 input		[31:0]	wbs_adr_i;
 input  		[31:0]	wbs_dat_i;
 output reg  [31:0]	wbs_dat_o;

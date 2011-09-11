@@ -151,22 +151,12 @@ class SapProject:
 		#Copy the user specified constraint files to the constraints directory
 		for constraint_fname in self.project_tags["CONSTRAINTS"]["constraint_files"]:
 			sap_abs_base = os.getenv("SAPLIB_BASE")
-			abs_proj_base = self.project_tags["BASE_DIR"]
-			if (sap_abs_base.startswith("~")):
-				sap_abs_base = os.path.expanduser("~") + sap_abs_base.strip("~")
-			if (abs_proj_base.startswith("~")):
-				abs_proj_base = os.path.expanduser("~") + abs_proj_base.strip("~")
-			#attempt to open the file directly
-			if (exists(os.getcwd() + "/" + constraint_fname)):
-				#copy the file over to the output constraints folder	
-				shutil.copy (os.getcwd() + "/" + constriant_fname, abs_proj_base + "/constraints/" + constraint_fname)
-			elif (exists(sap_abs_base + "/data/hdl/constraints/" + constraint_fname)): 
-				shutil.copy (sap_abs_base + "/data/hdl/constraints/" + constraint_fname, abs_proj_base + "/constraints/" + constraint_fname)
-			else:
-				print "Couldn't find constraint: " + constraint_fname + ", searched in current directory and " + sap_abs_base + " /data/hdl/constraints"
-
-
-			#if that failed search the constraints directory in miracle_grow
+			abs_proj_base = saputils.resolve_linux_path(self.project_tags["BASE_DIR"])
+			constraint_path = self.get_constraint_path(constraint_fname)
+			if (len(constraint_path) == 0):
+				print "Couldn't find constraint: " + constraint_fname + ", searched in current directory and " + sap_abs_base + " /data/hdl/" + self.project_tags["CONSTRAINTS"]["board"]
+				continue
+			shutil.copy (constraint_path, abs_proj_base + "/constraints/" + constraint_fname)
 
 		#Generate the IO handler
 		interface_filename = self.project_tags["INTERFACE"]
@@ -186,6 +176,17 @@ class SapProject:
 			result = self.filegen.process_file(filename = d, file_dict = fdict, directory = file_dest)
 			print d
 		return True
+
+	def get_constraint_path (self, constraint_fname):
+		sap_abs_base = os.getenv("SAPLIB_BASE")
+		board_name	= self.project_tags["CONSTRAINTS"]["board"]
+		sap_abs_base = saputils.resolve_linux_path(sap_abs_base)
+		if (exists(os.getcwd() + "/" + constraint_fname)):
+			return os.getcwd() + "/" + constraint_fname
+		#search through the board directory
+		if (exists(sap_abs_base + "/data/hdl/boards/" + board_name + "/" + constraint_fname)): 
+			return sap_abs_base + "/data/hdl/boards/" + board_name + "/" + constraint_fname
+		return ""
 		
 	def recursive_structure_generator(self, 
 								parent_dict = {}, 

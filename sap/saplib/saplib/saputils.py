@@ -44,6 +44,12 @@ def open_linux_file(filename):
 		filename = os.getenv("HOME") + filename
 	
 	return open(filename)
+
+def resolve_linux_path(filename):
+	"""returns a filename, if the tilde is in the name it generates the absolute filename"""
+	if (filename.startswith("~")):
+		filename = os.path.expanduser("~") + filename.strip("~")
+	return filename
 		
 def remove_comments(buf="", debug=False):
 	"""remove comments from a buffer"""

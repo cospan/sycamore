@@ -81,7 +81,7 @@ module wishbone_master (
 	output reg			wb_cyc_o;
 	output reg			wb_we_o;
 	output reg			wb_msk_o;
-	output reg			wb_sel_o;
+	output reg [3:0]	wb_sel_o;
 	input				wb_ack_i;
 
 	//parameters
@@ -153,7 +153,8 @@ end
             wb_cyc_o        <= 0;
             wb_we_o         <= 0;
             wb_msk_o        <= 0;
-            wb_sel_o        <= 0;
+			//select is always on
+            wb_sel_o        <= 4'hF;
 		end
 
         else begin 

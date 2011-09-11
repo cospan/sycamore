@@ -1,0 +1,32 @@
+
+Directory Structure:
+
+rtl/	the HDL that will go into hardware
+
+sim/	the HDL and tools used to simulate the HDL
+
+boards/*	Contains a subdirectory for each supported board. Each directory
+			contains ucf used within the HDL as well as any board level
+			defines
+
+How Tos:
+
+<TODO> Make your own wishbone slave device:
+	Want to make your own slave that will work with the wishbone bus? its easy... well sort of
+	1. run this script: "python scripts/generate_slave.py <slave_name>" 
+		<TODO> allow command line switches to set DRT values ID number, and flags and number of registers
+	2. go to <sycamore base>/miracle_grow/sim/slave/<slave_name>/
+	3. type "make" to verify run iverilog to check your code
+	4. type "make sim" to simulate your code: this runs the "wishbone_master_tb.v" and outputs data to the command line
+		you can edit the commands being sent to your wishbone device to exercise different functionality with the "master_input_test_data.txt"
+		you can see the results from the wishbone master with the file "master_output_test_data.txt"
+	5. type "make wave" to view waveforms of your code with gtk_wave use the wave_script.tcl to add/remove signals to the gtk_wave on starup
+		Note, instead of running "make wave" repeatedly simply run "make sim" and then in gtk_wave you can reload the waveforms with "CTRL + SHIFT + R"
+<TODO> Make your own io_handler
+	Want to interface with the wishbone bus in a new way (PCIE, PCI, SPI, FSMC)? its... easy.. ish... FOLLOW this guide
+	1. run this script: "python scripts/generate_io_handler.py <io_handler_name>"
+	2. go to <sycamore base>/miracle_grow/sim/wishbone/io_handler/<io_handler_name>/
+
+Acknowledgements:
+
+Joerg Bornshein <jb@capsec.org> was the inspiration for this directory structure

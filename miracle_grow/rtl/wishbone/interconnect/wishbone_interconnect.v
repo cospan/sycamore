@@ -39,6 +39,7 @@ module wishbone_interconnect (
     m_we_i,
     m_cyc_i,
     m_stb_i,
+	m_sel_i,
     m_ack_o,
     m_dat_i,
     m_dat_o,
@@ -61,6 +62,7 @@ input 				rst;
 input 				m_we_i;
 input 				m_stb_i;
 input 				m_cyc_i;
+input		[3:0]	m_sel_i;
 input		[31:0]	m_adr_i;
 input  		[31:0]	m_dat_i;
 output reg  [31:0]	m_dat_o;

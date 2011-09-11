@@ -38,6 +38,7 @@ module wishbone_interconnect (
 
     m_we_i,
     m_cyc_i,
+	m_sel_i,
     m_stb_i,
     m_ack_o,
     m_dat_i,
@@ -48,6 +49,7 @@ module wishbone_interconnect (
     //virtual slave master 0
     s0_we_o,
     s0_cyc_o,
+	s0_sel_o,
     s0_stb_o,
     s0_ack_i,
     s0_dat_o,
@@ -58,6 +60,7 @@ module wishbone_interconnect (
     //virtual slave master 0
     s1_we_o,
     s1_cyc_o,
+	s1_sel_o,
     s1_stb_o,
     s1_ack_i,
     s1_dat_o,
@@ -80,6 +83,7 @@ input 				rst;
 input 				m_we_i;
 input 				m_stb_i;
 input 				m_cyc_i;
+input		[3:0]	m_sel_i;
 input		[31:0]	m_adr_i;
 input  		[31:0]	m_dat_i;
 output reg  [31:0]	m_dat_o;
@@ -89,6 +93,7 @@ output reg 			m_int_o;
 output              s0_we_o;
 output              s0_stb_o;
 output              s0_cyc_o;
+output		[3:0]	s0_sel_o;
 output      [31:0]  s0_adr_o;
 output      [31:0]  s0_dat_o;
 input       [31:0]  s0_dat_i;
@@ -98,6 +103,7 @@ input               s0_int_i;
 output              s1_we_o;
 output              s1_stb_o;
 output              s1_cyc_o;
+output		[3:0]	s1_sel_o;
 output      [31:0]  s1_adr_o;
 output      [31:0]  s1_dat_o;
 input       [31:0]  s1_dat_i;
@@ -161,12 +167,14 @@ end
 
 assign s0_we_o    =  (slave_select == ADDR_0) ? m_we_i: 0;
 assign s0_stb_o   =  (slave_select == ADDR_0) ? m_stb_i: 0;
+assign s0_sel_o	  =  (slave_select == ADDR_0) ? m_sel_i: 0;
 assign s0_cyc_o   =  (slave_select == ADDR_0) ? m_cyc_i: 0;
 assign s0_adr_o   =  (slave_select == ADDR_0) ? {8'h0 , m_adr_i[23:0]}: 0;
 assign s0_dat_o   =  (slave_select == ADDR_0) ? m_dat_i: 0;
 
 assign s1_we_o    = (slave_select == ADDR_1) ? m_we_i: 0;
 assign s1_stb_o   = (slave_select == ADDR_1) ? m_stb_i: 0;
+assign s1_sel_o	  = (slave_select == ADDR_1) ? m_sel_i: 0;
 assign s1_cyc_o   = (slave_select == ADDR_1) ? m_cyc_i: 0;
 assign s1_adr_o   = (slave_select == ADDR_1) ? {8'h0 , m_adr_i[23:0]}: 0;
 assign s1_dat_o   = (slave_select == ADDR_1) ? m_dat_i: 0;

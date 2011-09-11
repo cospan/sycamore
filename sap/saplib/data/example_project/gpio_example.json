@@ -13,6 +13,7 @@
 		"constraint_files":[
 			"s3esk_sycamore.ucf"
 		],
+		"board":"xilinx-s3esk",
 		"device":"xc3s500efg320",
 		"bind": {
 			"phy_uart_in":{

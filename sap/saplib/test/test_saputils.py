@@ -36,9 +36,10 @@ class Test (unittest.TestCase):
 			"output",
 			"inout"
 		]
-		for io in io_types:
-			for port in tags["ports"][io].keys():
-				print "Ports: " + port
+		#
+		#for io in io_types:
+		#	for port in tags["ports"][io].keys():
+		#		print "Ports: " + port
 
 		self.assertEqual(True, True)
 
@@ -55,7 +56,7 @@ class Test (unittest.TestCase):
 		"""give a filename that should be in the RTL"""
 
 		result = saputils.find_rtl_file_location("simple_gpio.v")
-		print "file location: " + result
+		#print "file location: " + result
 		try:
 			testfile = open(result)
 			result = True
@@ -64,7 +65,25 @@ class Test (unittest.TestCase):
 			result = Fail
 
 		self.assertEqual(result, True)
+	
+	def test_resolve_linux_path(self):
+		"""given a filename with or without the ~ return a filename with the ~ expanded"""
+		filename1 = "/filename1"
+		filename = saputils.resolve_linux_path(filename1)
+		#print "first test: " + filename
+		#if (filename == filename1):
+	#		print "test1: they are equal!"
+		self.assertEqual(filename == "/filename1", True)
 
+		filename2 = "~/filename2"
+		filename = saputils.resolve_linux_path(filename2)
+		correct_result = os.path.expanduser("~") + "/filename2"
+		#print "second test: " + filename + " should equal to: " + correct_result
+		#if (correct_result == filename):
+	#		print "test2: they are equal!"
+		self.assertEqual(correct_result == filename, True)
+
+		filename = filename.strip()
 
 if __name__ == "__main__":
 	unittest.main()

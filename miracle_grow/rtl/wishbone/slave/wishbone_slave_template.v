@@ -1,6 +1,12 @@
 //wishbone_slave_template.v
 
 /*
+	9/10/2011
+		removed the duplicate wbs_dat_i
+		added the wbs_sel_i port
+*/
+
+/*
 	Use this to tell sycamore how to populate the Device ROM table
 	so that users can interact with your slave
 
@@ -26,10 +32,10 @@ module wishbone_slave_template (
 
 	wbs_we_i,
 	wbs_cyc_i,
+	wbs_sel_i,
 	wbs_dat_i,
 	wbs_stb_i,
 	wbs_ack_o,
-	wbs_dat_i,
 	wbs_dat_o,
 	wbs_adr_i,
 	wbs_int_o,
@@ -42,6 +48,7 @@ input 				rst;
 input 				wbs_we_i;
 input 				wbs_stb_i;
 input 				wbs_cyc_i;
+input		[3:0]	wbs_sel_i;
 input		[31:0]	wbs_adr_i;
 input  		[31:0]	wbs_dat_i;
 output reg  [31:0]	wbs_dat_o;
@@ -72,19 +79,19 @@ always @ (posedge clk) begin
 			case (wbs_adr_i) 
 				ADDR_0: begin
 					//writing something to address 0
+					//do something
 				end
 				ADDR_1: begin
 					//writing something to address 1
+					//do something
 				end
 				ADDR_2: begin
 					//writing something to address 3
+					//do something
 				end
+				//add as many ADDR_X you need here
 				default: begin
 				end
-				//ADDRESS DEFINE : begin
-
-				//	do something
-				//end
 			endcase
 		end
 
