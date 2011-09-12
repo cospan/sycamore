@@ -143,9 +143,19 @@ class Test (unittest.TestCase):
 		self.assertEqual(len(result) > 0, True)
 	
 	def test_resolve_dependencies(self):
-		filename = "sdram.v"
+		#filename = "sdram.v"
+		#result = self.sapfile.resolve_dependencies(filename, debug = True)
+		#"dependencies found for " + filename
+		#self.assertEqual(result, True)
+		#harder dependency
+		filename = "wb_ddr.v"
 		result = self.sapfile.resolve_dependencies(filename, debug = True)
-		"dependencies found for " + filename
+		print "\n\n\n\n"
+		print "dependency for " + filename
+		for d in self.sapfile.verilog_dependency_list:
+			print d
+		print "\n\n\n\n"
+
 		self.assertEqual(result, True)
 
 

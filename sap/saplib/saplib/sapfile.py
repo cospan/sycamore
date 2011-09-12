@@ -176,10 +176,12 @@ class SapFile:
 			for d in deps:
 				dep_filename = self.find_module_filename(d, debug = ldebug)
 				if (len(dep_filename) == 0):
-					print "Couldn't find dependency filename for module " + d
+					if debug:
+						print "Couldn't find dependency filename for module " + d
 					continue
 				else :
-					print "found the filename: " + dep_filename
+					if debug:
+						print "found the filename: " + dep_filename
 				#check this file out for dependecies, then append that on to the local list
 				result = self.resolve_dependencies(dep_filename, debug = ldebug)
 				if debug:
@@ -217,7 +219,7 @@ class SapFile:
 			filein.close()
 		except IOError as err:
 			if debug:
-				print "the file is not a full path... searching RTL"
+				print "the file is not a full path, searching RTL... ", 
 			#didn't find with full path, search for it
 			try: 
 				filepath = saputils.find_rtl_file_location(filename)
@@ -265,8 +267,8 @@ class SapFile:
 			fbuf = filein.read()
 			filein.close()
 		except IOError as err:
-			if debug:
-				print "the file is not a full path... searching RTL"
+			#if debug:
+			#	print "the file is not a full path... searching RTL"
 			#didn't find with full path, search for it
 			try: 
 				filepath = saputils.find_rtl_file_location(filename)
@@ -274,8 +276,8 @@ class SapFile:
 				fbuf = filein.read()
 				filein.close()
 			except IOError as err_int:
-				if debug:
-					print "couldn't find file in the RTL directory"
+				#if debug:
+				#	print "couldn't find file in the RTL directory"
 				return False
 
 
@@ -285,6 +287,23 @@ class SapFile:
 
 		#strip out everything we can't use
 		fbuf = saputils.remove_comments(fbuf)
+
+		include_fbuf = fbuf
+		#search for `include
+		while (not len(include_fbuf.partition("`include")[2]) == 0):
+			ifile_name = include_fbuf.partition("`include")[2]
+			ifile_name = ifile_name.splitlines()[0]
+			ifile_name = ifile_name.strip()
+			ifile_name = ifile_name.strip("\"")
+			print "\t\tfound an include " + ifile_name + " ",
+			if (not self.verilog_dependency_list.__contains__(ifile_name) and
+				not self.verilog_file_list.__contains__(ifile_name)):
+				self.verilog_dependency_list.append(ifile_name)
+				if debug:
+					print "adding " + ifile_name + " to the dependency list"
+			else:
+				print "... already in have it"
+			include_fbuf = include_fbuf.partition("`include")[2]
 
 		#remove the ports list and the module name
 		fbuf = fbuf.partition(")")[2]
@@ -300,8 +319,8 @@ class SapFile:
 				#remove white spaces
 				line = line.strip()
 				if (line.startswith(".") and line.endswith(",")):
-					if debug:
-						print "found a possible module... with line: " + line
+					#if debug:
+					#	print "found a possible module... with token: " + line
 					module_token = line
 					break
 				#check if we reached the last line
@@ -311,35 +330,43 @@ class SapFile:
 			if (not done):
 				#found a possible module
 				#partitoin the fbuf
-				if debug:
-					print "module token " + module_token
+				#if debug:
+				#	print "module token " + module_token
 				module_string = fbuf.partition(module_token)[0]
 				fbuf = fbuf.partition(module_token)[2]
 				fbuf = fbuf.partition(";")[2]
 				str_list = fbuf.splitlines()
 
-				#module_string = module_string.partition("(")[0]
+				#get rid of everything before the possible module
 				while (len(module_string.partition(";")[2]) > 0):
 					module_string = module_string.partition(";")[2]
 							
-				module_string = module_string.strip("(")	
+				module_string = module_string.partition("(")[0]	
+				module_string = module_string.strip("#")
 				module_string = module_string.strip()
 
+				m_name = module_string.partition(" ")[0]
 				if debug:
-					print "module string: " + module_string
+					print "module name: " + m_name
 
+				if (not deps.__contains__(m_name)):
+					print "adding it to the deps list"
+					deps.append(module_string.partition(" ")[0])
+				
 
-				mlist = module_string.splitlines()
+				#mlist = module_string.splitlines()
 				#work backwords
 				#look for the last line that has a '('
-				for i in range (0, len(mlist)):
-					mstr = mlist[len(mlist) - 1 - i]
-					mstr = mstr.strip()
-					if (mstr.__contains__(" ")):
-						if debug:
-							print "found: " + mstr.partition(" ")[0]
-						deps.append(mstr.partition(" ")[0])
-						break
+				#for i in range (0, len(mlist)):
+				#	mstr = mlist[i]
+				#	print "item: " + mlist[i]
+				#	#mstr = mlist[len(mlist) - 1 - i]
+				#	#mstr = mstr.strip()
+				#	if (mstr.__contains__(" ")):
+				#		if debug:
+				#			print "found: " + mstr.partition(" ")[0]
+				#		deps.append(mstr.partition(" ")[0])
+				#		break
 				
 
 		return deps
@@ -348,12 +375,12 @@ class SapFile:
 	def find_module_filename (self, module_name, debug = False):
 		filename = ""
 		"""Returns the filename that contains the module"""
-		base = os.getenv("SAPLIB_BASE") + "/data/hdl"
+		base = os.getenv("SAPLIB_BASE") + "/data/hdl/rtl"
 		cwd = os.getcwd()
 
 		os.chdir(base)
-		if (debug):
-			print "changed dir to " + base
+		#if (debug):
+		#	print "changed dir to " + base
 
 		verilog_files = []
 		for root, dir, files in os.walk(base):
@@ -362,26 +389,21 @@ class SapFile:
 			for f in filelist:
 				verilog_files.append(f)
 
-		print "files:"
 		for f in verilog_files:
 			#if debug:
-			#	print "checking: " + f
+				#print "checking: " + f
 			if (self.is_module_in_file(f, module_name)):
-				if debug:
-					print "Found!, stripping directory info..."
 				while (len(f.partition("/")[2])):
 					f = f.partition("/")[2]
 				if debug:
-					print "name of file: " + f
+					print "Found a file with the name: " + f
 				os.chdir(cwd)
 				return f
 
-		#filename = self.recursive_find_module(module_name, debug)
-
 		#put everything back to where its supposed to be	
 		os.chdir(cwd)
-		if debug:
-			print "didn't find module name"
+		#if debug:
+		#	print "didn't find module name"
 		return ""
 
 	def is_module_in_file(self, filename, module_name, debug = False):
@@ -412,11 +434,14 @@ class SapFile:
 		done = False
 		module_string = fbuf.partition("module")[2]
 		while (not done):
+#			if debug:
+			module_string = module_string.partition("(")[0]
+			module_string = module_string.strip("#")
+			module_string = module_string.strip()
 			if debug:
 				print "searching through: " + module_string
-			module_string = module_string.strip()
-			module_string = module_string.partition(" ")[0]
-			module_string = module_string.strip()
+#			module_string = module_string.strip()
+#			module_string = module_string.partition(" ")[0]
 			if (len(module_string) == 0):
 				done = True
 			if (module_string.endswith("(")):
