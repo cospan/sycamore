@@ -46,7 +46,7 @@ class Sycamore:
 		read_resp = self.ser.read(25)
 		if (len(read_resp) == 0):
 			return -1
-		return string.atoi(read_resp.__getslice__(17, 25))
+		return string.atoi(read_resp.__getslice__(17, 25), 16)
 		
 	
 	def write_data(self, dev_index, offset, data):

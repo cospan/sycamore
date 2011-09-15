@@ -53,13 +53,12 @@ output lock;
 	output pclk;
 
 	wire clk_fb;
-	wire out_clk;
 	wire clk_div;
-	BUFG	CLKO_BUFG_INST (.I(out_clk), .O(clk_fb));
-	BUFG    CLKO_BUFG_OUT (.I(clk_div), .O(pclk));
-
+	BUFG	CLKO_BUFG_INST (.I(clk_out), .O(clk_fb));
+    BUFG    CLKO_BUFG_OUT (.I(clk_div), .O(pclk));
+    
    DCM_SP #(
-   	.CLKDV_DIVIDE(16.0),
+   	.CLKDV_DIVIDE(5.0),
 	.CLKFX_DIVIDE(1),
     .CLKFX_MULTIPLY(4),
     .CLKIN_DIVIDE_BY_2("FALSE"),
@@ -72,7 +71,7 @@ output lock;
     .PHASE_SHIFT(0),
     .STARTUP_WAIT("FALSE")
    ) DCM_SP_INST (
-      .CLK0(out_clk),
+      .CLK0(clk_out),
 	  .CLK180(),
       .CLK270(),
       .CLK2X(),
