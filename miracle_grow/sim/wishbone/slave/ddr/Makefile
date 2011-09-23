@@ -3,7 +3,7 @@ all:
 clean:
 	rm design
 	rm *.vcd
-sim:
+go_sim:
 	vvp design
 wave:
 	vvp design

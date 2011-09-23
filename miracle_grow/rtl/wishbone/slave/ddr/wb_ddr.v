@@ -39,7 +39,10 @@ module wb_ddr
 	input                    wbs_cyc_i,
 	input                    wbs_stb_i,
 	input                    wbs_we_i,
-	output reg               wbs_ack_o
+	output reg               wbs_ack_o,
+
+	output					init_done
+
 );
 
 //----------------------------------------------------------------------------
@@ -435,6 +438,7 @@ wire                fml_rempty;
 reg                 fml_rnext;
 wire [`FML_DAT_RNG] fml_rdat;
 
+
 ddr_ctrl #(
 	.phase_shift(  phase_shift  ),
 	.clk_multiply( clk_multiply ),
@@ -498,6 +502,7 @@ parameter l_waitdone = 3;
 
 reg [2:0] ls_state;
 assign ls_busy = (ls_state != l_idle) || ls_fill || ls_spill;
+assign init_done = fml_done;
 
 // Syncronous part FSM
 always @(posedge clk)

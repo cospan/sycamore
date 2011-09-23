@@ -150,7 +150,6 @@ wire [`DM_RNG]	ddr_dm;
 
 wire [2:0]	rot	=	3'h0;
 
-
 parameter		phase_shift		=	100;
 parameter		wait200_init 	= 	1;
 parameter		clk_multiply	=	13;
@@ -174,6 +173,7 @@ ddr	mt46v16m16 (
 );
 
 assign 			ddr_clk_fb	=	ddr_clk;
+wire			init_done;
 
 //ddr wishbone slave
 wb_ddr #(
@@ -211,8 +211,11 @@ wb_ddr #(
 	.ddr_dqs(		ddr_dqs		),
 	.ddr_dm(		ddr_dm		),
 	
+	
 	//phase shifting
-	.rot(			rot			)
+	.rot(			rot			),
+
+	.init_done (	init_done	)
 );
 
 wishbone_interconnect wi (
@@ -222,6 +225,7 @@ wishbone_interconnect wi (
     .m_we_i(wbm_we_o),
     .m_cyc_i(wbm_cyc_o),
     .m_stb_i(wbm_stb_o),
+	.m_sel_i(wbm_sel_o),
     .m_ack_o(wbm_ack_i),
     .m_dat_i(wbm_dat_o),
     .m_dat_o(wbm_dat_i),
@@ -292,7 +296,7 @@ initial begin
 		out_ready 		<= 1;
 
 	while (~ddr_cke) begin
-		#20
+		#100
 		$display("waiting for cke to go high");
 	end
 	if (fd_in == 0) begin
@@ -530,6 +534,23 @@ initial begin
 	$fclose (fd_in);
 	$fclose (fd_out);
 	$finish();
+end
+
+reg ready;
+
+always @ (posedge clk or posedge init_done) begin
+
+	if (rst) begin
+		ready <= 0;
+	end
+	
+	else begin
+		if (init_done) begin
+			ready <= 1;
+		end
+
+	end
+
 end
 
 endmodule

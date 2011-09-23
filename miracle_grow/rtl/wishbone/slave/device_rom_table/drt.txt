@@ -1,6 +1,10 @@
+Version 
+	8/??/2011: 0.00.1 Initial DRT Version
+	9/11/2011: 0.00.2 Proposed String functionality
+
 Device Rom Table (DRT)
 
-A wishbone slave that maps all the devices in the interconnect.
+A wishbone slave that maps all the devices in the interconnect, essentially this is a ROM.
 
 -This slave should be located at address 0 on the wishbone interconnect
 -The controlling software should query this ROM in order to determine the devices and where they are located on the wishbone bus
@@ -12,7 +16,7 @@ Organization of the ROM 32 bit address location
 	(Addr: 31-16)	: Version X.Y.ZZ
 	(Addr: 15-0)	: DRT_ID (1EAF)
 0x01							DRT_NUM_DEVICES (Number of devices attached)
-0x02							RFU
+0x02							STRING_OFFSET: (String Table: Offset for all the strings, that accompany all the slave and memory devices)
 0x03							RFU
 
 0x04:DEV_OFFSET	beginning of device offset (DRT_DEV_OFFSET)
@@ -38,3 +42,32 @@ THIS IS NOT BY ANY MEANS FINAL, BUT MAKING DEVICE IDENTIFICATION NUMBER
 0008	: ???
 0009	: ???
 000A	: Frame Buffer
+
+
+Strings (Tentative)
+
+The slave devices can contain strings that will identify the slave, registers, and flags
+SLAVE_OFFSET + 0 				size (in bytes) of the string table 
+SLAVE_OFFSET + 1 				number of strings in the string table
+SLAVE_OFFSET + X[0]				data entry
+
+	X + 0
+
+		first word:
+		(Addr: 31:24) 	: (S_SIZE) Size in bytes of the string
+		(Addr: 23:16) 	: Flags
+							23: Memory
+							22: Slave
+							21: ??
+							20: ??
+							19: ??
+							18: Flag
+							17: Register
+							16: Name
+		(Addr: 15:8) 	: Device Index (Either slave index or memory index)
+		(Addr: 7:0) 	: Optional (If Register, register index, if flag, flag bit index)
+
+	X + 1 - X + 1 + S_SIZE 		: Actual string 
+
+SLAVE_OFFSET + X[1] = SLAVE_OFFSET + X[0] + 1 + S_SIZE : Next entry
+
