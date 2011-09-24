@@ -24,8 +24,6 @@ def test (arg):
 
 	else:
 		print "Running: " + arg
-		test_module = __import__(arg)
-
 
 
 def main(argv):
