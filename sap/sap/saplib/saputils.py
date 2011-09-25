@@ -1,4 +1,5 @@
 import os
+import sys
 import string
 
 """utilites that don't really belong in any of the sap classes"""
@@ -36,14 +37,14 @@ def create_dir(filename, debug=False):
 			print ("Found the directory")
 	return True
 
-def open_linux_file(filename):
-	"""fixes linux issues when openeing a file"""
-
-	if filename.startswith("~"):
-		filename = filename.strip("~")
-		filename = os.getenv("HOME") + filename
-	
-	return open(filename)
+#def open_linux_file(filename):
+#	"""fixes linux issues when openeing a file"""
+#
+#	if filename.startswith("~"):
+#		filename = filename.strip("~")
+#		filename = os.getenv("HOME") + filename
+#	
+#	return open(filename)
 
 def resolve_linux_path(filename):
 	"""returns a filename, if the tilde is in the name it generates the absolute filename"""
@@ -222,9 +223,11 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 def find_rtl_file_location(filename=""): 
 	"""read in a filename, and look for the file location within the RTL, return an addres"""
 	base_location = os.getenv("SAPLIB_BASE")
-	base_location = base_location + "/data/hdl/rtl"
+	base_location = base_location + "/hdl/rtl"
+#	print "rtl dir: " + base_location
 	for root, dirs, names in os.walk(base_location):
 		if filename in names:
+#			print "Filename: " + filename
 			return os.path.join(root, filename)
 	return ""
 

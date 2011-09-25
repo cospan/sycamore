@@ -18,7 +18,7 @@ class SapFile:
 	def read_file(self, filename):
 		"""open file with the speicifed name, and location"""
 		try:
-			filein = saputils.open_linux_file(filename)
+			filein = open (saputils.resolve_linux_path(filename))
 			self.buf = filein.read()
 		except IOError as err:
 			return False
@@ -375,7 +375,7 @@ class SapFile:
 	def find_module_filename (self, module_name, debug = False):
 		filename = ""
 		"""Returns the filename that contains the module"""
-		base = os.getenv("SAPLIB_BASE") + "/data/hdl/rtl"
+		base = os.getenv("SAPLIB_BASE") + "/hdl/rtl"
 		cwd = os.getcwd()
 
 		os.chdir(base)

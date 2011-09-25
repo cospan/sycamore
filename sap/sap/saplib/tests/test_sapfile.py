@@ -1,6 +1,7 @@
 import unittest
 import sapfile
 import json
+import sys
 import os
 
 from gen import Gen
@@ -10,11 +11,12 @@ class Test (unittest.TestCase):
 
 	def setUp(self):
 		"""open up a sapfile class"""
+		os.environ["SAPLIB_BASE"] = sys.path[0] + "/saplib"
 		self.sapfile = sapfile.SapFile()
 
 	def test_read_file(self):
 		"""a file should be open for modifying"""
-		result = self.sapfile.read_file("./data/bus/README")
+		result = self.sapfile.read_file(os.getenv("SAPLIB_BASE") + "/bus/README")
 		self.assertEqual(result, True)
 
 	def test_write_file(self):
@@ -34,7 +36,7 @@ class Test (unittest.TestCase):
 	def test_apply_tags(self):
 		"""a file should be changed based on the tags"""
 		project_name = "projjjjeeeecccttt NAME!!!"
-		self.sapfile.read_file("./data/bus/README")
+		self.sapfile.read_file(os.getenv("SAPLIB_BASE") + "/bus/README")
 		#print self.sapfile.buf
 		tag_map = {"PROJECT_NAME":project_name}
 		self.sapfile.set_tags(tag_map)
@@ -45,7 +47,7 @@ class Test (unittest.TestCase):
 
 	def test_set_tags(self):
 		"""test to see if a tag file was loaded correctly"""
-		tag_file = "./data/tags/README.json"
+		tag_file = os.getenv("SAPLIB_BASE") +  "/tags/README.json"
 		self.sapfile.set_tags(tag_file)
 		self.assertEqual(True, True)
 	
@@ -56,42 +58,42 @@ class Test (unittest.TestCase):
 
 	def test_process_file_no_location(self):
 		"""make sue the process file fails when user doesn't give a location"""
-		project_tags_file = "./data/example_project/example1.json"
+		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
 		filein = open(project_tags_file)
 		json_tags = json.load(filein)
 		self.sapfile.set_tags(json_tags)
-		file_tags = {"location":"data/bus"}
+		file_tags = {"location":"bus"}
 		result = self.sapfile.process_file(filename = "README", directory="~/sandbox")
 		self.assertNotEqual(result, True)
 	
 	def test_process_file(self):
 		"""excercise all functions of the class"""
 		#print "testing process file"
-		project_tags_file = "./data/example_project/example1.json"
+		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
 		filein = open(project_tags_file)
 		json_tags = json.load(filein)
 		filein.close()
 
 		self.sapfile.set_tags(json_tags)
-		file_tags = {"location":""}
-		result = self.sapfile.process_file(filename = "README", directory="~/sandbox", file_dict = file_tags)
+		file_tags = {"location":"bus"}
+		result = self.sapfile.process_file(filename = "README", directory="~/sandbox", file_dict = file_tags, debug = True)
 		#print self.sapfile.buf
 		self.assertEqual(result, True)
 		
 	def test_process_gen_script(self):
 		"""excercise the script"""
-		project_tags_file = "./data/example_project/example1.json"
+		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
 		filein = open(project_tags_file)
 		json_tags = json.load(filein)
 		self.sapfile.set_tags(json_tags)
-		file_tags = {"location":"data/hdl/rtl/wishbone/interconnect", "gen_script":"gen_interconnect"}
+		file_tags = {"location":"hdl/rtl/wishbone/interconnect", "gen_script":"gen_interconnect"}
 		result = self.sapfile.process_file(filename = "wishbone_interconnect.v", directory="~/sandbox", file_dict = file_tags)
 		#print self.sapfile.buf
 		self.assertEqual(result, True)
 		
 	def test_process_file_no_filename(self):
 		"""excercise the gen script only functionality"""
-		project_tags_file = "./data/example_project/example1.json"
+		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
 		filein = open(project_tags_file)
 		json_tags = json.load(filein)
 		self.sapfile.set_tags(json_tags)
@@ -104,7 +106,7 @@ class Test (unittest.TestCase):
 		result = self.sapfile.has_dependencies("simple_gpio", debug=False)
 		self.assertEqual(result, False)
 		#scan for a file that is a verilog file with a full path
-		file_location = os.getenv("SAPLIB_BASE") + "/data/hdl/rtl/wishbone/master_handler/uart/uart_io_handler.v"
+		file_location = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/master_handler/uart/uart_io_handler.v"
 		result = self.sapfile.has_dependencies(file_location, debug=False)
 		self.assertEqual(result, True)
 		#scan a file that is a verilog file but not the full path

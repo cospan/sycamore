@@ -1,6 +1,7 @@
 import unittest
 from gen import Gen
 import os
+import sys
 from inspect import isclass
 import json
 import saputils
@@ -12,6 +13,7 @@ class Test (unittest.TestCase):
 
 		self.gen = None
 		self.gen_module = __import__("gen_top")
+		os.environ["SAPLIB_BASE"] = sys.path[0] + "/saplib"
 		for name in dir(self.gen_module):
 			obj = getattr(self.gen_module, name)
 			if isclass(obj) and issubclass(obj, Gen) and obj is not Gen:
@@ -27,7 +29,7 @@ class Test (unittest.TestCase):
 		top_buffer = ""
 		#get the example project data
 		try:
-			filename = os.getenv("SAPLIB_BASE") + "/data/example_project/example1.json"
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
 			filein = open(filename)
 			filestr = filein.read()
 			tags = json.loads(filestr)
@@ -37,7 +39,7 @@ class Test (unittest.TestCase):
 			self.assertEqual(False, True)
 
 		try:
-			filename = os.getenv("SAPLIB_BASE") + "/data/hdl/rtl/wishbone/wishbone_top.v"
+			filename = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/wishbone_top.v"
 			filein = open(filename)
 			top_buffer = filein.read()
 			filein.close()

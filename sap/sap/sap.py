@@ -36,6 +36,7 @@ def usage():
 def main(argv):
 	sys.path.append(sys.path[0] + '/saplib')
 	sys.path.append(sys.path[0] + '/saplib/gen_scripts')
+	os.environ["SAPLIB_BASE"] = sys.path[0] + "/saplib"
 	compress = False
 
 	if (len(argv) == 0):
@@ -44,7 +45,7 @@ def main(argv):
 	else:
 		try:
 			opts, args = getopt.getopt(argv, "hvdco:", ["help", "verbose", "debug", "compress", "outfile"])
-		except getopt.GetptError, err:
+		except getopt.GetoptError, err:
 			print (err)
 			usage()
 			sys.exit(2)
@@ -54,11 +55,11 @@ def main(argv):
 				usage()
 				sys.exit()
 			elif opt in ("-v", "--verbose"):
-				print "Verbose flage enabled"
+				print "Verbose flag enabled"
 				global _verbose
 				_verbose = True
 			elif opt in ("-d", "--debug"):
-				print "Debug flage enabled"
+				print "Debug flag enabled"
 				global _debug
 				_debug = True
 			elif opt in ("-c", "--compress"):

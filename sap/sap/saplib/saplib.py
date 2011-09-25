@@ -24,6 +24,7 @@ def generate_project(filename):
 	"""given a project configuration file generate the project structure"""
 	sap = sapproject.SapProject()	
 	try:
+		print "give it a try"
 		result = sap.generate_project(filename)
 	except Error as err:
 		print "Error generating project" + err

@@ -1,6 +1,7 @@
 import unittest
 from gen import Gen
 import os
+import sys
 from inspect import isclass
 
 class Test (unittest.TestCase):
@@ -8,6 +9,7 @@ class Test (unittest.TestCase):
 
 	def setUp(self):
 		"""open up a sapfile class"""
+		os.environ["SAPLIB_BASE"] = sys.path[0] +  "/saplib"
 		#self.gen = gen_interconnect.GenInterconnect()
 
 	def test_gen_interconnect (self):
@@ -15,7 +17,7 @@ class Test (unittest.TestCase):
 		interconnect_buffer = ""
 		tags = {"SLAVES":["slave1", "slave2"]}
 		try:
-			filename = os.getenv("SAPLIB_BASE") + "/data/hdl/rtl/wishbone/interconnect/wishbone_interconnect.v"
+			filename = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/interconnect/wishbone_interconnect.v"
 			filein = open(filename)
 			interconnect_buffer = filein.read()
 			filein.close()

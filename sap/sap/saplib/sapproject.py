@@ -71,7 +71,7 @@ class SapProject:
 
 		#see if there is a environmental setting for SAPLIB_BASE
 		if (len(os.getenv("SAPLIB_BASE")) > 0):
-			file_name = os.getenv("SAPLIB_BASE") + "/data/templates/" + template_file_name	
+			file_name = os.getenv("SAPLIB_BASE") + "/templates/" + template_file_name	
 			try:
 				if (debug):
 					print "attempting environmental variable SAPLIB_BASE"
@@ -86,7 +86,7 @@ class SapProject:
 
 		#see if the sap_location was specified
 		if (self.project_tags.has_key("sap_location")):
-			file_name = self.project_tags["sap_location"] + "/data/templates/" + template_file_name
+			file_name = self.project_tags["sap_location"] + "/templates/" + template_file_name
 			try:
 				if (debug):
 					print "attempting to read from project tags"
@@ -99,7 +99,7 @@ class SapProject:
 				filein = None
 
 		#try the default location	
-		file_name = "../data/templates/" + template_file_name
+		file_name = "../templates/" + template_file_name
 		try:
 			if (debug):
 				print "attemping to read from hard string"
@@ -154,7 +154,7 @@ class SapProject:
 			abs_proj_base = saputils.resolve_linux_path(self.project_tags["BASE_DIR"])
 			constraint_path = self.get_constraint_path(constraint_fname)
 			if (len(constraint_path) == 0):
-				print "Couldn't find constraint: " + constraint_fname + ", searched in current directory and " + sap_abs_base + " /data/hdl/" + self.project_tags["CONSTRAINTS"]["board"]
+				print "Couldn't find constraint: " + constraint_fname + ", searched in current directory and " + sap_abs_base + " /hdl/" + self.project_tags["CONSTRAINTS"]["board"]
 				continue
 			shutil.copy (constraint_path, abs_proj_base + "/constraints/" + constraint_fname)
 
@@ -184,8 +184,8 @@ class SapProject:
 		if (exists(os.getcwd() + "/" + constraint_fname)):
 			return os.getcwd() + "/" + constraint_fname
 		#search through the board directory
-		if (exists(sap_abs_base + "/data/hdl/boards/" + board_name + "/" + constraint_fname)): 
-			return sap_abs_base + "/data/hdl/boards/" + board_name + "/" + constraint_fname
+		if (exists(sap_abs_base + "/hdl/boards/" + board_name + "/" + constraint_fname)): 
+			return sap_abs_base + "/hdl/boards/" + board_name + "/" + constraint_fname
 		return ""
 		
 	def recursive_structure_generator(self, 
