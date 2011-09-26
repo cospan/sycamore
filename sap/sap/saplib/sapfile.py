@@ -1,7 +1,7 @@
 import os
 import saputils
 import glob
-from gen import Gen
+from gen_scripts import gen
 from inspect import isclass
 
 
@@ -130,9 +130,9 @@ class SapFile:
 			gen_module = __import__(file_dict["gen_script"])	
 			for name in dir(gen_module):
 				obj = getattr(gen_module, name)
-				if isclass(obj) and issubclass(obj, Gen) and obj is not Gen:
-					gen = obj()
-					self.buf = gen.gen_script(tags = self.tags, buf = self.buf)
+				if isclass(obj) and issubclass(obj, gen.Gen) and obj is not gen.Gen:
+					gens = obj()
+					self.buf = gens.gen_script(tags = self.tags, buf = self.buf)
 
 			
 		else:

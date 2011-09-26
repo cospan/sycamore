@@ -130,10 +130,14 @@ class SapProject:
 			return False
 
 		#set all the tags within the filegen structure
+		if debug:
+			print "set all tags wihin filegen structure"
 		self.filegen.set_tags(self.project_tags)
 
 		#generate the project directories and files
 		saputils.create_dir(self.project_tags["BASE_DIR"])		
+		if debug:
+			print "generated the first dir"
 		#print "Parent dir: " + self.project_tags["BASE_DIR"]
 		for key in self.template_tags["PROJECT_TEMPLATE"]["files"]:
 			self.recursive_structure_generator(
@@ -141,6 +145,8 @@ class SapProject:
 							key,
 							self.project_tags["BASE_DIR"])
 
+		if debug:
+			print "generating project directories finished"
 		#Generate all the slaves
 		for slave in self.project_tags["SLAVES"]:
 			fdict = {"location":""}

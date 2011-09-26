@@ -25,8 +25,8 @@ def generate_project(filename):
 	sap = sapproject.SapProject()	
 	try:
 		print "give it a try"
-		result = sap.generate_project(filename)
-	except Error as err:
-		print "Error generating project" + err
+		result = sap.generate_project(filename, debug = True)
+	except:
+		print "Error generating project"
 		return False
 	return result

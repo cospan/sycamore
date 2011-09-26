@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 # Sap main interface
+import os
 import sys
 import getopt 
+from saplib import saplib
 
 _debug = False
 _verbose = False
@@ -80,7 +82,7 @@ def main(argv):
 			for filename in args:
 				if _verbose:
 					print "processing " + filename
-				#saplib.generate_project(filename):
+				saplib.generate_project(filename)
 
 
 if __name__ == "__main__":
