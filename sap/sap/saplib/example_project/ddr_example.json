@@ -1,12 +1,12 @@
 {
 	
-	"BASE_DIR":"~/projects/sycamore_projects",
+	"BASE_DIR":"~/sandbox/sap_test/ddr_project",
 	"PROJECT_NAME":"example_project",
 	"BUILD_TOOL":"xilinx",
 	"TEMPLATE":"wishbone_template.json",
 	"INTERFACE":"uart_io_handler.v",
 	"SLAVES":[
-		"sdram.v"
+		"wb_ddr.v"
 	],
 
 	"CONSTRAINTS":{
@@ -16,54 +16,58 @@
 		"board":"xilinx-s3esk",
 		"device":"xc3s500efg320",
 		"bind": {
-			"s1_mem_addr[12:0]":{
-				"port":"SD_A[12:0]",
+			"s1_ddr_a[12:0]":{
+				"port":"ddr_a[12:0]",
 				"direction":"output"
 			},
-			"s1_mem_ba[1:0]":{
-				"port":"SD_BA[1:0]",
+			"s1_ddr_ba[1:0]":{
+				"port":"ddr_ba[1:0]",
 				"direction":"output"
 			},
-			"s1_mem_data[15:0]":{
-				"port":"SD_DQ[15:0]",
+			"s1_ddr_dq[15:0]":{
+				"port":"ddr_dq[15:0]",
 				"direction":"inout"
 			},
-			"s1_mem_dm[1:0]":{
-				"port":"SD_DM[1:0]",
+			"s1_ddr_dm[1:0]":{
+				"port":"ddr_dm[1:0]",
 				"direction":"output"
 			},
-			"s1_mem_dqs[1:0]":{
-				"port":"SD_DQS[1:0]",
+			"s1_ddr_dqs[1:0]":{
+				"port":"ddr_dqs[1:0]",
 				"direction":"output"
 			},
-			"s1_mem_cas":{
-				"port":"SD_CAS",
+			"s1_ddr_cas_n":{
+				"port":"ddr_cas_n",
 				"direction":"output"
 			},
-			"s1_mem_ras":{
-				"port":"SD_RAS",
+			"s1_ddr_ras_n":{
+				"port":"ddr_ras_n",
 				"direction":"output"
 			},
-			"s1_mem_cke":{
-				"port":"SD_CKE",
+			"s1_ddr_cke":{
+				"port":"ddr_cke",
 				"direction":"output"
 			},
-			"s1_mem_cs":{
-				"port":"SD_CS",
+			"s1_ddr_cs_n":{
+				"port":"ddr_cs_n",
 				"direction":"output"
 			},
-			"s1_mem_we":{
-				"port":"SD_WE",
+			"s1_ddr_we_n":{
+				"port":"ddr_we_n",
 				"direction":"output"
 			},
 
-			"s1_mem_clk":{
-				"port":"SD_CK_P",
+			"s1_ddr_clk":{
+				"port":"ddr_clk",
 				"direction":"output"
 			},
-			"s1_mem_clk_n":{
-				"port":"SD_CK_N",
+			"s1_ddr_clk_n":{
+				"port":"ddr_clk_n",
 				"direction":"output"
+			},
+			"s1_rot[2:0]":{
+				"port":"rot[2:0]",
+				"direction":"input"
 			},
 
 			"phy_uart_in":{

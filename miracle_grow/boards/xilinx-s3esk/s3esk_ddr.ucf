@@ -78,8 +78,8 @@ NET "ddr_we_n"        LOC = "D1" | IOSTANDARD = SSTL2_I ;
 #NET "ddr_clk_fb"      LOC = "B9" | IOSTANDARD = LVCMOS33 ;
 
 #BUS Interface
-NET "TX" LOC = "A4" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
-NET "RX" LOC = "B4" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4 | PULLUP;
+NET "tx" LOC = "A4" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
+NET "rx" LOC = "B4" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4 | PULLUP;
 
 # ==== UART ====
 #NET "uart_rxd" LOC = "R7"  | IOSTANDARD = LVTTL ;
@@ -95,7 +95,7 @@ NET "led<2>" LOC = "E11" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 8 ;
 NET "led<1>" LOC = "E12" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 8 ;
 NET "led<0>" LOC = "F12" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 8 ;
 
-# ==== rotary encoder ====
-NET "rot<0>"  LOC = "K18" | IOSTANDARD = LVTTL | PULLUP   ;
-NET "rot<1>"  LOC = "G18" | IOSTANDARD = LVTTL | PULLUP   ;
-NET "rot<2>"  LOC = "V16" | IOSTANDARD = LVTTL | PULLDOWN ;
+# ==== rot_knobary encoder ====
+NET "rot_knob<0>"  LOC = "K18" | IOSTANDARD = LVTTL | PULLUP   ;
+NET "rot_knob<1>"  LOC = "G18" | IOSTANDARD = LVTTL | PULLUP   ;
+NET "rot_knob<2>"  LOC = "V16" | IOSTANDARD = LVTTL | PULLDOWN ;

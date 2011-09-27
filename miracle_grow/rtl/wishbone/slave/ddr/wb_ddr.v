@@ -6,6 +6,16 @@
 
 `include "ddr_include.v"
 
+/*
+	META DATA
+
+	DRT_ID:5
+	DRT_FLAGS:1
+	DRT_SIZE:64
+
+*/
+
+
 module wb_ddr
 #(
 	parameter phase_shift  = 0,
