@@ -4,10 +4,10 @@
 		"dir":true,
 		"files": {
 			"Makefile":{},
-			"README":{"location":"data/bus", "tags":true},
-			"mg_defines.v":{"location":"data/hdl/rtl"},
-			"project_gen.tcl":{"location":"data/tool_scripts/xilinx", "gen_script":"gen_xilinx"},
-			"project_defines.v":{"location":"data/bus", "gen_script":"gen_project_defines"},
+			"README":{"location":"bus", "tags":true},
+			"mg_defines.v":{"location":"hdl/rtl"},
+			"project_gen.tcl":{"location":"tool_scripts/xilinx", "gen_script":"gen_xilinx"},
+			"project_defines.v":{"location":"bus", "gen_script":"gen_project_defines"},
 			"build_scripts":{"dir":true,
 				"files":{
 					"generate_synth_drt.py":{}
@@ -28,17 +28,17 @@
 						"files":{
 							"master":{"dir":true,
 								"files":{
-									"wishbone_master.v":{"location":"data/hdl/rtl/wishbone/master"}
+									"wishbone_master.v":{"location":"hdl/rtl/wishbone/master"}
 								}
 							},
 							"interconnect":{"dir":true,
 								"files":{
-									"wishbone_interconnect.v":{"location":"data/hdl/rtl/wishbone/interconnect", "gen_script":"gen_interconnect"}
+									"wishbone_interconnect.v":{"location":"hdl/rtl/wishbone/interconnect", "gen_script":"gen_interconnect"}
 								}
 							},
 							"slave":{"dir":true,
 								"files":{
-									"device_rom_table.v":{"location":"data/hdl/rtl/wishbone/slave/device_rom_table"},
+									"device_rom_table.v":{"location":"hdl/rtl/wishbone/slave/device_rom_table"},
 									"device_rom_table.txt":{"gen_script":"gen_drt"}
 								}
 							},
