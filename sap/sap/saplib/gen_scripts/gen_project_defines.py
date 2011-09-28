@@ -13,8 +13,15 @@ class GenProjectDefines(Gen):
 
 	def gen_script (self, tags={}, buf="", debug = False):
 		"""Generate the project_defines.v"""
-
 	
+		if debug:
+			print ""
+			print ""
+			print ""
+			print ""
+			print ""
+			print ""
+			print ""
 		
 		template = Template(buf) 
 		vendor_string = "VENDOR_FPGA"

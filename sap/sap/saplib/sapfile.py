@@ -1,6 +1,8 @@
 import os
 import saputils
 import glob
+import gen_scripts
+import sys
 from gen_scripts import gen
 from inspect import isclass
 
@@ -128,13 +130,16 @@ class SapFile:
 				print "run generation script: " + file_dict["gen_script"]
 			#open up the new gen module
 			gen_module = __import__(file_dict["gen_script"])	
+			gen_success_flag = False
 			for name in dir(gen_module):
 				obj = getattr(gen_module, name)
 				if isclass(obj) and issubclass(obj, gen.Gen) and obj is not gen.Gen:
 					gens = obj()
 					self.buf = gens.gen_script(tags = self.tags, buf = self.buf)
+					gen_success_flag = True
 
-			
+			if (not gen_success_flag):
+				print "FAILED TO EXECUTE GENSCRIPT " + file_dict["gen_script"]
 		else:
 			#perform the format function
 			self.apply_tags()	

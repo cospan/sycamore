@@ -43,6 +43,7 @@ class Test (unittest.TestCase):
 		except IOError as err:
 			print "File Error: " + str(err)
 
+		print result
 		self.assertEqual(len(result) > 0, True)
 			
 
