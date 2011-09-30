@@ -18,42 +18,6 @@ class Test (unittest.TestCase):
 		self.assertEqual(result, True)
 	
 
-#	def test_open_linux_file(self):
-#		"""try and open a file with the ~ keyword"""
-#		try: 
-#			print "attempting to open file"
-#			myfile = saputils.open_linux_file("~/sandbox/README")
-#			print "opened file!"
-#			myfile.close()
-#		except:
-#			self.assertEqual(True, False)
-#			return
-#		self.assertEqual(True, True)
-	
-	def test_read_slave_tags(self):
-		"""try and extrapolate all info from the slave file"""
-		import saputils
-		base_dir = os.getenv("SAPLIB_BASE")	
-		filename = base_dir + "/hdl/rtl/wishbone/slave/simple_gpio/simple_gpio.v"
-		drt_keywords = [
-			"DRT_ID",
-			"DRT_FLAGS",
-			"DRT_SIZE"
-		]
-		tags = saputils.get_module_tags(filename, keywords = drt_keywords, debug = False)
-
-		io_types = [
-			"input",
-			"output",
-			"inout"
-		]
-		#
-		#for io in io_types:
-		#	for port in tags["ports"][io].keys():
-		#		print "Ports: " + port
-
-		self.assertEqual(True, True)
-
 	def test_remove_comments(self):
 		"""try and remove all comments from a buffer"""
 		import saputils
@@ -98,6 +62,59 @@ class Test (unittest.TestCase):
 		self.assertEqual(correct_result == filename, True)
 
 		filename = filename.strip()
+
+	
+	def test_read_slave_tags(self):
+		"""try and extrapolate all info from the slave file"""
+		import saputils
+		base_dir = os.getenv("SAPLIB_BASE")	
+		filename = base_dir + "/hdl/rtl/wishbone/slave/simple_gpio/simple_gpio.v"
+		drt_keywords = [
+			"DRT_ID",
+			"DRT_FLAGS",
+			"DRT_SIZE"
+		]
+		tags = saputils.get_module_tags(filename, keywords = drt_keywords, debug = False)
+
+		io_types = [
+			"input",
+			"output",
+			"inout"
+		]
+		#
+		#for io in io_types:
+		#	for port in tags["ports"][io].keys():
+		#		print "Ports: " + port
+
+		self.assertEqual(True, True)
+
+
+	def test_generate_define_table(self):
+		"""test the systems capability to generate a define table"""
+		import saputils
+		filename = saputils.find_rtl_file_location("wb_ddr.v")
+		print "filename: " + filename
+		filestring = ""
+		try:
+			f = open(filename)
+			print "opened file"
+			filestring = f.read()
+			f.close()
+		except:
+			print "Failed to open test filename"
+			self.assertEqual(True, False)
+			return
+
+		result = saputils.generate_define_table(filestring, debug = True)
+
+
+		self.assertEqual(True, True)
+
+	def test_resolve_defines(self):
+		"""test the systems capability to read in a string with a define and resolve what the define is"""
+		self.assertEqual(True, True)
+
+
 
 if __name__ == "__main__":
 	sys.path.append (sys.path[0] + "/../")

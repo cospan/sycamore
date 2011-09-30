@@ -11,7 +11,7 @@
 
 	DRT_ID:5
 	DRT_FLAGS:1
-	DRT_SIZE:64
+	DRT_SIZE:4
 
 */
 

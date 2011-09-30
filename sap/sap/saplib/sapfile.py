@@ -1,9 +1,8 @@
 import os
+#from gen_scripts.gen import Gen
 import saputils
 import glob
-import gen_scripts
 import sys
-from gen_scripts import gen
 from inspect import isclass
 
 
@@ -11,6 +10,10 @@ class SapFile:
 	"""Base SapGen Class must be overriden: Used to modify or generate files"""
 
 	def __init__ (self):
+#		print "SAPLIB_BASE: " + os.environ["SAPLIB_BASE"]
+#		print "Path: " + str(sys.path)
+		self.gen_module = None
+		self.gen = None
 		self.buf = ""
 		self.tags = {}
 		self.verilog_file_list = []
@@ -129,13 +132,27 @@ class SapFile:
 				print "found the generation script"
 				print "run generation script: " + file_dict["gen_script"]
 			#open up the new gen module
-			gen_module = __import__(file_dict["gen_script"])	
+			cl = __import__("gen")
+			print "cl: " + str(cl)
+			Gen = getattr(cl, "Gen")
+			print "Gen: " + str(Gen)
+			self.gen_module = __import__(file_dict["gen_script"])	
 			gen_success_flag = False
-			for name in dir(gen_module):
-				obj = getattr(gen_module, name)
-				if isclass(obj) and issubclass(obj, gen.Gen) and obj is not gen.Gen:
-					gens = obj()
-					self.buf = gens.gen_script(tags = self.tags, buf = self.buf)
+			for name in dir(self.gen_module):
+				obj = getattr(self.gen_module, name)
+	#			print "object type: " + str(obj)
+#debug section start
+				print "name: " + name
+				if isclass(obj):
+					print "\tobject type: " + str(obj)
+					print "\tis class"
+					if issubclass(obj, cl.Gen):
+						print "\t\tis subclass"
+#debug section end
+				if isclass(obj) and issubclass(obj, Gen) and obj is not Gen:
+					self.gen = obj()
+					print "obj = " + str(self.gen)
+					self.buf = self.gen.gen_script(tags = self.tags, buf = self.buf)
 					gen_success_flag = True
 
 			if (not gen_success_flag):

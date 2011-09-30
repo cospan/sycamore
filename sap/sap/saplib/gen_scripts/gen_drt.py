@@ -13,7 +13,7 @@ class GenDRT(Gen):
 		return
 
 
-	def gen_script(self, tags = {}, buf = "", debug = False):
+	def gen_script(self, tags = {}, buf = "", debug = True):
 		out_buf = ""
 
 		#Get the DRT version from the DRT info
@@ -71,5 +71,6 @@ class GenDRT(Gen):
 
 
 		return out_buf 
+
 	def gen_name(self):
 		print "generate a ROM"
