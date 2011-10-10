@@ -147,6 +147,7 @@ class SapProject:
 
 		if debug:
 			print "generating project directories finished"
+
 		#Generate all the slaves
 		for slave in self.project_tags["SLAVES"]:
 			fdict = {"location":""}

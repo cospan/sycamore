@@ -322,6 +322,7 @@ class GenTop(Gen):
 			"output",
 			"inout"
 		]
+
 		#add a prename to all the slaves
 		pre_name = ""
 		if (index != -1):
@@ -365,7 +366,6 @@ class GenTop(Gen):
 		out_buf = out_buf + "\n\n"
 
 		#Generate the instantiation
-		
 		out_buf = out_buf + "\t" + module_tags["module"] + " " + name
 		if (index != -1):
 			out_buf = out_buf + str(index)
@@ -376,6 +376,7 @@ class GenTop(Gen):
 		last = len(module_tags["ports"]["input"].keys())
 		last = last + len(module_tags["ports"]["output"].keys())
 		last = last + len(module_tags["ports"]["inout"].keys())
+
 		#add the port assignments
 		for io in io_types:
 			for port in module_tags["ports"][io].keys(): 
@@ -388,7 +389,9 @@ class GenTop(Gen):
 					print "found inout!: " + port
 					bkeys = self.bindings.keys()
 					for bkey in bkeys:
-						if (bkey.startswith(pre_name + port)):
+						name = bkey.partition("[")[0]
+						name = name.strip()
+						if (name == (pre_name + port)):
 							print "found: " + bkey
 							out_buf = out_buf + self.bindings[bkey]["port"]
 							found_binding = True

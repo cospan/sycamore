@@ -42,7 +42,7 @@ class Test (unittest.TestCase):
 			result = False
 
 		self.assertEqual(result, True)
-	
+
 	def test_resolve_linux_path(self):
 		"""given a filename with or without the ~ return a filename with the ~ expanded"""
 		import saputils
@@ -88,31 +88,31 @@ class Test (unittest.TestCase):
 
 		self.assertEqual(True, True)
 
-
-	def test_generate_define_table(self):
-		"""test the systems capability to generate a define table"""
+	
+	def test_read_hard_slave_tags(self):
+		"""try and extrapolate all info from the slave file"""
 		import saputils
-		filename = saputils.find_rtl_file_location("wb_ddr.v")
-		print "filename: " + filename
-		filestring = ""
-		try:
-			f = open(filename)
-			print "opened file"
-			filestring = f.read()
-			f.close()
-		except:
-			print "Failed to open test filename"
-			self.assertEqual(True, False)
-			return
+		base_dir = os.getenv("SAPLIB_BASE")	
+		filename = base_dir + "/hdl/rtl/wishbone/slave/ddr/wb_ddr.v"
+		drt_keywords = [
+			"DRT_ID",
+			"DRT_FLAGS",
+			"DRT_SIZE"
+		]
+		tags = saputils.get_module_tags(filename, keywords = drt_keywords, debug = True)
 
-		result = saputils.generate_define_table(filestring, debug = True)
-
+		io_types = [
+			"input",
+			"output",
+			"inout"
+		]
+		#
+		#for io in io_types:
+		#	for port in tags["ports"][io].keys():
+		#		print "Ports: " + port
 
 		self.assertEqual(True, True)
 
-	def test_resolve_defines(self):
-		"""test the systems capability to read in a string with a define and resolve what the define is"""
-		self.assertEqual(True, True)
 
 
 

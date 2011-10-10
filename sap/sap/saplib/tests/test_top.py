@@ -78,6 +78,31 @@ class Test (unittest.TestCase):
 		#print "out:\n" + buf
 		self.assertEqual(len(buf) > 0, True)
 
+#	def test_generate_buffer_slave_hard(self):
+#		absfilepath = saputils.find_rtl_file_location("wb_ddr.v")
+#		#print "simple_gpio.v location: " + absfilepath
+#		slave_keywords = [
+#			"DRT_ID",
+#			"DRT_FLAGS",
+#			"DRT_SIZE"
+#		]
+#		tags = saputils.get_module_tags(filename = absfilepath, bus="wishbone", keywords = slave_keywords) 
+#
+#		print tags
+#
+#		self.gen.wires = [
+#			"clk",
+#			"rst"
+#		]
+#		result = self.gen.generate_buffer(name="wbs", index=0, module_tags = tags) 
+#
+#		buf = result
+#		#print "out:\n" + buf
+#		self.assertEqual(len(buf) > 0, True)
+
+
+
+
 	def test_generate_buffer_io_handler(self):
 
 		absfilepath = saputils.find_rtl_file_location("uart_io_handler.v")

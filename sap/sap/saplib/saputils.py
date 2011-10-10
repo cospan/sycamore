@@ -1,6 +1,7 @@
 import os
 import sys
 import string
+import sappreproc
 
 """utilites that don't really belong in any of the sap classes"""
 
@@ -163,6 +164,20 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 	output_count = buf.count("output")
 	inout_count = buf.count("inout")
 
+	if debug:
+		print "filename: " + filename
+	
+	filestring = ""
+	try:
+		f = open(filename)
+		filestring = f.read()
+		f.close()
+	except:
+		print "Failed to open test filename"
+		return
+
+	define_dict = sappreproc.generate_define_table(filestring, True)	
+
 	for io in ports:
 		tags["ports"][io] = {}
 		substrings = buf.splitlines()	
@@ -190,11 +205,21 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 			substring = substring.strip()
 			max_val = -1
 			min_val = -1
-			if (len(substring.partition("]")[1]) != 0):
-				length_string = substring.partition("]")[0]
+			if (len(substring.partition("]")[2]) != 0):
+				#we have a range to work with?
+				length_string = substring.partition("]")[0] + "]"
 				substring = substring.partition("]")[2] 
 				substring = substring.strip()
+				length_string = length_string.strip()
+				if debug:
+					print "length string: " + length_string
+
+				length_string = sappreproc.resolve_defines(length_string, define_dict, debug=True)
+				length_string = sappreproc.evaluate_range(length_string)
+				length_string = length_string.partition("]")[0]
 				length_string = length_string.strip("[")
+				if debug:
+					print "length string: " + length_string
 				max_val = string.atoi(length_string.partition(":")[0])
 				min_val = string.atoi(length_string.partition(":")[2])
 
@@ -231,86 +256,5 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 
 
 	return tags
-
-
-def generate_define_table(filestring="", debug = False):
-	"""Read in a file in string format and create a dictionary relating define name and value""" 
-	define_dict = {}
-	#from a file string find all the defines and generate an entry into a dictionary
-	filestring = remove_comments(filestring) 
-	str_list = filestring.splitlines()
-
-	for item in str_list:
-		item = item.strip()
-		if item.startswith("`include"):
-			if (debug):
-				print "found an include: " + item
-			#read int the include file, strip away the comments
-			#then append everything to the end
-			item = item.partition("`include")[2]
-			item = item.strip()
-			item = item.strip("\"")
-			inc_file = find_rtl_file_location(item)	
-			if debug:
-				print "include file location: " + inc_file
-			try:
-				ifile = open(inc_file)
-				fs = ifile.read()
-				ifile.close()
-				if debug:
-					print "got the new file string"
-				include_define = generate_define_table(fs, True)
-				for key in include_defines.keys():
-					#append the values found in the include back in the local dictionary
-					if (not define_dict.has_key(key)):
-						define_dict[key] = include_define[key]
-
-				
-				if debug:
-					print "added new items onto the list"
-			except TypeError as terr:
-				print "Type Errpr: " + str(terr)
-			except:
-				print "error: ",  sys.exc_info()[0]
-			continue
-
-		if item.startswith("`define"):
-			#if the string starts with `define split the name and value into the dictionary
-#			if debug:
-#				print "found a define: " + item
-			item = item.partition("`define")[2]
-			item = item.strip()
-			if (len(item.partition(" ")[2]) > 0):
-				name = item.partition(" ")[0].strip()
-				value = item.partition(" ")[2].strip()
-				if debug:
-					print "added " + name + "\n\tWith value: " + value
-				define_dict[name] = value
-				continue
-			if (len(item.partition("\t")[2]) > 0):
-				name = item.partition("\t")[0].strip()
-				value = item.partition("\t")[2].strip()
-				if debug:
-					print "added " + name + "\n\tWith value: " + value
-				define_dict[name] = value
-				continue
-			if debug:
-				print "found a define without a value: " + item
-
-	return define_dict
-
-
-def resolve_defines(work_string="", define_dict=[]):
-	"""given a string with a define change it into what it is supposed to be defining"""
-	#loop through the string until all the defines are resolved
-	#there could be nested defines so the string might go through the same loop
-	#a few times
-
-	#while there is still a tick mark in the string
-	#search in the dictionary for the define name found, if it has an entry in it
-	#simply replace the value where the name was
-	
-	return
-
 
 
