@@ -149,7 +149,12 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 		module_string = substring.partition("module")[2]
 		module_string = module_string.strip(" ")
 		index = module_string.find(" ")
-		tags["module"] = module_string.__getslice__(0, index)
+
+		if (index != -1):
+			tags["module"] = module_string.__getslice__(0, index)
+		else:
+			tags["module"] = module_string
+
 		if debug:
 			print "module name: " + module_string
 			print tags["module"]

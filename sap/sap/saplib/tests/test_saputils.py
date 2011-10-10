@@ -88,6 +88,35 @@ class Test (unittest.TestCase):
 
 		self.assertEqual(True, True)
 
+	def test_read_slave_tags_with_params(self):
+		"""some verilog files have a paramter list"""
+		import saputils
+		base_dir = os.getenv("SAPLIB_BASE")
+		filename = base_dir + "/hdl/rtl/wishbone/slave/ddr/wb_ddr.v"
+		drt_keywords = [
+			"DRT_ID",
+			"DRT_FLAGS",
+			"DRT_SIZE"
+		]
+		tags = saputils.get_module_tags(filename, keywords = drt_keywords, debug = True)
+
+		io_types = [
+			"input",
+			"output",
+			"inout"
+		]
+		#
+		#for io in io_types:
+		#	for port in tags["ports"][io].keys():
+		#		print "Ports: " + port
+
+		print "\n\n\n\n\n\n"
+		print "module name: " + tags["module"]
+		print "\n\n\n\n\n\n"
+
+		self.assertEqual(True, True)
+
+
 	
 	def test_read_hard_slave_tags(self):
 		"""try and extrapolate all info from the slave file"""

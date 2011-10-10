@@ -34,7 +34,7 @@
 			},
 			"s1_ddr_dqs[1:0]":{
 				"port":"ddr_dqs[1:0]",
-				"direction":"output"
+				"direction":"inout"
 			},
 			"s1_ddr_cas_n":{
 				"port":"ddr_cas_n",
