@@ -1,7 +1,7 @@
 # ==== Clock inputs (CLK) ====
 
-NET "clk" LOC = "C9" | IOSTANDARD = LVCMOS33 ;
-NET "clk" PERIOD = 20 HIGH 50%;   # 50 MHZ
+NET "clk_in" LOC = "C9" | IOSTANDARD = LVCMOS33 ;
+NET "clk_in" PERIOD = 20 HIGH 50%;   # 50 MHZ
 # NET "clk" PERIOD = 14.28571 HIGH 50%;   # 70 MHZ
 
 NET "reset"   LOC = "H13" | IOSTANDARD = LVTTL | PULLDOWN ;
