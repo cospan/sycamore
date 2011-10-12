@@ -38,6 +38,7 @@ class GenInterconnect(Gen):
 			port_buf = port_buf + "\ts" + str(i) + "_we_o,\n"
 			port_buf = port_buf + "\ts" + str(i) + "_cyc_o,\n"
 			port_buf = port_buf + "\ts" + str(i) + "_stb_o,\n"
+			port_buf = port_buf + "\ts" + str(i) + "_sel_o,\n"
 			port_buf = port_buf + "\ts" + str(i) + "_ack_i,\n"
 			port_buf = port_buf + "\ts" + str(i) + "_dat_o,\n"
 			port_buf = port_buf + "\ts" + str(i) + "_dat_i,\n"
@@ -55,6 +56,7 @@ class GenInterconnect(Gen):
 			port_def_buf = port_def_buf + "output\t\t\ts" + str(i) + "_we_o;\n"
 			port_def_buf = port_def_buf + "output\t\t\ts" + str(i) + "_cyc_o;\n"
 			port_def_buf = port_def_buf + "output\t\t\ts" + str(i) + "_stb_o;\n"
+			port_def_buf = port_def_buf + "output\t[3:0]\ts" + str(i) + "_sel_o;\n"
 			port_def_buf = port_def_buf + "output\t[31:0]\ts" + str(i) + "_adr_o;\n"
 			port_def_buf = port_def_buf + "output\t[31:0]\ts" + str(i) + "_dat_o;\n"
 			port_def_buf = port_def_buf + "input\t[31:0]\ts" + str(i) + "_dat_i;\n"
@@ -70,6 +72,7 @@ class GenInterconnect(Gen):
 		for i in range (0, num_slaves):
 			assign_buf = assign_buf + "assign s" + str(i) + "_we_o\t=\t(slave_select == ADDR_" + str(i) + ") ? m_we_i: 0;\n"
 			assign_buf = assign_buf + "assign s" + str(i) + "_stb_o\t=\t(slave_select == ADDR_" + str(i) + ") ? m_stb_i: 0;\n"
+			assign_buf = assign_buf + "assign s" + str(i) + "_sel_o\t=\t(slave_select == ADDR_" + str(i) + ") ? m_sel_i: 0;\n"
 			assign_buf = assign_buf + "assign s" + str(i) + "_cyc_o\t=\t(slave_select == ADDR_" + str(i) + ") ? m_cyc_i: 0;\n"
 			assign_buf = assign_buf + "assign s" + str(i) + "_adr_o\t=\t(slave_select == ADDR_" + str(i) + ") ? {8\'h0, m_adr_i[23:0]}: 0;\n"
 			assign_buf = assign_buf + "assign s" + str(i) + "_dat_o\t=\t(slave_select == ADDR_" + str(i) + ") ? m_dat_i: 0;\n"

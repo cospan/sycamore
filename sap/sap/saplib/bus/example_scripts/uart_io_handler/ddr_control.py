@@ -41,29 +41,29 @@ if __name__=="__main__":
 			mem_test = False
 		else:
 			print "data at address " + hex(mem_address) + ":" + hex(mem_data)
-#
-#		print "mem address = " + hex(syc.get_address_from_dev_index(mem_index))
-#		for addr in range (0, (mem_size / 4)):
-#			mem_data = read_mem(syc, mem_index, addr * 4)
-#			print "data: " + hex(mem_data) + " at: " + hex(addr)
-#
-#			if (mem_data != (addr * 4)):
-#				print "Fail Initial read!" 
-#				break
-#		print "populating first 10 memory locations"
-#		for addr in range (0, 10):
-#			write_mem(syc, mem_index, addr * 4, addr * 4)
-#			print "address: " + str(addr)	
-#		
-#		print " "
-#		print "reading first 10 memory locations"
-#		for addr in range (0, 10):
-#			mem_data = read_mem(syc, mem_index, addr * 4)
-#			print "data: " + hex(mem_data) + " at: " + hex(addr)
-#			if (mem_data != addr):
-#				print "Fail Initial read!" 
-#				mem_test	= False
-#				break
+
+		print "mem address = " + hex(syc.get_address_from_dev_index(mem_index))
+		for addr in range (0, (mem_size / 4)):
+			mem_data = read_mem(syc, mem_index, addr * 4)
+			print "data: " + hex(mem_data) + " at: " + hex(addr)
+
+			if (mem_data != (addr * 4)):
+				print "Fail Initial read!" 
+				break
+		print "populating first 10 memory locations"
+		for addr in range (0, 10):
+			write_mem(syc, mem_index, addr * 4, addr)
+			print "address: " + str(addr)	
+		
+		print " "
+		print "reading first 10 memory locations"
+		for addr in range (0, 10):
+			mem_data = read_mem(syc, mem_index, addr * 4)
+			print "data: " + hex(mem_data) + " at: " + hex(addr)
+			if (mem_data != addr):
+				print "Fail Initial read!" 
+				mem_test	= False
+				break
 	else:
 		mem_test = False
 	if (mem_test == True):

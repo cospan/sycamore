@@ -58,7 +58,7 @@ ${ADDRESSES}
 input 				clk;
 input 				rst;
 
-//wishbone slave signals
+//wishbone master signals
 input 				m_we_i;
 input 				m_stb_i;
 input 				m_cyc_i;
@@ -70,6 +70,7 @@ output reg      	m_ack_o;
 output reg 			m_int_o;
 
 
+//wishbone slave signals
 ${PORT_DEFINES}
 
 //this should be parameterized

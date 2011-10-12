@@ -57,7 +57,8 @@ class GenTop(Gen):
 		footer = ""
 
 		header = "module top (\n"
-		header = header + "\tclk_in,\n"
+		#header = header + "\tclk_in,\n"
+		header = header + "\tclk,\n"
 		header = header + "\trst,\n"
 
 		#bindings = tags["CONSTRAINTS"]["bind"]
@@ -76,10 +77,11 @@ class GenTop(Gen):
 
 		#declare the wires
 		wr_buf = wr_buf + "\t//inupt handler signals\n"
-		wr_buf = wr_buf + "\tinput\t\tclk_in;\n"
-		wr_buf = wr_buf + "\twire\t\tclk;\n"
+		#wr_buf = wr_buf + "\tinput\t\tclk_in;\n"
+		wr_buf = wr_buf + "\tinput\t\tclk;\n"
+		#wr_buf = wr_buf + "\twire\t\tclk;\n"
 		self.wires.append("clk")
-		self.wires.append("clk_in")
+		#self.wires.append("clk_in")
 		wr_buf = wr_buf + "\tinput\t\trst;\n"
 		self.wires.append("rst")
 		wr_buf = wr_buf + "\twire\t[31:0]\tin_command;\n"
@@ -116,6 +118,8 @@ class GenTop(Gen):
 		self.wires.append("wbm_cyc_o")
 		wr_buf = wr_buf + "\twire\t\twbm_stb_o;\n"
 		self.wires.append("wbm_stb_o")
+		wr_buf = wr_buf + "\twire\t[3:0]\twbm_sel_o;\n"
+		self.wires.append("wbm_sel_o")
 		wr_buf = wr_buf + "\twire\t[31:0]\twbm_adr_o;\n"
 		self.wires.append("wbm_adr_o")
 		wr_buf = wr_buf + "\twire\t[31:0]\twbm_dat_i;\n"
@@ -128,8 +132,8 @@ class GenTop(Gen):
 		self.wires.append("wbm_int_o")
 
 		#put the in clock on the global buffer
-		wr_buf = wr_buf + "\t//add a global clock buffer to the input clock\n"
-		wr_buf = wr_buf + "\tIBUFG clk_ibuf(.I(clk_in), .O(clk));\n\n"
+		#wr_buf = wr_buf + "\t//add a global clock buffer to the input clock\n"
+		#wr_buf = wr_buf + "\tIBUFG clk_ibuf(.I(clk_in), .O(clk));\n\n"
 
 		wr_buf = wr_buf + "\t//slave signals\n\n"
 
@@ -147,6 +151,8 @@ class GenTop(Gen):
 			self.wires.append("wbs" + str(i) + "_adr_i")
 			wr_buf = wr_buf + "\twire\t\twbs" + str(i) + "_stb_i;\n" 
 			self.wires.append("wbs" + str(i) + "_stb_i")
+			wr_buf = wr_buf + "\twire\t[3:0]\twbs" + str(i) + "_sel_i;\n" 
+			self.wires.append("wbs" + str(i) + "_sel_i")
 			wr_buf = wr_buf + "\twire\t\twbs" + str(i) + "_ack_o;\n" 
 			self.wires.append("wbs" + str(i) + "_ack_o")
 			wr_buf = wr_buf + "\twire\t\twbs" + str(i) + "_int_o;\n\n" 
@@ -186,6 +192,7 @@ class GenTop(Gen):
 		wi_buf = wi_buf + "\t.m_we_i(wbm_we_o),\n"
 		wi_buf = wi_buf + "\t.m_cyc_i(wbm_cyc_o),\n"
 		wi_buf = wi_buf + "\t.m_stb_i(wbm_stb_o),\n"
+		wi_buf = wi_buf + "\t.m_sel_i(wbm_sel_o),\n"
 		wi_buf = wi_buf + "\t.m_ack_o(wbm_ack_i),\n"
 		wi_buf = wi_buf + "\t.m_dat_i(wbm_dat_o),\n"
 		wi_buf = wi_buf + "\t.m_dat_o(wbm_dat_i),\n"
@@ -197,6 +204,7 @@ class GenTop(Gen):
 			wi_buf = wi_buf + "\t.s" + str(i) + "_we_o(wbs" + str(i) + "_we_i),\n"
 			wi_buf = wi_buf + "\t.s" + str(i) + "_cyc_o(wbs" + str(i) + "_cyc_i),\n"
 			wi_buf = wi_buf + "\t.s" + str(i) + "_stb_o(wbs" + str(i) + "_stb_i),\n"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_sel_o(wbs" + str(i) + "_sel_i),\n"
 			wi_buf = wi_buf + "\t.s" + str(i) + "_ack_i(wbs" + str(i) + "_ack_o),\n"
 			wi_buf = wi_buf + "\t.s" + str(i) + "_dat_o(wbs" + str(i) + "_dat_i),\n"
 			wi_buf = wi_buf + "\t.s" + str(i) + "_dat_i(wbs" + str(i) + "_dat_o),\n"
