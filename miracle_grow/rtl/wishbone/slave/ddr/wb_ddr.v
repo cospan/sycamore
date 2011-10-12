@@ -51,7 +51,7 @@ module wb_ddr
 	input                    wbs_we_i,
 	output reg               wbs_ack_o,
 
-	output					init_done
+	output				init_done
 
 );
 
