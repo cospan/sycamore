@@ -110,10 +110,11 @@ input       [31:0]  s1_dat_i;
 input               s1_ack_i;
 input               s1_int_i;
 
-
+/*
 initial begin
     $monitor ("%t adr: %h, stb: %h, ack: %h", $time, m_adr_i, m_stb_i, m_ack_o);
 end
+*/
 
 //this should be parameterized
 wire [7:0]slave_select;
