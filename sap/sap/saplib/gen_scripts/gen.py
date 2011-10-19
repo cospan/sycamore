@@ -14,3 +14,4 @@ class Gen:
 
 	def get_name (self):
 		print "gen"
+

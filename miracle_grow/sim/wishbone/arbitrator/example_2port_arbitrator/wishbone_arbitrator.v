@@ -1,4 +1,4 @@
-//wishbone_interconnect.v
+//wishbone_arbitrator.v
 /*
 Distributed under the MIT licesnse.
 Copyright (c) 2011 Dave McCoy (dave.mccoy@leaflabs.com)
@@ -100,6 +100,7 @@ output 		[31:0]	m1_dat_o;
 output		      	m1_ack_o;
 output	 			m1_int_o;
 
+//wishbone slave signals
 output reg			s_we_o;
 output reg			s_stb_o;
 output reg			s_cyc_o;
