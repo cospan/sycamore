@@ -8,6 +8,11 @@ class Test (unittest.TestCase):
 	def setUp(self):
 	
 		os.environ["SAPLIB_BASE"] = sys.path[0] + "/saplib"
+		self.dbg = False
+		if "SAPLIB_DEBUG" in os.environ:
+			if (os.environ["SAPLIB_DEBUG"] == "True"):
+				self.dbg = True
+
 		#print "SAPLIB_BASE: " + os.getenv("SAPLIB_BASE")
 
 
@@ -74,7 +79,7 @@ class Test (unittest.TestCase):
 			"DRT_FLAGS",
 			"DRT_SIZE"
 		]
-		tags = saputils.get_module_tags(filename, keywords = drt_keywords, debug = False)
+		tags = saputils.get_module_tags(filename, keywords = drt_keywords, debug=self.dbg)
 
 		io_types = [
 			"input",
@@ -98,7 +103,7 @@ class Test (unittest.TestCase):
 			"DRT_FLAGS",
 			"DRT_SIZE"
 		]
-		tags = saputils.get_module_tags(filename, keywords = drt_keywords, debug = True)
+		tags = saputils.get_module_tags(filename, keywords = drt_keywords, debug=self.dbg)
 
 		io_types = [
 			"input",
@@ -128,7 +133,7 @@ class Test (unittest.TestCase):
 			"DRT_FLAGS",
 			"DRT_SIZE"
 		]
-		tags = saputils.get_module_tags(filename, keywords = drt_keywords, debug = True)
+		tags = saputils.get_module_tags(filename, keywords = drt_keywords, debug=self.dbg)
 
 		io_types = [
 			"input",

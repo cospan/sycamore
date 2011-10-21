@@ -13,6 +13,10 @@ class Test (unittest.TestCase):
 		"""open up a sapfile class"""
 		os.environ["SAPLIB_BASE"] = sys.path[0] + "/saplib"
 		self.sapfile = sapfile.SapFile()
+		self.dbg = False
+		if "SAPLIB_DEBUG" in os.environ:
+			if (os.environ["SAPLIB_DEBUG"] == "True"):
+				self.dbg = True
 
 	def test_read_file(self):
 		"""a file should be open for modifying"""
@@ -58,7 +62,7 @@ class Test (unittest.TestCase):
 
 	def test_process_file_no_location(self):
 		"""make sue the process file fails when user doesn't give a location"""
-		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
+		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/gpio_v2.json"
 		filein = open(project_tags_file)
 		json_tags = json.load(filein)
 		self.sapfile.set_tags(json_tags)
@@ -69,20 +73,20 @@ class Test (unittest.TestCase):
 	def test_process_file(self):
 		"""excercise all functions of the class"""
 		#print "testing process file"
-		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
+		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/gpio_v2.json"
 		filein = open(project_tags_file)
 		json_tags = json.load(filein)
 		filein.close()
 
 		self.sapfile.set_tags(json_tags)
 		file_tags = {"location":"bus"}
-		result = self.sapfile.process_file(filename = "README", directory="~/sandbox", file_dict = file_tags, debug = True)
+		result = self.sapfile.process_file(filename = "README", directory="~/sandbox", file_dict = file_tags, debug = self.dbg)
 		#print self.sapfile.buf
 		self.assertEqual(result, True)
 		
 	def test_process_gen_script(self):
 		"""excercise the script"""
-		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
+		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/gpio_v2.json"
 		filein = open(project_tags_file)
 		json_tags = json.load(filein)
 		self.sapfile.set_tags(json_tags)
@@ -93,39 +97,39 @@ class Test (unittest.TestCase):
 		
 	def test_process_file_no_filename(self):
 		"""excercise the gen script only functionality"""
-		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
+		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/gpio_v2.json"
 		filein = open(project_tags_file)
 		json_tags = json.load(filein)
 		self.sapfile.set_tags(json_tags)
 		file_tags = {"gen_script":"gen_top"}
-		result = self.sapfile.process_file("top", directory="~/sandbox", file_dict = file_tags, debug=False)
+		result = self.sapfile.process_file("top", directory="~/sandbox", file_dict = file_tags, debug=self.dbg)
 		self.assertEqual(result, True)
 
 	def test_has_dependency(self):
 		#scan a file that is not a verilog file
-		result = self.sapfile.has_dependencies("simple_gpio", debug=False)
+		result = self.sapfile.has_dependencies("simple_gpio", debug=self.dbg)
 		self.assertEqual(result, False)
 		#scan for a file that is a verilog file with a full path
 		file_location = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/master_handler/uart/uart_io_handler.v"
-		result = self.sapfile.has_dependencies(file_location, debug=False)
+		result = self.sapfile.has_dependencies(file_location, debug=self.dbg)
 		self.assertEqual(result, True)
 		#scan a file that is a verilog file but not the full path
-		result = self.sapfile.has_dependencies("uart_io_handler.v", debug=False)
+		result = self.sapfile.has_dependencies("uart_io_handler.v", debug=self.dbg)
 		self.assertEqual(result, True)
 	
 		#scan a file that has multiple levels of dependencies
-		result = self.sapfile.has_dependencies("sdram.v", debug=False)
+		result = self.sapfile.has_dependencies("sdram.v", debug=self.dbg)
 		self.assertEqual(result, True)
 		
-		result = self.sapfile.has_dependencies("simple_gpio.v", debug=False)
+		result = self.sapfile.has_dependencies("simple_gpio.v", debug=self.dbg)
 		self.assertEqual(result, False)
 
 	def test_get_list_of_dependencies(self):
-		deps = self.sapfile.get_list_of_dependencies("simple_gpio.v", debug=False)
+		deps = self.sapfile.get_list_of_dependencies("simple_gpio.v", debug=self.dbg)
 		self.assertEqual(len(deps) == 0, True)
-		deps = self.sapfile.get_list_of_dependencies("uart_io_handler.v", debug=False)
+		deps = self.sapfile.get_list_of_dependencies("uart_io_handler.v", debug=self.dbg)
 		self.assertEqual(len(deps) > 0, True)
-		deps = self.sapfile.get_list_of_dependencies("sdram.v", debug=False)
+		deps = self.sapfile.get_list_of_dependencies("sdram.v", debug=self.dbg)
 		self.assertEqual(len(deps) > 0, True)
 
 
@@ -133,15 +137,15 @@ class Test (unittest.TestCase):
 	def test_is_module_in_file(self):
 		module_name = "uart"
 		filename = "simple_gpio.v"
-		result = self.sapfile.is_module_in_file(filename, module_name, debug=False)
+		result = self.sapfile.is_module_in_file(filename, module_name, debug=self.dbg)
 		self.assertEqual(result, False)
 		filename = "uart.v"
-		result = self.sapfile.is_module_in_file(filename, module_name, debug=False) 
+		result = self.sapfile.is_module_in_file(filename, module_name, debug=self.dbg) 
 		self.assertEqual(result, True)
 
 	def test_find_module_filename(self):
 		module_name = "uart"
-		result = self.sapfile.find_module_filename(module_name, debug = False)
+		result = self.sapfile.find_module_filename(module_name, debug = self.dbg)
 		self.assertEqual(len(result) > 0, True)
 	
 	def test_resolve_dependencies(self):
@@ -151,7 +155,7 @@ class Test (unittest.TestCase):
 		#self.assertEqual(result, True)
 		#harder dependency
 		filename = "wb_ddr.v"
-		result = self.sapfile.resolve_dependencies(filename, debug = True)
+		result = self.sapfile.resolve_dependencies(filename, debug = self.dbg)
 		print "\n\n\n\n"
 		print "dependency for " + filename
 		for d in self.sapfile.verilog_dependency_list:

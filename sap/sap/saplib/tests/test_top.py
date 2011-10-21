@@ -13,6 +13,13 @@ class Test (unittest.TestCase):
 
 		self.gen = None
 		self.gen_module = __import__("gen_top")
+		self.dbg = False
+		if "SAPLIB_DEBUG" in os.environ:
+			if (os.environ["SAPLIB_DEBUG"] == "True"):
+				self.dbg = True
+
+		print "debug flag: " + str(self.dbg)
+
 		os.environ["SAPLIB_BASE"] = sys.path[0] + "/saplib"
 		for name in dir(self.gen_module):
 			obj = getattr(self.gen_module, name)
@@ -29,7 +36,7 @@ class Test (unittest.TestCase):
 		top_buffer = ""
 		#get the example project data
 		try:
-			filename = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/gpio_v2.json"
 			filein = open(filename)
 			filestr = filein.read()
 			tags = json.loads(filestr)
@@ -49,8 +56,9 @@ class Test (unittest.TestCase):
 
 		#print "buf: " + top_buffer
 
-		result = self.gen.gen_script(tags, buf = top_buffer, debug=False)
-		print "Top file: \n" + result
+		result = self.gen.gen_script(tags, buf = top_buffer, debug=self.dbg)
+		if (self.dbg):
+			print "Top file: \n" + result
 
 		self.assertEqual(len(result) > 0, True)
 

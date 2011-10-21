@@ -5,9 +5,11 @@
 	"BUILD_TOOL":"xilinx",
 	"TEMPLATE":"wishbone_template.json",
 	"INTERFACE":"uart_io_handler.v",
-	"SLAVES":[
-		"wb_ddr.v"
-	],
+	"SLAVES":{
+		"ddr_mem":{
+			"filename":"wb_ddr.v"
+		}
+	},
 
 	"CONSTRAINTS":{
 		"constraint_files":[

@@ -8,6 +8,9 @@
 	"SLAVES":{
 		"gpio1":{
 			"filename":"simple_gpio.v"
+		},
+		"gpio2":{
+			"filename":"simple_gpio.v"
 		}
 	},
 

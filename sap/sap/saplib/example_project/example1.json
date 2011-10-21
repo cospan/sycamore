@@ -5,9 +5,11 @@
 	"BUILD_TOOL":"xilinx",
 	"TEMPLATE":"wishbone_template.json",
 	"INTERFACE":"uart_io_handler.v",
-	"SLAVES":[
-		"simple_gpio.v"
-	],
+	"SLAVES":{
+		"gpio1":{
+			"filename":"simple_gpio.v"
+		}
+	}
 
 	"CONSTRAINTS":{
 		"constraint_files":[

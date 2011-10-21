@@ -10,6 +10,13 @@ class Test (unittest.TestCase):
 	def setUp(self):
 		"""open up a sapfile class"""
 		os.environ["SAPLIB_BASE"] = sys.path[0] +  "/saplib"
+		self.dbg = False
+		if "SAPLIB_DEBUG" in os.environ:
+			if (os.environ["SAPLIB_DEBUG"] == "True"):
+				self.dbg = True
+
+		print "debug: " + str(self.dbg)
+
 
 	def test_gen_arbitrator (self):
 		"""Generate an actual arbitrator file"""
@@ -23,7 +30,8 @@ class Test (unittest.TestCase):
 		except IOError as err:
 			print "File Error: " + str(err)
 
-		print "buf: " + interconnect_buffer
+		if (self.dbg):
+			print "buf: " + interconnect_buffer
 		self.gen_module = __import__("gen_arbitrator")
 		for name in dir(self.gen_module):
 			obj = getattr(self.gen_module, name)
@@ -32,7 +40,7 @@ class Test (unittest.TestCase):
 				print "found " + name
 				
 		#self.gen = self.gen_module.Gen()
-		result = self.gen.gen_script(tags, buf = arbitrator_buffer, debug=True)
+		result = self.gen.gen_script(tags, buf = arbitrator_buffer, debug=self.dbg)
 
 		#write out the file
 		if (result != None):
@@ -43,7 +51,8 @@ class Test (unittest.TestCase):
 			except IOError as err:
 				print "File Error: " + str(err)
 
-			print result
+			if (self.dbg):
+				print result
 			self.assertEqual(len(result) > 0, True)
 		else:
 			self.assertEqual(True, True)

@@ -6,16 +6,16 @@ Version 1.0
 			-sim
 			-FSMC
 			-PCIE
-		-Interconnect Working
+		-Interconnect Working *DONE
 		-2 Slaves
 			-SIM slave
-			-GPIO slave
+			-GPIO slave *DONE
 	-sap
 		-SAP library written
-			-generate interconnect
-			-generate ROM
-			-generate TOP
-		-SAP command line
+			-generate interconnect *DONE
+			-generate ROM *DONE
+			-generate TOP *DONE
+		-SAP command line *DONE
 		-GUI working
 	-xylem
 		-uart master driver working

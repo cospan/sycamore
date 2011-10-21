@@ -144,7 +144,8 @@ def evaluate_range(in_string = "", define_dict = {}, debug = False):
 			print "post: " + post
 		in_string = in_string[:in_string.index("[") + 1] + pre + ":" + post + in_string[in_string.index("]")]
 	
-	print in_string
+	if debug:
+		print in_string
 	return in_string
 
 #	work_string = eval(in_string)

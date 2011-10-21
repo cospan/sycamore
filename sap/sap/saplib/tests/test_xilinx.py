@@ -12,6 +12,11 @@ class Test (unittest.TestCase):
 	def setUp(self):
 		self.gen = None
 		self.gen_module = __import__("gen_xilinx")
+		self.dbg = False
+		if "SAPLIB_DEBUG" in os.environ:
+			if (os.environ["SAPLIB_DEBUG"] == "True"):
+				self.dbg = True
+
 		os.environ["SAPLIB_BASE"] = sys.path[0] + "/saplib"
 		for name in dir (self.gen_module):
 			obj = getattr(self.gen_module, name)

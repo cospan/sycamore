@@ -14,6 +14,11 @@ class Test (unittest.TestCase):
 		self.gen_module = __import__("gen_project_defines")
 		self.tags = {}
 		os.environ["SAPLIB_BASE"] = sys.path[0] + "/saplib"
+		self.dbg = False
+		if "SAPLIB_DEBUG" in os.environ:
+			if (os.environ["SAPLIB_DEBUG"] == "True"):
+				self.dbg = True
+
 		for name in dir (self.gen_module):
 			obj = getattr(self.gen_module, name)
 			if isclass(obj) and issubclass(obj, Gen) and obj is not Gen:
@@ -42,7 +47,7 @@ class Test (unittest.TestCase):
 		except IOError as err:
 			print "File Error: " + str(err)
 
-		result = self.gen.gen_script(tags = self.tags, buf=ioh_buf, debug = True)
+		result = self.gen.gen_script(tags = self.tags, buf=ioh_buf, debug = self.dbg)
 		print "out_buf: \n" + result
 		self.assertEqual(len(result) > 0, True)
 

@@ -10,12 +10,25 @@ class Test (unittest.TestCase):
 	def setUp(self):
 		"""open up a sapfile class"""
 		os.environ["SAPLIB_BASE"] = sys.path[0] +  "/saplib"
+		self.dbg = False
+		if "SAPLIB_DEBUG" in os.environ:
+			if (os.environ["SAPLIB_DEBUG"] == "True"):
+				self.dbg = True
+
 		#self.gen = gen_interconnect.GenInterconnect()
 
 	def test_gen_interconnect (self):
 		"""Generate an actual interconnect file"""
 		interconnect_buffer = ""
-		tags = {"SLAVES":["slave1", "slave2"]}
+		tags = {"SLAVES":{
+						"slave1":{
+							"filename":"simple_gpio.v"
+						}, 
+						"slave2":{
+							"filename":"simple_gpio.v"
+						}
+					}
+				}
 		try:
 			filename = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/interconnect/wishbone_interconnect.v"
 			filein = open(filename)

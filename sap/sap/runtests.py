@@ -99,6 +99,7 @@ def main(argv):
 			usage()
 			sys.exit(2)
 
+		os.environ["SAPLIB_DEBUG"] = "False"
 
 		for opt, arg in opts:
 			if opt in ("-h", "--help"):
@@ -109,6 +110,7 @@ def main(argv):
 				list_tests()
 			elif opt in ("-d", "--debug"):
 				print "Debug flag enabled"
+				os.environ["SAPLIB_DEBUG"] = "True"
 				_debug = True
 
 

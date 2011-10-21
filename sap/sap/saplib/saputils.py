@@ -219,7 +219,9 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 				if debug:
 					print "length string: " + length_string
 
-				length_string = sappreproc.resolve_defines(length_string, define_dict, debug=True)
+				ldebug = debug
+
+				length_string = sappreproc.resolve_defines(length_string, define_dict, debug=ldebug)
 				length_string = sappreproc.evaluate_range(length_string)
 				length_string = length_string.partition("]")[0]
 				length_string = length_string.strip("[")

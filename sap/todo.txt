@@ -1,0 +1,2 @@
+-generate a memory wishbone bus (10/19/2011)
+-create a scheme to connect arbitrator and interconnect without explicitly stating them

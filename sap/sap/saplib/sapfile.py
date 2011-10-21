@@ -64,8 +64,9 @@ class SapFile:
 		try:
 			self.buf = self.buf.format(self.tags)
 		except KeyError as err:
-			print "Key Error: " + str(err)
-
+			if ('$' in err):
+				print "Key Error: " + str(err)
+			#print "buffer: " + self.buf
 		return
 	
 	def set_tags(self, tags={}):

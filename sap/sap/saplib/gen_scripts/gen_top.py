@@ -278,8 +278,10 @@ class GenTop(Gen):
 		slave_buffer_list.append(slave_buf)
 		
 		for i in range (0, len(tags["SLAVES"])):
-			slave = tags["SLAVES"][i]	
-#			print "Slave name: " + slave
+			slave_name = tags["SLAVES"].keys()[i]
+			slave = tags["SLAVES"][slave_name]["filename"]	
+			if debug:
+				print "Slave name: " + slave
 			absfilename = saputils.find_rtl_file_location(slave)
 			slave_tags = saputils.get_module_tags(filename = absfilename, bus="wishbone")
 			slave_buf = self.generate_buffer(name = "wbs", index = i + 1, module_tags = slave_tags)
@@ -394,13 +396,15 @@ class GenTop(Gen):
 				found_binding = False
 				inout_binding = ""
 				if (io == "inout"):
-					print "found inout!: " + port
+					if debug:
+						print "found inout!: " + port
 					bkeys = self.bindings.keys()
 					for bkey in bkeys:
 						name = bkey.partition("[")[0]
 						name = name.strip()
 						if (name == (pre_name + port)):
-							print "found: " + bkey
+							if debug:
+								print "found: " + bkey
 							out_buf = out_buf + self.bindings[bkey]["port"]
 							found_binding = True
 

@@ -35,8 +35,12 @@ class GenDRT(Gen):
 
 		if debug:
 			print "Number of slaves: " + str(len(tags["SLAVES"]))
+#		for key in tags["SLAVES"].keys():
 		for i in range (0, len(tags["SLAVES"])):
-			name = tags["SLAVES"][i]
+			key = tags["SLAVES"].keys()[i]
+			if debug:
+				print key 
+			name = tags["SLAVES"][key]["filename"]
 			absfilename = saputils.find_rtl_file_location(name)
 			slave_keywords = [
 				"DRT_ID",

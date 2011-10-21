@@ -8,6 +8,12 @@ class Test (unittest.TestCase):
 
 	def setUp(self):
 		os.environ["SAPLIB_BASE"] = sys.path[0] + "/saplib"	
+		self.dbg = False
+		if "SAPLIB_DEBUG" in os.environ:
+			if (os.environ["SAPLIB_DEBUG"] == "True"):
+				self.dbg = True
+
+		#print "debug: " + str(dbg)
 		return
 
 
@@ -31,10 +37,17 @@ class Test (unittest.TestCase):
 		self.assertEqual(1, 1)
 	
 
+#	def test_generate_project(self):
+#		filename = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
+#		result = saplib.generate_project(filename)
+#		self.assertEqual(result, True)
+
 	def test_generate_project(self):
-		filename = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
+		filename = os.getenv("SAPLIB_BASE") + "/example_project/gpio_v2.json"
 		result = saplib.generate_project(filename)
 		self.assertEqual(result, True)
+
+
 
 if __name__ == "__main__":
 	unittest.main()

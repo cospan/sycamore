@@ -8,6 +8,11 @@ class Test (unittest.TestCase):
 
 	def setUp(self):
 		os.environ["SAPLIB_BASE"] = sys.path[0] + "/saplib"
+		self.dbg = False
+		if "SAPLIB_DEBUG" in os.environ:
+			if (os.environ["SAPLIB_DEBUG"] == "True"):
+				self.dbg = True
+
 		return
 
 	def test_generate_define_table(self):
@@ -27,7 +32,7 @@ class Test (unittest.TestCase):
 			self.assertEqual(True, False)
 			return
 
-		result = sappreproc.generate_define_table(filestring, debug = False)
+		result = sappreproc.generate_define_table(filestring, debug = self.dbg)
 
 
 		self.assertEqual(len(result) > 0, True)
@@ -50,7 +55,7 @@ class Test (unittest.TestCase):
 
 		define_dict = sappreproc.generate_define_table(filestring)
 		#print "number of defines: " + str(len(define_dict.keys()))
-		result = sappreproc.resolve_defines("`WB_ADR_WIDTH", define_dict, debug = True)
+		result = sappreproc.resolve_defines("`WB_ADR_WIDTH", define_dict, debug = self.dbg)
 
 		self.assertEqual(len(result) > 0, True)
 
@@ -72,7 +77,7 @@ class Test (unittest.TestCase):
 
 		define_dict = sappreproc.generate_define_table(filestring)
 		#print "number of defines: " + str(len(define_dict.keys()))
-		result = sappreproc.resolve_defines("`WB_ADR_WIDTH:0", define_dict, debug = True)
+		result = sappreproc.resolve_defines("`WB_ADR_WIDTH:0", define_dict, debug = self.dbg)
 
 		self.assertEqual(len(result) > 0, True)
 
@@ -98,7 +103,7 @@ class Test (unittest.TestCase):
 
 		define_dict = sappreproc.generate_define_table(filestring)
 		#print "number of defines: " + str(len(define_dict.keys()))
-		result = sappreproc.resolve_defines("`WB_ADR_WIDTH:`WB_SEL_WIDTH", define_dict, debug = True)
+		result = sappreproc.resolve_defines("`WB_ADR_WIDTH:`WB_SEL_WIDTH", define_dict, debug = self.dbg)
 
 		self.assertEqual(len(result) > 0, True)
 
@@ -119,15 +124,15 @@ class Test (unittest.TestCase):
 			return
 
 		define_dict = sappreproc.generate_define_table(filestring)
-		result = sappreproc.evaluate_range("val[(48 -12):0]", debug = True)
+		result = sappreproc.evaluate_range("val[(48 -12):0]", debug = self.dbg)
 		
 		print "final result: " + result
 		self.assertEqual(result == "val[36:0]", True)
 
 
-#		result = sappreproc.evaluate_equation("(4 * 3)", debug = True)
+#		result = sappreproc.evaluate_equation("(4 * 3)", debug = self.dbg)
 #		self.assertEqual((result == "12"), True)
-#		result = sappreproc.evaluate_equation("(1 != 2)", debug = True)
+#		result = sappreproc.evaluate_equation("(1 != 2)", debug = self.dbg)
 #		self.assertEqual((result == "True"), True)
 
 #	def test_resolve_string(self):
