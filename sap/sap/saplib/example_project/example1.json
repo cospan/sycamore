@@ -9,7 +9,7 @@
 		"gpio1":{
 			"filename":"simple_gpio.v"
 		}
-	}
+	},
 
 	"CONSTRAINTS":{
 		"constraint_files":[

@@ -313,7 +313,7 @@ class GenTop(Gen):
 		top_buffer = top_buffer + "\n\n" + buf_bind + "\n\n" + footer
 		return top_buffer
 
-	def generate_buffer(self, name="", index=-1, module_tags={}):
+	def generate_buffer(self, name="", index=-1, module_tags={}, debug = False):
 		"""Generate a buffer that attaches wishbone signals and 
 		return a buffer that can be used to generate the top module"""
 
