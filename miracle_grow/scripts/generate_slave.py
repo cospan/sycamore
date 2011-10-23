@@ -7,6 +7,7 @@ import sys
 import glob
 import getopt
 import shutil
+import string
 
 
 def read_wb_slave_template_file(filename=""):
@@ -33,9 +34,9 @@ def usage():
 	print "-h\t--help\t\t\t: displays this help"
 	print "-v\t--verbose\t\t: print out lots of info"
 	print "-d\t--debug\t\t\t: configures modules to perform things through debug"
-	print "-i\t--id\t\t\t: the DRT device"
-	print "-f\t--flags\t\t\t: DRT flags"
-	print "-s\t--size\t\t\t: Size of the slave in memory"
+	print "\t\t--id\t\t\t: the DRT device (Hexidecimal number)"
+	print "\t\t--flags\t\t\t: DRT flags (Hexidecimal number)"
+	print "\t\t--size\t\t\t: Size of the slave in memory (Hexidecimal number)"
 	print ""
 	print "Setting the DRT meta data manually"
 	print "in the generated file set the 3 variables requred by sycamore"
@@ -48,7 +49,7 @@ def usage():
 	print "\t slave"
 	print ""
 	print "example:"
-	print "generate_slave.py -i 1 -f 1 -s 3 gpio"
+	print "generate_slave.py --id=1 --flags=1 --size=3 gpio"
 	print ""
 	print "\tgenerate two folders:"
 	print "\tthe actual slave folder: <sycamore>/miracle_grow/rtl/wishbone/slave/gpio"
@@ -100,6 +101,13 @@ if __name__=="__main__":
 	_debug = False
 	_kill = False
 
+	cl_id_en = False
+	cl_id = 0
+	cl_flags_en = False
+	cl_flags = 0
+	cl_size_en = False
+	cl_size = 0
+
 	mg_path = os.path.realpath(sys.path[0] + "/..")
 
 	args = sys.argv[1:]
@@ -108,7 +116,7 @@ if __name__=="__main__":
 		sys.exit(1)
 	else:
 		try:
-			opts, args = getopt.getopt(args, "hvdifsk", ["help", "verbose", "debug", "id", "flags", "size", "kill"])
+			opts, args = getopt.getopt(args, "hvdk", ["help", "verbose", "debug", "id=", "flags=", "size=", "kill"])
 		except getopt.GetoptError, err:
 			print(err)
 			usage()
@@ -124,12 +132,18 @@ if __name__=="__main__":
 			elif opt in ("-d", "--debug"):
 				print "Debug flag enabled"
 				_debug = True
-			elif opt in ("-i", "--id"):
+			elif opt in ("--id"):
 				print "Setting DRT_ID to " + str(arg)
-			elif opt in ("-f", "--flags"):
-				print "Setting DRT_FLAGS to " + str(flag)
-			elif opt in ("-s", "--size"):
+				cl_id = string.atoi(arg, 16)
+				cl_id_en = True
+			elif opt in ("--flags"):
+				print "Setting DRT_FLAGS to " + str(arg)
+				cl_flags = string.atoi(arg, 16)
+				cl_flags_en = True
+			elif opt in ("--size"):
 				print "Setting DRT_SIZE to " + str(arg)
+				cl_size = string.atoi(arg, 16)
+				cl_size_en = True
 			elif opt in ("-k", "--kill"):
 				print "removing dir"
 				_kill = True
@@ -188,6 +202,38 @@ if __name__=="__main__":
 		pre  = slave_string.partition("wishbone_slave_template")[0]
 		post = slave_string.partition("wishbone_slave_template")[2]
 		slave_string = pre + slavename + post
+		#if the user inputed any of the meta data on the command line
+		#enter it here
+		if (cl_id_en):
+			if (_debug):
+				print "Setting the DRT_ID to " + str(cl_id)
+			pre = slave_string.partition("DRT_ID:")[0]	
+			pre = pre + ("DRT_ID: ")
+			post = slave_string.partition("DRT_ID:")[2]
+			post = post.partition("\n")[2]
+			post = " " + str(cl_id) + "\n" + post
+			slave_string = pre + post
+
+		if (cl_flags_en):
+			if (_debug):
+				print "Setting the DRT_FLAGS to " + str(cl_flags)
+			pre = slave_string.partition("DRT_FLAGS:")[0]	
+			pre = pre + ("DRT_FLAGS: ")
+			post = slave_string.partition("DRT_FLAGS:")[2]
+			post = post.partition("\n")[2]
+			post = " " + str(cl_flags) + "\n" + post
+			slave_string = pre + post
+
+		if (cl_size_en):
+			if (_debug):
+				print "Setting the DRT_SIZE to " + str(cl_size)
+			pre = slave_string.partition("DRT_SIZE:")[0]	
+			pre = pre + ("DRT_SIZE: ")
+			post = slave_string.partition("DRT_SIZE:")[2]
+			post = post.partition("\n")[2]
+			post = " " + str(cl_size) + "\n" + post
+			slave_string = pre + post
+
 
 	if (_verbose):
 		print "slave buffer: "
