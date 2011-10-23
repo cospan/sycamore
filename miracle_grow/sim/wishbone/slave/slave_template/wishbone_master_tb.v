@@ -24,10 +24,68 @@ SOFTWARE.
 
 
 /**
- * Exercise the user slave core by 
-
-*/
-`timescale 1ns/1ps
+ * 	excersize the wishbone master by executing all the commands and observing
+ *	the output
+ *
+ *	Commands to test
+ *
+ *	COMMAND_PING
+ *		-send a ping request, and observe the response
+ *			-response
+ *				- S: 0xFFFFFFFF
+ *				- A: 0x00000000
+ *				- D: 0x00001EAF
+ *	COMMAND_WRITE
+ *		-send a request to write to address 0x00000000, the output wb 
+ *		signals should correspond to a the wirte... 
+ *		I might need a simulated slave for this to work
+ *			-response
+ *				- S: 0xFFFFFFFE
+ *				- A: 0x00000000
+ *	COMMAND_READ
+ *		-send a reqeust to read from address 0x00000000, the output wb signals
+ *		should correspond to a read. a simulated slave might be required for 
+ *		this
+ *		to work
+ *			-response
+ * 				- S: 0xFFFFFFFD
+ *				- A: 0x00000000
+ *	COMMAND_WSTREAM_C
+ *		-send a request to write to consecutive address starting 
+ *		from 0x00000000,
+ *		write to 4 consecutive address and observe the wb signals
+ *			0x00, 0x01, 0x02, 0x03
+ *			-respone
+ *				- S: 0XFFFFFFFC
+ *				
+ *	COMMAND_WSTREAM
+ *		-send a request to write to a specific address a specified number of times
+ *		0x00000000 4 times and observe the signals
+ *			-response
+ *				- S: 0xFFFFFFFB
+ *	COMMAND_RSTREAM_C
+ *		-send a request to read from consecutive addresses starting from 0x00000000
+ *		and the next 4 addresses 0x00, 0x01, 0x02, 0x03
+ *			-respone
+ *				- S: 0xFFFFFFFA
+ *	COMMAND_RSTREAM
+ *		-send a request to read from the same address starting from 0x00000000
+ *		for 4 times, and observe the wishbone signals and the output
+ *			-response
+ *				- S: 0xFFFFFFF9
+ *	COMMAND_RW_FLAGS
+ *		-send a request to write all flags to 0x00000000
+ *		-sned a request to read all the flags (confirm 0x00000000)
+ *		-send a request to write all the flags, but mask half of them
+ *		-send a request to read all the flags, and verify that only half of
+ *		the flags were written to
+ *	COMMAND_INTERRUPTS
+ *		-send a request to write all interrupt to 0x00000000
+ *		-send a request to read all the flags (confirm 0x00000000)
+ *		-send a request to write all the flags, but mask half of them
+ *		-send a request to reall all the flags, and verify that only half of
+ *		the flags were written to
+ */
 `define TIMEOUT_COUNT 20
 `define INPUT_FILE "master_input_test_data.txt"  
 `define OUTPUT_FILE "master_output_test_data.txt"
@@ -54,13 +112,12 @@ wire [27:0] out_data_count;
 wire		wbm_we_o;
 wire		wbm_cyc_o;
 wire		wbm_stb_o;
+wire [3:0]	wbm_sel_o;
 wire [31:0]	wbm_adr_o;
 wire [31:0]	wbm_dat_i;
 wire [31:0]	wbm_dat_o;
 wire		wbm_ack_o;
 wire		wbm_int_o;
-
-
 
 
 wishbone_master wm (
@@ -90,63 +147,34 @@ wishbone_master wm (
 );
 
 //wishbone slave 0 signals
-wire		wbs0_we_i;
-wire		wbs0_cyc_i;
-wire[31:0]	wbs0_dat_i;
-wire		wbs0_stb_i;
-wire		wbs0_ack_o;
-wire [31:0]	wbs0_dat_o;
+wire		wbs0_we_o;
+wire		wbs0_cyc_o;
+wire[31:0]	wbs0_dat_o;
+wire		wbs0_stb_o;
+wire [3:0]	wbs0_sel_o;
+wire		wbs0_ack_i;
+wire [31:0]	wbs0_dat_i;
 wire [31:0]	wbs0_adr_o;
-wire		wbs0_int_o;
-
+wire		wbs0_int_i;
 
 
 //wishbone slave 1 signals
-wire		wbs1_we_i;
-wire		wbs1_cyc_i;
-wire[31:0]	wbs1_dat_i;
-wire		wbs1_stb_i;
-wire		wbs1_ack_o;
-wire [31:0]	wbs1_dat_o;
+wire		wbs1_we_o;
+wire		wbs1_cyc_o;
+wire[31:0]	wbs1_dat_o;
+wire		wbs1_stb_o;
+wire [3:0]	wbs1_sel_o;
+wire		wbs1_ack_i;
+wire [31:0]	wbs1_dat_i;
 wire [31:0]	wbs1_adr_o;
-wire		wbs1_int_o;
-
-//slave 0
-device_rom_table drt (
-    .clk(clk),
-    .rst(rst),
-
-    .wbs_we_i(wbs0_we_o),
-    .wbs_cyc_i(wbs0_cyc_o),
-    .wbs_dat_i(wbs0_dat_o),
-    .wbs_stb_i(wbs0_stb_o),
-    .wbs_ack_o(wbs0_ack_i),
-    .wbs_dat_o(wbs0_dat_i),
-    .wbs_adr_i(wbs0_adr_o),
-    .wbs_int_o(wbs0_int_i)
-);
-
-
-
-//this is a good place to declare some registers, and wires in order to exercise your slave
-//reg [7:0] stimulus;
-//wire [7:0] debug;
-
-//reg [7:0]	slave_input;
-//wire [7:0]	slave_output;
+wire		wbs1_int_i;
 
 //slave 1
-USER_SLAVE slave1 (
+USER_SLAVE s1 (
 
 	.clk(clk),
 	.rst(rst),
 	
-	//.stimulus(stimulus),
-	//.debug(debug),
-
-//	.slave_input(slave_input),
-//	.slave_output(slave_output),
-
 	.wbs_we_i(wbs1_we_o),
 	.wbs_cyc_i(wbs1_cyc_o),
 	.wbs_dat_i(wbs1_dat_o),
@@ -155,8 +183,9 @@ USER_SLAVE slave1 (
 	.wbs_dat_o(wbs1_dat_i),
 	.wbs_adr_i(wbs1_adr_o),
 	.wbs_int_o(wbs1_int_i)
-		
+
 );
+
 
 wishbone_interconnect wi (
     .clk(clk),
@@ -198,12 +227,9 @@ integer read_count;
 integer timeout_count;
 integer ch;
 
-reg waiting;
-
 integer data_count;
 
-
-always #100 clk = ~clk;
+always #2 clk = ~clk;
 
 
 initial begin
@@ -214,11 +240,12 @@ initial begin
 
 	$dumpfile ("design.vcd");
 	$dumpvars (0, wishbone_master_tb);
+	$dumpvars (0, wm);
 	fd_in = $fopen(`INPUT_FILE, "r");
 	fd_out = $fopen(`OUTPUT_FILE, "w");
 
 		rst				<= 0;
-	#800
+	#4
 		rst				<= 1;
 
 		//clear the handler signals
@@ -228,28 +255,20 @@ initial begin
 		in_data			<= 32'h0;
 		out_ready		<= 32'h0;
 		//clear wishbone signals
-
-		//sim data signals
-	#4000
+	#20
 		rst				<= 0;
 		out_ready 		<= 1;
 
-	#50000
 	if (fd_in == 0) begin
 		$display ("input stimulus file was not found");
 	end
 	else begin
-		while (waiting == 1) begin
-			#1000
-			$display();
-		end
-
 		while (!$feof(fd_in)) begin
 			//read in a command
 			read_count = $fscanf (fd_in, "%h:%h:%h\n", in_command, in_address, in_data);
 			$display ("read %d items", read_count);
 			$display ("read: C:A:D = %h:%h:%h", in_command, in_address, in_data);
-			#800
+			#4
 			case (in_command)
 				`COMMAND_WSTREAM_C: begin
 					/*the data will hold the count of the number of bytes 
@@ -263,9 +282,9 @@ initial begin
 					data_count		= in_data;
 					in_ready 		<= 1;
 					timeout_count	=	`TIMEOUT_COUNT;
-					#400
+					#2
 					in_ready		<= 0;
-					#800
+					#4
 					while (data_count > 0 && timeout_count > 0) begin
 						$display ("in stream loop data_count: %d, timeout_count %d", data_count, timeout_count);
 						if (master_ready) begin
@@ -275,16 +294,16 @@ initial begin
 							read_count = $fscanf(fd_in, ":%h", in_data);
 							$display ("read %d items", read_count);
 							$display ("sending data: %h", in_data); 
-							#800
+							#4
 							in_ready		<= 1;
-							#800
+							#4
 							in_ready		<= 0;
 							if (data_count == 0) begin
 								timeout_count <= -1;
 							end
 						end
 						else begin
-							#400
+							#2
 							timeout_count	<= timeout_count - 1;
 
 						end
@@ -304,7 +323,7 @@ initial begin
 							timeout_count	= -1;
 						end
 						else begin
-							#400
+							#2
 							timeout_count 	= timeout_count - 1;
 						end
 					end
@@ -324,9 +343,9 @@ initial begin
 					data_count		= in_data;
 					in_ready 		<= 1;
 					timeout_count	=	`TIMEOUT_COUNT;
-					#400
+					#2
 					in_ready		<= 0;
-					#800
+					#4
 					while (data_count > 0 && timeout_count > 0) begin
 						$display ("in stream loop data_count: %d, timeout_count %d", data_count, timeout_count);
 						if (master_ready) begin
@@ -336,16 +355,16 @@ initial begin
 							read_count = $fscanf(fd_in, ":%h", in_data);
 							$display ("read %d items", read_count);
 							$display ("sending data: %h", in_data); 
-							#800
+							#4
 							in_ready		<= 1;
-							#800
+							#4
 							in_ready		<= 0;
 							if (data_count == 0) begin
 								timeout_count <= -1;
 							end
 						end
 						else begin
-							#400
+							#2
 							timeout_count	<= timeout_count - 1;
 
 						end
@@ -365,7 +384,7 @@ initial begin
 							timeout_count	= -1;
 						end
 						else begin
-							#400
+							#2
 							timeout_count 	= timeout_count - 1;
 						end
 					end
@@ -388,9 +407,9 @@ initial begin
 					data_count		= in_data;
 					in_ready 		<= 1;
 					timeout_count	=	`TIMEOUT_COUNT;
-					#400
+					#2
 					in_ready		<= 1;
-					#400
+					#2
 					$fwrite (fd_out, "command: %h:%h:%h response:", in_command, in_address, in_data);
 					while (data_count > 0 && timeout_count > 0) begin
 						if (out_en) begin
@@ -400,7 +419,7 @@ initial begin
 							timeout_count = `TIMEOUT_COUNT;
 						end
 						else begin
-							#400
+							#2
 							timeout_count = timeout_count - 1;
 						end
 					end
@@ -416,9 +435,9 @@ initial begin
 					data_count		= in_data;
 					in_ready 		<= 1;
 					timeout_count	=	`TIMEOUT_COUNT;
-					#400
+					#2
 					in_ready		<= 1;
-					#400
+					#2
 					$fwrite (fd_out, "%h:%h:%h response:", in_command, in_address, in_data);
 					while (data_count > 0 && timeout_count > 0) begin
 						if (out_en) begin
@@ -428,7 +447,7 @@ initial begin
 							timeout_count = `TIMEOUT_COUNT;
 						end
 						else begin
-							#400
+							#2
 							timeout_count = timeout_count - 1;
 						end
 					end
@@ -441,10 +460,10 @@ initial begin
 					//just send the command normally
 					in_ready 		<= 1;
 					timeout_count	= `TIMEOUT_COUNT;
-					#400
+					#2
 					in_ready		<= 0;
 					out_ready 		<= 1;
-					#400
+					#2
 					$fwrite (fd_out, "command: %h:%h:%h response: ", in_command, in_address, in_data);
 					while (timeout_count > 0) begin
 						if (out_en) begin
@@ -454,7 +473,7 @@ initial begin
 							timeout_count	= -1;
 						end
 						else begin
-							#400
+							#2
 							timeout_count 	= timeout_count - 1;
 						end
 					end
@@ -466,7 +485,6 @@ initial begin
 			endcase
 		end
 	end
-	#1000
 	$fclose (fd_in);
 	$fclose (fd_out);
 	$finish();

@@ -16,23 +16,16 @@ set signals [list]
 lappend signals "wishbone_master_tb.clk"
 lappend	signals "wishbone_master_tb.rst"
 lappend signals "wishbone_master_tb.in_command"
-lappend signals "wishbone_master_tb.ram.local_usr_cmd_vld"
-lappend signals "wishbone_master_tb.ram.vld_pos_edge"
 
-lappend signals "wishbone_master_tb.ram.ddr.ddr_clk"
-lappend signals "wishbone_master_tb.ram.ddr.ddr_2x_clk"
-lappend signals "wishbone_master_tb.ram.ddr.init_state"
-lappend signals "wishbone_master_tb.ram.ddr.ddr_cmd_state"
-lappend signals "wishbone_master_tb.ram.ddr_cmd_count"
-lappend signals "wishbone_master_tb.ram.mem_clk"
-lappend signals "wishbone_master_tb.ram.mem_ba"
-lappend signals "wishbone_master_tb.ram.mem_addr"
-lappend signals "wishbone_master_tb.ram.mem_cke"
-lappend signals "wishbone_master_tb.ram.mem_cs"
-lappend signals "wishbone_master_tb.ram.mem_ras"
-lappend signals "wishbone_master_tb.ram.mem_cas"
-lappend signals "wishbone_master_tb.ram.mem_we"
-
+#add the DUT signals, add your own signals by following the format
+#lappend signals "wishbone_master_tb.s1.wbs_we_i"
+#lappend signals "wishbone_master_tb.s1.wbs_cyc_i"
+#lappend signals "wishbone_master_tb.s1.wbs_ack_i"
+#lappend signals "wishbone_master_tb.s1.wbs_stb_o"
+lappend signals "wishbone_master_tb.s1.wbs_adr_i"
+lappend signals "wishbone_master_tb.s1.wbs_dat_i"
+lappend signals "wishbone_master_tb.s1.wbs_dat_o"
+lappend signals "wishbone_master_tb.s1.wbs_int_i"
 
 set num_added [gtkwave::addSignalsFromList $signals]
 

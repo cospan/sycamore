@@ -22,6 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+	10/23/2011
+		-commented out the debug message "GOT AN ACK!!", we're passed this
+*/
 `include "mg_defines.v"
 
 module wishbone_master (
@@ -54,7 +58,20 @@ module wishbone_master (
 	wb_we_o,
 	wb_msk_o,
 	wb_sel_o,
-	wb_ack_i
+	wb_ack_i,
+
+	//wishbone memory signals
+	mem_adr_o,
+	mem_dat_o,
+	mem_dat_i,
+	mem_stb_o,
+	mem_cyc_o,
+	mem_we_o,
+	mem_msk_o,
+	mem_sel_o,
+	mem_ack_i
+
+
 	);
 
 	input 				clk;
@@ -83,6 +100,18 @@ module wishbone_master (
 	output reg			wb_msk_o;
 	output reg [3:0]	wb_sel_o;
 	input				wb_ack_i;
+
+	//wishbone memory bus
+	output reg [31:0]	mem_adr_o;
+	output reg [31:0]	mem_dat_o;
+	input [31:0]		mem_dat_i;
+	output reg 			mem_stb_o;
+	output reg			mem_cyc_o;
+	output reg			mem_we_o;
+	output reg			mem_msk_o;
+	output reg [3:0]	mem_sel_o;
+	input				mem_ack_i;
+
 
 	//parameters
 //	parameter 			COMMAND_PING		= 32'h00000000;
@@ -155,6 +184,17 @@ end
             wb_msk_o        <= 0;
 			//select is always on
             wb_sel_o        <= 4'hF;
+
+	        //wishbone memory reset
+            mem_adr_o        <= 32'h0;
+            mem_dat_o        <= 32'h0;
+            mem_stb_o        <= 0;
+            mem_cyc_o        <= 0;
+            mem_we_o         <= 0;
+            mem_msk_o        <= 0;
+			//select is always on
+            mem_sel_o        <= 4'hF;
+
 		end
 
         else begin 
@@ -170,7 +210,7 @@ end
 
             READ: begin
                 if (wb_ack_i) begin
-                    $display ("GOT AN ACK!!!");
+                    //$display ("GOT AN ACK!!!");
                     wb_stb_o    <= 0;
                     wb_cyc_o    <= 0;
                     wb_we_o     <= 0;
