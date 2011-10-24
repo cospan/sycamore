@@ -261,7 +261,7 @@ if __name__=="__main__":
 	for filename in glob.glob(mg_path + "/sim/wishbone/slave/slave_template/*"):
 		if (_debug):
 			print filename
-			shutil.copyfile(filename, sim_path + "/" + filename.split("/")[-1])
+		shutil.copyfile(filename, sim_path + "/" + filename.split("/")[-1])
 
 	curdir = os.getcwd()
 	if (_debug):
