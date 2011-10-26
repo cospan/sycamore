@@ -14,6 +14,11 @@ class Test (unittest.TestCase):
 		self.gen = None
 		self.gen_module = __import__("gen_drt")
 		self.dbg = False
+		self.vbs = False
+		if "SAPLIB_VERBOSE" in os.environ:
+			if (os.environ["SAPLIB_VERBOSE"] == "True"):
+				self.vbs = True
+
 		if "SAPLIB_DEBUG" in os.environ:
 			if (os.environ["SAPLIB_DEBUG"] == "True"):
 				self.dbg = True
@@ -66,6 +71,23 @@ class Test (unittest.TestCase):
 #		print result
 		self.assertEqual(len(result) > 0, True)
 
+	def test_gen_mem_drt(self):
+		"""generate a drt ROM file with meory"""
+		tags = {}
+		drt_buffer = ""
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/mem_example.json"
+			filein = open(filename)
+			filestr = filein.read()
+			tags = json.loads(filestr)
+
+		except IOError as err:
+			print "File Error: " + str(err)
+
+		result = self.gen.gen_script(tags, buf = "", debug = self.dbg)
+		if (self.dbg):
+			print result
+		self.assertEqual(len(result) > 0, True)
 
 
 if __name__ == "__main__":

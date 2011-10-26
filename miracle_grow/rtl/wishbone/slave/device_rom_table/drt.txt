@@ -25,6 +25,8 @@ DRT_DEV_OFFSET[x * 4] + 0:		Device ID (this is associated with the flags registe
 	(Addr: 31-0	)	: device ID number (see below)
 DRT_DEV_OFFSET[x * 4] + 1:		FLAGS
 	(Addr: 0 )		: standard device (can use generic drivers)
+	(Addr: 16)		: memory device (access this device in the memory bus)
+							use commands with the flag MEMORY for read and write
 DRT_DEV_OFFSET[x * 4] + 2:		Offset from 0x00 	(NEED A NAME, not used yet)
 DRT_DEV_OFFSET[x * 4] + 3:		Size of address space for device (NEED A NAME)
 

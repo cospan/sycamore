@@ -23,6 +23,7 @@ def usage():
 	print ""
 	print "-l\t--list\t:list the files/packages that can be tested"
 	print "-d\t--debug\t:enable the global debug flag"
+	print "-v\t--verbose\t:lots of messages"
 	print ""
 
 
@@ -87,19 +88,22 @@ def main(argv):
 
 	global _debug
 	_debug = False
+	global verbose
+	_verbose = False
 
 	if (len(argv) == 0):
 		usage()
 		sys.exit(1)
 	else:
 		try:
-			opts, args = getopt.getopt(argv, "hld", ["help", "list", "debug"])
+			opts, args = getopt.getopt(argv, "hldv", ["help", "list", "debug", "verbose"])
 		except getopt.GetoptError, err:
 			print (err)
 			usage()
 			sys.exit(2)
 
 		os.environ["SAPLIB_DEBUG"] = "False"
+		os.environ["SAPLIB_VERBOSE"] = "False"
 
 		for opt, arg in opts:
 			if opt in ("-h", "--help"):
@@ -112,6 +116,10 @@ def main(argv):
 				print "Debug flag enabled"
 				os.environ["SAPLIB_DEBUG"] = "True"
 				_debug = True
+			elif opt in ("-v", "--verbose"):
+				print "Verbose flag enabled"
+				os.environ["SAPLIB_VERBOSE"] = "True"
+				_debug = False
 
 
 		if ("all" in args):

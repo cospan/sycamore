@@ -51,7 +51,12 @@ class Test (unittest.TestCase):
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/ddr_example.json"
 		result = self.project.generate_project(file_name, debug=self.dbg)
 		self.assertEqual(result, True)
-
+	
+	def test_generate_mem_project(self):
+		"""test if the new memory feature borks anything else"""
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/mem_example.json"
+		result = self.project.generate_project(file_name, debug=self.dbg)
+		self.assertEqual(result, True)
 
 	def test_query_slave(self):
 		"""test to see if we can query a slave"""
