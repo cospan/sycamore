@@ -17,7 +17,7 @@ class GenDRT(Gen):
 		out_buf = ""
 
 		#Get the DRT version from the DRT info
-		version = 0x0001
+		version = 0x0003
 		version_string = "{0:0=4X}"
 		version_string = version_string.format(version)
 		id	= 0x1EAF

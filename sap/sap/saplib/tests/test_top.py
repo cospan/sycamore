@@ -29,6 +29,39 @@ class Test (unittest.TestCase):
 
 		return
 
+	def test_gen_top_mem(self):
+		"""generate a top.v file with memory bus"""
+		tags = {}
+		top_buffer = ""
+		#get the example project data
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/mem_example.json"
+			filein = open(filename)
+			filestr = filein.read()
+			tags = json.loads(filestr)
+
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/wishbone_top.v"
+			filein = open(filename)
+			top_buffer = filein.read()
+			filein.close()
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+
+		#print "buf: " + top_buffer
+
+		result = self.gen.gen_script(tags, buf = top_buffer, debug=self.dbg)
+		if (self.dbg):
+			print "Top file: \n" + result
+
+		self.assertEqual(len(result) > 0, True)
+
+
 	def test_gen_top(self):
 		"""generate a top.v file"""
 		

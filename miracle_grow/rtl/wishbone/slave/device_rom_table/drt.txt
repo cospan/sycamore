@@ -1,6 +1,8 @@
 Version 
-	8/??/2011: 0.00.1 Initial DRT Version
-	9/11/2011: 0.00.2 Proposed String functionality
+	8/??/2011:  0.00.1	Initial DRT Version
+	9/11/2011:  0.00.2	Proposed String functionality
+	10/25/2011: 0.00.3	Added "mem flag" in the flags area to identify slaves on the memory bus
+						modified the FLAGS: now bits 32:16 are only settable by the SAP script
 
 Device Rom Table (DRT)
 
@@ -25,6 +27,7 @@ DRT_DEV_OFFSET[x * 4] + 0:		Device ID (this is associated with the flags registe
 	(Addr: 31-0	)	: device ID number (see below)
 DRT_DEV_OFFSET[x * 4] + 1:		FLAGS
 	(Addr: 0 )		: standard device (can use generic drivers)
+		Note: bit 31:16 are set by saplib
 	(Addr: 16)		: memory device (access this device in the memory bus)
 							use commands with the flag MEMORY for read and write
 DRT_DEV_OFFSET[x * 4] + 2:		Offset from 0x00 	(NEED A NAME, not used yet)

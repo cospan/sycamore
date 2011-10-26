@@ -12,7 +12,7 @@ class GenTop(Gen):
 		return
 
 	def add_ports_to_wires(self):
-		"""add all the ports to wires list so that no item adds wirs"""
+		"""add all the ports to wires list so that no item adds wires"""
 		#bindings = self.tags["CONSTRAINTS"]["bind"]
 		for name in self.bindings.keys():
 			self.wires.append(self.bindings[name]["port"])
@@ -35,7 +35,16 @@ class GenTop(Gen):
 
 	def gen_script (self, tags = {}, buf = "", debug = False):
 		"""Generate the Top Module"""
+		en_mem_bus = False
 		slave_list = tags["SLAVES"]
+		if "MEMORY" in tags:
+#			if debug:
+#				print "Found a memory bus"
+			if (len(tags["MEMORY"]) > 0):
+#				if debug:
+				print "found " + str(len(tags["MEMORY"])) + " memory devices"
+				en_mem_bus = True
+
 		num_slaves = len(slave_list) + 1
 		self.tags = tags
 		self.bindings = self.tags["CONSTRAINTS"]["bind"]
@@ -53,6 +62,7 @@ class GenTop(Gen):
 		port_buf = self.generate_ports()
 		wr_buf = ""
 		wi_buf = ""
+		wmi_buf = ""
 		wm_buf = ""
 		footer = ""
 
@@ -126,10 +136,30 @@ class GenTop(Gen):
 		self.wires.append("wbm_dat_i")
 		wr_buf = wr_buf + "\twire\t[31:0]\twbm_dat_o;\n"
 		self.wires.append("wbm_dat_o")
-		wr_buf = wr_buf + "\twire\t\twbm_ack_o;\n"
-		self.wires.append("wbm_ack_o")
-		wr_buf = wr_buf + "\twire\t\twbm_int_o;\n\n"
-		self.wires.append("wbm_int_o")
+		wr_buf = wr_buf + "\twire\t\twbm_ack_i;\n"
+		self.wires.append("wbm_ack_i")
+		wr_buf = wr_buf + "\twire\t\twbm_int_i;\n\n"
+		self.wires.append("wbm_int_i")
+
+		wr_buf = wr_buf + "\twire\t\tmem_we_o;\n"
+		self.wires.append("mem_we_o")
+		wr_buf = wr_buf + "\twire\t\tmem_cyc_o;\n"	
+		self.wires.append("mem_cyc_o")
+		wr_buf = wr_buf + "\twire\t\tmem_stb_o;\n"
+		self.wires.append("mem_stb_o")
+		wr_buf = wr_buf + "\twire\t[3:0]\tmem_sel_o;\n"
+		self.wires.append("mem_sel_o")
+		wr_buf = wr_buf + "\twire\t[31:0]\tmem_adr_o;\n"
+		self.wires.append("mem_adr_o")
+		wr_buf = wr_buf + "\twire\t[31:0]\tmem_dat_i;\n"
+		self.wires.append("mem_dat_i")
+		wr_buf = wr_buf + "\twire\t[31:0]\tmem_dat_o;\n"
+		self.wires.append("mem_dat_o")
+		wr_buf = wr_buf + "\twire\t\tmem_ack_i;\n"
+		self.wires.append("mem_ack_i")
+		wr_buf = wr_buf + "\twire\t\tmem_int_i;\n\n"
+		self.wires.append("mem_int_i")
+
 
 		#put the in clock on the global buffer
 		#wr_buf = wr_buf + "\t//add a global clock buffer to the input clock\n"
@@ -138,25 +168,49 @@ class GenTop(Gen):
 		wr_buf = wr_buf + "\t//slave signals\n\n"
 
 		for i in range (0, num_slaves):
-			wr_buf = wr_buf + "\t//slave" + str(i) + "\n"
-			wr_buf = wr_buf + "\twire\t\twbs" + str(i) + "_we_i;\n" 
-			self.wires.append("wbs" + str(i) + "_we_i")
-			wr_buf = wr_buf + "\twire\t\twbs" + str(i) + "_cyc_i;\n" 
-			self.wires.append("wbs" + str(i) + "_cyc_i")
-			wr_buf = wr_buf + "\twire\t[31:0]\twbs" + str(i) + "_dat_i;\n"
-			self.wires.append("wbs" + str(i) + "_dat_i")
-			wr_buf = wr_buf + "\twire\t[31:0]\twbs" + str(i) + "_dat_o;\n" 
-			self.wires.append("wbs" + str(i) + "_dat_o")
-			wr_buf = wr_buf + "\twire\t[31:0]\twbs" + str(i) + "_adr_i;\n" 
-			self.wires.append("wbs" + str(i) + "_adr_i")
-			wr_buf = wr_buf + "\twire\t\twbs" + str(i) + "_stb_i;\n" 
-			self.wires.append("wbs" + str(i) + "_stb_i")
-			wr_buf = wr_buf + "\twire\t[3:0]\twbs" + str(i) + "_sel_i;\n" 
-			self.wires.append("wbs" + str(i) + "_sel_i")
-			wr_buf = wr_buf + "\twire\t\twbs" + str(i) + "_ack_o;\n" 
-			self.wires.append("wbs" + str(i) + "_ack_o")
-			wr_buf = wr_buf + "\twire\t\twbs" + str(i) + "_int_o;\n\n" 
-			self.wires.append("wbs" + str(i) + "_int_o")
+			wr_buf = wr_buf + "\t//slave " + str(i) + "\n"
+			wr_buf = wr_buf + "\twire\t\ts" + str(i) + "_wbs_we_i;\n" 
+			self.wires.append("s" + str(i) + "_wbs_we_i")
+			wr_buf = wr_buf + "\twire\t\ts" + str(i) + "_wbs_cyc_i;\n" 
+			self.wires.append("s" + str(i) + "_wbs_cyc_i")
+			wr_buf = wr_buf + "\twire\t[31:0]\ts" + str(i) + "_wbs_dat_i;\n"
+			self.wires.append("s" + str(i) + "_wbs_dat_i")
+			wr_buf = wr_buf + "\twire\t[31:0]\ts" + str(i) + "_wbs_dat_o;\n" 
+			self.wires.append("s" + str(i) + "_wbs_dat_o")
+			wr_buf = wr_buf + "\twire\t[31:0]\ts" + str(i) + "_wbs_adr_i;\n" 
+			self.wires.append("s" + str(i) + "_wbs_adr_i")
+			wr_buf = wr_buf + "\twire\t\ts" + str(i) + "_wbs_stb_i;\n" 
+			self.wires.append("s" + str(i) + "_wbs_stb_i")
+			wr_buf = wr_buf + "\twire\t[3:0]\ts" + str(i) + "_wbs_sel_i;\n" 
+			self.wires.append("s" + str(i) + "_wbs_sel_i")
+			wr_buf = wr_buf + "\twire\t\ts" + str(i) + "_wbs_ack_o;\n" 
+			self.wires.append("s" + str(i) + "_wbs_ack_o")
+			wr_buf = wr_buf + "\twire\t\ts" + str(i) + "_wbs_int_o;\n\n" 
+			self.wires.append("s" + str(i) + "_wbs_int_o")
+
+
+		if (en_mem_bus):
+			for i in range (0, len(tags["MEMORY"])):
+				wr_buf = wr_buf + "\t//mem slave " + str(i) + "\n"
+				wr_buf = wr_buf + "\twire\t\tsm" + str(i) + "_wbs_we_i;\n" 
+				self.wires.append("sm" + str(i) + "_wbs_we_i")
+				wr_buf = wr_buf + "\twire\t\tsm" + str(i) + "_wbs_cyc_i;\n" 
+				self.wires.append("sm" + str(i) + "_wbs_cyc_i")
+				wr_buf = wr_buf + "\twire\t[31:0]\tsm" + str(i) + "_wbs_dat_i;\n"
+				self.wires.append("sm" + str(i) + "_wbs_dat_i")
+				wr_buf = wr_buf + "\twire\t[31:0]\tsm" + str(i) + "_wbs_dat_o;\n" 
+				self.wires.append("sm" + str(i) + "_wbs_dat_o")
+				wr_buf = wr_buf + "\twire\t[31:0]\tsm" + str(i) + "_wbs_adr_i;\n" 
+				self.wires.append("sm" + str(i) + "_wbs_adr_i")
+				wr_buf = wr_buf + "\twire\t\tsm" + str(i) + "_wbs_stb_i;\n" 
+				self.wires.append("sm" + str(i) + "_wbs_stb_i")
+				wr_buf = wr_buf + "\twire\t[3:0]\tsm" + str(i) + "_wbs_sel_i;\n" 
+				self.wires.append("sm" + str(i) + "_wbs_sel_i")
+				wr_buf = wr_buf + "\twire\t\tsm" + str(i) + "_wbs_ack_o;\n" 
+				self.wires.append("sm" + str(i) + "_wbs_ack_o")
+				wr_buf = wr_buf + "\twire\t\tsm" + str(i) + "_wbs_int_o;\n\n" 
+				self.wires.append("sm" + str(i) + "_wbs_int_o")
+
 
 		if debug:
 			print "wr_buf: \n" + wr_buf
@@ -201,15 +255,15 @@ class GenTop(Gen):
 
 		for i in range (0, num_slaves):
 			wi_buf = wi_buf + "\t//slave " + str(i) + "\n"
-			wi_buf = wi_buf + "\t.s" + str(i) + "_we_o(wbs" + str(i) + "_we_i),\n"
-			wi_buf = wi_buf + "\t.s" + str(i) + "_cyc_o(wbs" + str(i) + "_cyc_i),\n"
-			wi_buf = wi_buf + "\t.s" + str(i) + "_stb_o(wbs" + str(i) + "_stb_i),\n"
-			wi_buf = wi_buf + "\t.s" + str(i) + "_sel_o(wbs" + str(i) + "_sel_i),\n"
-			wi_buf = wi_buf + "\t.s" + str(i) + "_ack_i(wbs" + str(i) + "_ack_o),\n"
-			wi_buf = wi_buf + "\t.s" + str(i) + "_dat_o(wbs" + str(i) + "_dat_i),\n"
-			wi_buf = wi_buf + "\t.s" + str(i) + "_dat_i(wbs" + str(i) + "_dat_o),\n"
-			wi_buf = wi_buf + "\t.s" + str(i) + "_adr_o(wbs" + str(i) + "_adr_i),\n"
-			wi_buf = wi_buf + "\t.s" + str(i) + "_int_i(wbs" + str(i) + "_int_o)"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_we_o (s" + str(i) + "_wbs_we_i),\n"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_cyc_o(s" + str(i) + "_wbs_cyc_i),\n"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_stb_o(s" + str(i) + "_wbs_stb_i),\n"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_sel_o(s" + str(i) + "_wbs_sel_i),\n"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_ack_i(s" + str(i) + "_wbs_ack_o),\n"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_dat_o(s" + str(i) + "_wbs_dat_i),\n"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_dat_i(s" + str(i) + "_wbs_dat_o),\n"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_adr_o(s" + str(i) + "_wbs_adr_i),\n"
+			wi_buf = wi_buf + "\t.s" + str(i) + "_int_i(s" + str(i) + "_wbs_int_o)"
 
 			if (i < num_slaves - 1):
 				wi_buf = wi_buf + ",\n"
@@ -220,6 +274,51 @@ class GenTop(Gen):
 	
 		if debug:
 			print "wi_buf: \n" + wi_buf
+
+
+
+		#memory interconnect
+		if en_mem_bus:
+			print "make the membus"
+			wmi_buf = "\twishbone_mem_interconnect wmi (\n"
+
+			wmi_buf = wmi_buf + "\t.clk(clk),\n"
+			wmi_buf = wmi_buf + "\t.rst(rst),\n\n"
+
+			wmi_buf = wmi_buf + "\t//master\n"
+			wmi_buf = wmi_buf + "\t.m_we_i(mem_we_o),\n"
+			wmi_buf = wmi_buf + "\t.m_cyc_i(mem_cyc_o),\n"
+			wmi_buf = wmi_buf + "\t.m_stb_i(mem_stb_o),\n"
+			wmi_buf = wmi_buf + "\t.m_sel_i(mem_sel_o),\n"
+			wmi_buf = wmi_buf + "\t.m_ack_o(mem_ack_i),\n"
+			wmi_buf = wmi_buf + "\t.m_dat_i(mem_dat_o),\n"
+			wmi_buf = wmi_buf + "\t.m_dat_o(mem_dat_i),\n"
+			wmi_buf = wmi_buf + "\t.m_adr_i(mem_adr_o),\n"
+			wmi_buf = wmi_buf + "\t.m_int_o(mem_int_i),\n\n"
+
+			for i in range (0, len(tags["MEMORY"])):
+				wmi_buf = wmi_buf + "\t//slave " + str(i) + "\n"
+				wmi_buf = wmi_buf + "\t.s" + str(i) + "_we_o(sm" + str(i) + "_wbs_we_i),\n"
+				wmi_buf = wmi_buf + "\t.s" + str(i) + "_cyc_o(sm" + str(i) + "_wbs_cyc_i),\n"
+				wmi_buf = wmi_buf + "\t.s" + str(i) + "_stb_o(sm" + str(i) + "_wbs_stb_i),\n"
+				wmi_buf = wmi_buf + "\t.s" + str(i) + "_sel_o(sm" + str(i) + "_wbs_sel_i),\n"
+				wmi_buf = wmi_buf + "\t.s" + str(i) + "_ack_i(sm" + str(i) + "_wbs_ack_o),\n"
+				wmi_buf = wmi_buf + "\t.s" + str(i) + "_dat_o(sm" + str(i) + "_wbs_dat_i),\n"
+				wmi_buf = wmi_buf + "\t.s" + str(i) + "_dat_i(sm" + str(i) + "_wbs_dat_o),\n"
+				wmi_buf = wmi_buf + "\t.s" + str(i) + "_adr_o(sm" + str(i) + "_wbs_adr_i),\n"
+				wmi_buf = wmi_buf + "\t.s" + str(i) + "_int_i(sm" + str(i) + "_wbs_int_o)"
+
+				if (i < num_slaves - 1):
+					wmi_buf = wmi_buf + ",\n"
+				
+				wmi_buf = wmi_buf + "\n\n"
+
+			wmi_buf = wmi_buf + "\t);"
+	
+			if debug:
+				print "wmi_buf: \n" + wmi_buf
+
+
 
 		#instantiate the io handler
 		
@@ -252,8 +351,20 @@ class GenTop(Gen):
 		wm_buf = wm_buf + "\t.wb_we_o(wbm_we_o),\n"
 		wm_buf = wm_buf + "\t.wb_msk_o(wbm_msk_o),\n"
 		wm_buf = wm_buf + "\t.wb_sel_o(wbm_sel_o),\n"
-		wm_buf = wm_buf + "\t.wb_ack_i(wbm_ack_i)\n\n"
-
+		wm_buf = wm_buf + "\t.wb_ack_i(wbm_ack_i),\n"
+		wm_buf = wm_buf + "\t.wb_int_i(wbm_int_i),\n\n"
+	
+		wm_buf = wm_buf + "\t//memory interconnect signals\n"
+		wm_buf = wm_buf + "\t.mem_adr_o(mem_adr_o),\n"
+		wm_buf = wm_buf + "\t.mem_dat_o(mem_dat_o),\n"
+		wm_buf = wm_buf + "\t.mem_dat_i(mem_dat_i),\n"
+		wm_buf = wm_buf + "\t.mem_stb_o(mem_stb_o),\n"
+		wm_buf = wm_buf + "\t.mem_cyc_o(mem_cyc_o),\n"
+		wm_buf = wm_buf + "\t.mem_we_o(mem_we_o),\n"
+		wm_buf = wm_buf + "\t.mem_msk_o(mem_msk_o),\n"
+		wm_buf = wm_buf + "\t.mem_sel_o(mem_sel_o),\n"
+		wm_buf = wm_buf + "\t.mem_ack_i(mem_ack_i),\n"
+		wm_buf = wm_buf + "\t.mem_int_i(mem_int_i)\n\n"
 		wm_buf = wm_buf + "\t);"
 
 		if debug:
@@ -261,20 +372,12 @@ class GenTop(Gen):
 
 
 
-		#instantiate all the slaves
-#I might have to probe each of the slaves... it may not be that difficult
-#all I will have to do is read any "input" "output" or "inout" lines and figure out how to read the names, and bus widths... for the most part they are all wires
-
-#		print "Wires so far:"
-#		for wire in self.wires:
-#			print wire
-
-#		print "\n\n"
+		#Slaves
 		slave_index = 0
 		slave_buffer_list = []
 		absfilename = saputils.find_rtl_file_location("device_rom_table.v")
 		slave_tags = saputils.get_module_tags(filename = absfilename, bus="wishbone")
-		slave_buf = self.generate_buffer(name="wbs", index=0, module_tags = slave_tags)
+		slave_buf = self.generate_buffer(name="drt", index=0, module_tags = slave_tags)
 		slave_buffer_list.append(slave_buf)
 		
 		for i in range (0, len(tags["SLAVES"])):
@@ -284,8 +387,26 @@ class GenTop(Gen):
 				print "Slave name: " + slave
 			absfilename = saputils.find_rtl_file_location(slave)
 			slave_tags = saputils.get_module_tags(filename = absfilename, bus="wishbone")
-			slave_buf = self.generate_buffer(name = "wbs", index = i + 1, module_tags = slave_tags)
+			slave_buf = self.generate_buffer(name = slave_name, index = i + 1, module_tags = slave_tags)
 			slave_buffer_list.append(slave_buf)	
+
+
+		#Memory devices
+		mem_buf = ""
+		mem_buffer_list = []
+		if en_mem_bus:
+			#need to make all the memory devices for the memory bus
+			mem_index = 0
+			mem_buffer_list = []
+			for i in range (0, len(tags["MEMORY"])):
+				mem_name = tags["MEMORY"].keys()[i]
+				filename = tags["MEMORY"][mem_name]["filename"]
+#				if debug:
+				print "Mem device: " + mem_name + ", mem file: " + filename
+				absfilename = saputils.find_rtl_file_location(filename)
+				mem_tags = saputils.get_module_tags(filename = absfilename, bus="wishbone")
+				mem_buf = self.generate_buffer(name = mem_name, index = i, module_tags = mem_tags, mem_slave = True)
+				mem_buffer_list.append(mem_buf)
 
 	
 		buf_bind = ""
@@ -297,29 +418,33 @@ class GenTop(Gen):
 					buf_bind = buf_bind + "\tassign\t" + key + "\t=\t" + self.bindings[key]["port"] + ";\n"
 				elif (self.bindings[key]["direction"] == "output"):
 					buf_bind = buf_bind + "\tassign\t" + self.bindings[key]["port"] + "\t=\t" + key + ";\n"
-				#else:
 
-				#	buf_bind = buf_bind + "\tassign\t" + key + "\t= (" + self.bindings[key]["enable"] + ") ?\t" + self.bindings[key]["port"] + " : x;\n"
-				#	buf_bind = buf_bind + "\tassign\t" + self.bindings[key]["port"] + "\t= (~" + self.bindings[key]["enable"] + ") ?\t" + key + " : x;\n"
-
-	
 
 		
 		
-		top_buffer = header + "\n\n" + port_buf + "\n\n" + wr_buf + "\n\n" + io_buf + "\n\n" + wi_buf + "\n\n" +  wm_buf + "\n\n"
+		top_buffer = header + "\n\n"
+		top_buffer += port_buf + "\n\n"
+		top_buffer += wr_buf + "\n\n"
+		top_buffer += io_buf + "\n\n"
+		top_buffer += wi_buf + "\n\n"
+		top_buffer += wmi_buf + "\n\n"
+		top_buffer += wm_buf + "\n\n"
 		for slave_buf in slave_buffer_list:
 			top_buffer = top_buffer + "\n\n" + slave_buf
+
+		for mem_buf in mem_buffer_list: 
+			top_buffer = top_buffer + "\n\n" + mem_buf
 
 		top_buffer = top_buffer + "\n\n" + buf_bind + "\n\n" + footer
 		return top_buffer
 
-	def generate_buffer(self, name="", index=-1, module_tags={}, debug = False):
+	def generate_buffer(self, name="", index=-1, module_tags={}, mem_slave = False, debug = False):
 		"""Generate a buffer that attaches wishbone signals and 
 		return a buffer that can be used to generate the top module"""
 
 		out_buf = ""
 
-		out_buf = "\t//" + module_tags["module"] + "\n\n"
+		out_buf = "\t//" + name + "( " + module_tags["module"] + " )\n\n"
 		out_buf = out_buf + "\t//wires\n"
 		#if index == -1 then don't add an index
 		#top_name will apply to all signals
@@ -336,17 +461,20 @@ class GenTop(Gen):
 		#add a prename to all the slaves
 		pre_name = ""
 		if (index != -1):
-			pre_name = "s" + str(index) + "_"
+			if mem_slave:
+				pre_name += "sm" + str(index) + "_"
+			else:
+				pre_name += "s" + str(index) + "_"
 
 
 		for io in io_types:
 			for port in module_tags["ports"][io].keys():
 				pdict = module_tags["ports"][io][port]
 				if ((len(name) > 0) and (index != -1)):
-					wire = name + str(index) + port.partition(name)[2] 
-					if (self.wires.__contains__(wire)):
+					wire = pre_name + port
+					if (wire in self.wires):
 						continue
-				if (self.wires.__contains__(port)):
+				if (port in self.wires):
 #					print "found redundant wire: " + port
 					continue
 				self.wires.append(port)
@@ -355,30 +483,34 @@ class GenTop(Gen):
 				if (pdict["size"] > 1):
 					out_buf = out_buf + "\t[" + str(pdict["max_val"]) + ":" + str(pdict["min_val"]) + "]\t\t"
 				else:
-					out_buf = out_buf + "\t\t\t"
+					out_buf = out_buf + "\t\t"
 
 				#add name and index if required
-				if ((len(name) > 0) and (index != -1)):
-					if (port.startswith(name)):	
-						out_buf = out_buf + name + str(index) + port.partition(name)[2]
-					else:
-						if (port == "clk" or port == "rst"):
-							out_buf = out_buf + port
-						else:
-							out_buf = out_buf + pre_name + port
-				else:
+				if (len(name) > 0):
+#				if ((len(name) > 0) and (index != -1)):
+#					if (port.startswith(name)):	
+#						out_buf = out_buf + name + str(index) + port.partition(name)[2]
+#					else:
 					if (port == "clk" or port == "rst"):
-						out_buf = out_buf + port
+						out_buf += port
 					else:
-						out_buf = out_buf + pre_name + port
+						out_buf += name + "_" + port
+#				else:
+#					if (port == "clk" or port == "rst"):
+#						out_buf = out_buf + port
+#					else:
+#						out_buf = out_buf + pre_name + port
 				out_buf = out_buf + ";\n"
 
 		out_buf = out_buf + "\n\n"
+		#Finished Generating the Wires
+
+
 
 		#Generate the instantiation
 		out_buf = out_buf + "\t" + module_tags["module"] + " " + name
-		if (index != -1):
-			out_buf = out_buf + str(index)
+#		if (index != -1):
+#			out_buf = out_buf + str(index)
 
 		out_buf = out_buf + "(\n"
 		

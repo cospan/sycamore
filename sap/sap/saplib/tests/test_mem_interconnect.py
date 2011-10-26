@@ -15,7 +15,7 @@ class Test (unittest.TestCase):
 			if (os.environ["SAPLIB_DEBUG"] == "True"):
 				self.dbg = True
 
-		#self.gen = gen_mem_interconnect.GenInterconnect()
+		#self.gen = gen_mem_interconnect.GenMemInterconnect()
 
 	def test_gen_mem_interconnect (self):
 		"""Generate an actual interconnect file"""

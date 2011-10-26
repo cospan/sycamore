@@ -18,35 +18,35 @@
 		"board":"xilinx-s3esk",
 		"device":"xc3s500efg320",
 		"bind": {
-			"s1_red[7:0]":{
+			"lcd_panel_red[7:0]":{
 				"port":"tft_red[7:0]",
 				"direction":"output"
 			},
-			"s1_green[7:0]":{
+			"lcd_panel_green[7:0]":{
 				"port":"tft_green[7:0]",
 				"direction":"output"
 			},
-			"s1_blue[7:0]":{
+			"lcd_panel_blue[7:0]":{
 				"port":"tft_blue[7:0]",
 				"direction":"output"
 			},
-			"s1_disp_en":{
+			"lcd_panel_disp_en":{
 				"port":"tft_disp_en",
 				"direction":"output"
 			},
-			"s1_hsync":{
+			"lcd_panel_hsync":{
 				"port":"tft_hsync",
 				"direction":"output"
 			},
-			"s1_vsync":{
+			"lcd_panel_vsync":{
 				"port":"tft_vsync",
 				"direction":"output"
 			},
-			"s1_data_en":{
+			"lcd_panel_data_en":{
 				"port":"tft_data_en",
 				"direction":"output"
 			},
-			"s1_pclk":{
+			"lcd_panel_pclk":{
 				"port":"tft_pclk",
 				"direction":"output"
 			},

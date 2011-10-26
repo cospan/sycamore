@@ -23,6 +23,8 @@ SOFTWARE.
 */
 
 /*
+	10/25/2011
+		-added the interrupt input pin for both busses
 	10/23/2011
 		-commented out the debug message "GOT AN ACK!!", we're passed this
 */
@@ -59,6 +61,7 @@ module wishbone_master (
 	wb_msk_o,
 	wb_sel_o,
 	wb_ack_i,
+	wb_int_i,
 
 	//wishbone memory signals
 	mem_adr_o,
@@ -69,7 +72,8 @@ module wishbone_master (
 	mem_we_o,
 	mem_msk_o,
 	mem_sel_o,
-	mem_ack_i
+	mem_ack_i,
+	mem_int_i
 
 
 	);
