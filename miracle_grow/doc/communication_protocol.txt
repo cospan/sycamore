@@ -1,3 +1,8 @@
+Version: 0.0.5
+	-removed the streaming commands in the previous version because it seemed as though the approach was producing
+	a lot of redundant code
+		-Flags might be a better approach
+	-added the flags to indicate that we are reading/writing from memory for commands read and write
 Version: 0.0.4
 	-added:
 		-write streaming consecutive addresses (good for block type devices)
@@ -36,7 +41,8 @@ Master Commands
 				
 	-Write the data to the memory location provided
 		-Command:
-			C: 0x00000001
+			C: 0x????0001
+				(bit 16): Memory bus
 			A: 0x????????
 			D: 0x????????
 		-Response:
@@ -46,7 +52,8 @@ Master Commands
 
 	-Read the data from the memory location provided
 		-Command:
-			C: 0x00000002
+			C: 0xXXXX0002
+				(bit 16): Memory bus 
 			A: 0x????????
 			D: 0xXXXXXXXX
 		-Response:
@@ -54,58 +61,6 @@ Master Commands
 			A: 0x????????
 			D: 0x????????
 	
-	-Write streaming data to consecutive addresses
-		-Command:
-			C: 0x00000003
-			A: 0x????????
-			D: 0x########
-			(######## count of 32 bit words to follow)
-			D: 0x???????? 
-			(...) 
-		-Response:
-			S: 0xFFFFFFFC
-			A: 0x????????
-			D: 0x#########
-
-	-Write streaming data to the same addresss
-		-Command:
-			C: 0x00000004
-			A: 0x????????
-			D: 0x########
-			(0x######## count of 32 bit words to follow)
-			D: 0x???????? 
-			(...) 
-		-Response:
-			S: 0xFFFFFFFB
-			A: 0x????????
-			D: 0x#########
-
-	-Read streaming data from consecutive addresses
-		-Command:
-			C: 0x00000005
-			A: 0x????????
-			D: 0x########
-			(######## count of 32 bit words to follow)
-		-Response:
-			S: 0xFFFFFFFA
-			A: 0x????????
-			D: 0x########
-			(0x######## count of 32 bit words to follow
-			D: 0x????????
-
-	-Read streaming data from the same address
-		-Command:
-			C: 0x00000006
-			A: 0x????????
-			D: 0x########
-			(######## count of 32 bit words to follow)
-		-Response:
-			S: 0xFFFFFFF9
-			A: 0x????????
-			D: 0x########
-			(0x######## count of 32 bit words to follow
-			D: 0x????????
-
 	-Read/Write Master Flags
 		-Command:
 			C: 0x00000007
@@ -174,8 +129,19 @@ UART example exchange:
 -response
 	SFFFFFFFD0000000100000001 (reading from address 1 from the DRT says there is 1 slave attached to the bus)
 
+-read from memory address 0x00000001 (this address corresponds to the DRT offset 1 or the number of devices attached to the bus)
+	L0000000000100020000000100000000
+-response
+	SFFFFFFFD0000000100000001 (reading from address 1 from the DRT says there is 1 slave attached to the bus)
+
+
 -write the address 0x01000000 with a value of 0xFFFFFFFF (in the 2 slave example this corresponds to actually writing 0xFFFFFFFF to the GPIO values, or turning them all on)
 	L00000000000000101000000FFFFFFFF
+-response
+	SFFFFFFFE01000000FFFFFFFF
+
+-write the memory address 0x01000000 with a value of 0xFFFFFFFF (in the 2 slave example this corresponds to actually writing 0xFFFFFFFF to the GPIO values, or turning them all on)
+	L00000000001000101000000FFFFFFFF
 -response
 	SFFFFFFFE01000000FFFFFFFF
 

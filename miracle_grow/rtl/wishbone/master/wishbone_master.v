@@ -25,6 +25,8 @@ SOFTWARE.
 /*
 	10/23/2011
 		-commented out the debug message "GOT AN ACK!!", we're passed this
+	10/26/2011
+		-removed the stream commands, future versions will use flags instead of separate commands
 */
 `include "mg_defines.v"
 
@@ -114,23 +116,9 @@ module wishbone_master (
 
 
 	//parameters
-//	parameter 			COMMAND_PING		= 32'h00000000;
-//	parameter			COMMAND_WRITE		= 32'h00000001;
-//	parameter			COMMAND_READ		= 32'h00000002;
-//	parameter			COMMAND_WSTREAM_C 	= 32'h00000003;
-//	parameter			COMMAND_WSTREAM		= 32'h00000004;
-//	parameter			COMMAND_RSTREAM_C	= 32'h00000005;
-//	parameter			COMMAND_RSTREAM		= 32'h00000006;
-//	parameter			COMMAND_RW_FLAGS	= 32'h00000007;
-//	parameter			COMMAND_INTERRUPT	= 32'h00000008;
-
 	parameter 			IDLE				= 32'h00000000;
     parameter           WRITE               = 32'h00000001;
     parameter           READ                = 32'h00000002;
-	parameter			STREAM_WRITE_C		= 32'h00000003;
-	parameter			STREAM_WRITE		= 32'h00000004;
-	parameter			STREAM_READ_C		= 32'h00000005;
-	parameter			STREAM_READ			= 32'h00000006;
 
 	parameter			S_PING_RESP			= 32'h00001EAF;
 	//private registers
@@ -144,7 +132,10 @@ module wishbone_master (
 	reg [31:0]			rw_count		= 32'h0;
     reg                 wait_for_slave  = 0;
 	//private wires
+	reg [15:0]			command_flags	= 16'h0;
+
 	
+	reg					mem_bus_select	= 0;
 
 	//private assigns
 /*initial begin
@@ -172,6 +163,8 @@ end
 			master_ready	<= 1;
 			rw_count		<= 0;
 			state			<= IDLE;
+			command_flags	<= 0;
+			mem_bus_select	<= 0;
 
             wait_for_slave  <= 0;
 
@@ -209,90 +202,66 @@ end
             case (state)
 
             READ: begin
-                if (wb_ack_i) begin
-                    //$display ("GOT AN ACK!!!");
-                    wb_stb_o    <= 0;
-                    wb_cyc_o    <= 0;
-                    wb_we_o     <= 0;
-                    out_en      <= 1; 
-                    out_data    <= wb_dat_i;
-                    state       <= IDLE;
-                    end
+				if (mem_bus_select) begin
+						mem_stb_o    <= 0;
+            	        mem_cyc_o    <= 0;
+        	            mem_we_o     <= 0;
+    	                out_en      <= 1; 
+	                    out_data    <= mem_dat_i;
+                    	state       <= IDLE;
+				end
+				else begin
+               	 	if (wb_ack_i) begin
+                    	//$display ("GOT AN ACK!!!");
+                	    wb_stb_o    <= 0;
+            	        wb_cyc_o    <= 0;
+        	            wb_we_o     <= 0;
+    	                out_en      <= 1; 
+	                    out_data    <= wb_dat_i;
+                    	state       <= IDLE;
+					end
+				end
             end
             WRITE: begin
-                if (wb_ack_i) begin
-                    wb_stb_o    <= 0;
-                    wb_cyc_o    <= 0;
-                    wb_we_o     <= 0;
- 
-                    out_en	   <= 1;
-                    state       <= IDLE;
-                end
+				if (mem_bus_select) begin
+					if (mem_ack_i) begin
+						mem_stb_o    <= 0;
+        	            mem_cyc_o    <= 0;
+            	        mem_we_o     <= 0;
+						out_en	   <= 1;
+                		state       <= IDLE;
+					end
+				end
+                else begin
+					if (wb_ack_i) begin
+                	    wb_stb_o    <= 0;
+               		    wb_cyc_o    <= 0;
+                    	wb_we_o     <= 0;
+						out_en	   <= 1;
+                		state       <= IDLE;
+                	end
+				end
+	           
             end
-    		STREAM_READ_C: begin
-    			if (out_ready) begin
-                    //send a request for new data
-                    if (wb_stb_o == 0) begin
-                        $display ("requesting more data from slave");
-                        wb_stb_o    <= 1;
-                        wb_cyc_o    <= 1;
-                        wb_we_o     <= 0;
-                        out_address <= wb_adr_o;
-                    end
-                    //got a response back
-                    else if (wb_ack_i) begin
-                        wb_stb_o    <= 0;
-                        wb_cyc_o    <= 0;
-                        wb_we_o     <= 0;
-                        out_data    <= wb_dat_i;
-                        rw_count    <= rw_count - 1;
-                        out_en      <= 1;
-				        rw_count	<= rw_count - 1;
-                        wb_adr_o    <= wb_adr_o + 1;
-                    end
-
-   					if (rw_count <= 1)begin
-	    				state	<= IDLE;
-		    		end
-
-			    end
-   			end
-   			STREAM_READ: begin
-    			if (out_ready) begin
-                    //send a request for new data
-                    if (wb_stb_o == 0) begin
-                        wb_stb_o    <= 1;
-                        wb_cyc_o    <= 1;
-                        wb_we_o     <= 0;
-                    end
-                    //got a response back
-                    else if (wb_ack_i) begin
-                        wb_stb_o    <= 0;
-                        wb_cyc_o    <= 0;
-                        wb_we_o     <= 0;
-                        out_data    <= wb_dat_i;
-                        rw_count    <= rw_count - 1;
-                        out_en      <= 1;
-				        rw_count	<= rw_count - 1;
-
-                    end
-
-   					if (rw_count <= 1)begin
-	    				state	<= IDLE;
-		    		end
-			    end
-   			end
-  		
             default: begin
             end
             endcase 
 
 	    	//handle input
 		    if (in_ready) begin
-    			local_command	<= in_command;
+				mem_bus_select	<= 0;
+				if (in_command & 32'hFFFF0000) begin
+					command_flags <= in_command[31:16];
+					local_command <= {16'h0000, in_command[15:0]};
+				end
+				else begin
+    				local_command	<= in_command;
+				end
 	    		local_address	<= in_address;
 		    	local_data		<= in_data;
 
+				if (state & 32'hFFFF0000) begin
+				end
 
 			    case(state)
     				IDLE: begin
@@ -307,59 +276,45 @@ end
 				    	end
     					`COMMAND_WRITE:	begin
 		    				out_status	<= ~in_command;
-                            wb_adr_o    <= in_address;
+							if (command_flags & `FLAG_MEM_BUS) begin
+								mem_bus_select	<= 1;	
+								mem_adr_o    <= in_address;
+								mem_stb_o    <= 1;
+                            	mem_cyc_o    <= 1;
+                            	mem_we_o     <= 1;
+                            	mem_dat_o    <= in_data;
+
+							end
+							else begin
+                            	wb_adr_o    <= in_address;
+                            	wb_stb_o    <= 1;
+                            	wb_cyc_o    <= 1;
+                            	wb_we_o     <= 1;
+                            	wb_dat_o    <= in_data;
+							end
 							out_address	<= in_address;
 							out_data	<= in_data;
-                            wb_stb_o    <= 1;
-                            wb_cyc_o    <= 1;
-                            wb_we_o     <= 1;
-                            wb_dat_o    <= in_data;
     	    				state		<= WRITE;
 			    		end
 				    	`COMMAND_READ: 	begin
-						    out_status	<= ~in_command;
-                            wb_adr_o    <= in_address;
+							if (command_flags & `FLAG_MEM_BUS) begin
+								mem_bus_select	<= 1;	
+								mem_adr_o    <= in_address;
+            	                mem_stb_o    <= 1;
+                	            mem_cyc_o    <= 1;
+                    	        mem_we_o     <= 0;
+							end
+							else begin
+    	                        wb_adr_o    <= in_address;
+            	                wb_stb_o    <= 1;
+                	            wb_cyc_o    <= 1;
+                    	        wb_we_o     <= 0;
+							end
+							out_status	<= ~in_command;
 							out_address	<= in_address;
-                            wb_stb_o    <= 1;
-                            wb_cyc_o    <= 1;
-                            wb_we_o     <= 0;
     			    		state		<= READ;
 					    end
-    					`COMMAND_WSTREAM_C: begin
-		    				out_status	<= ~in_command;
-			    			out_en		<= 1;
-				    		master_ready<= 0;
-                            wb_adr_o    <= in_address;
-    						rw_count	<= in_data;
-	    					state		<= STREAM_WRITE_C;
-		    			end
-			    		`COMMAND_WSTREAM: begin
-					    	out_status	<= ~in_command;
-						    out_en		<= 1;
-                            wb_adr_o    <= in_address;
-	    					master_ready	<= 0;
-		    				rw_count	<= in_data;
-			    			state		<= STREAM_WRITE;
-				    	end
-					    `COMMAND_RSTREAM_C: begin
-	    					out_status	<= ~in_command;
-		    				out_en		<= 1;
-				    		rw_count	<= in_data;
-                            out_data_count  <= in_data;
-                            wb_adr_o    <= in_address;
-					    	master_ready <= 0;
-						    state		<= STREAM_READ_C;
-    					end
-	    				`COMMAND_RSTREAM: begin
-			    			out_status	<= ~in_command;
-				    		out_en		<= 1;
-					    	master_ready <= 0;
-    						rw_count	<= in_data;
-                            out_data_count  <= in_data;
-	    					state		<= STREAM_READ;
-                            wb_adr_o    <= in_address;
-		    			end
-			    		`COMMAND_RW_FLAGS: begin
+    		    		`COMMAND_RW_FLAGS: begin
 					    	out_status	<= ~in_command;
 						    out_en		<= 1;
     						state		<= IDLE;
@@ -374,34 +329,6 @@ end
 		    		    end
 			    	endcase
     		    end
-            	STREAM_WRITE_C: begin
-	        		if (in_ready) begin
-	        			master_ready	<= 0;
-						//local data is only used for simulation
-			        	//we should be really writing to the address
-				        local_data	<= in_data;
-   						out_data	<= in_data;
-        				rw_count	<= rw_count - 1;
-		        		if (rw_count <= 1)begin
-				    	state	<= IDLE;
-					    out_en	<= 1;
-  						end
-    				end
-	    		end
-		    	STREAM_WRITE: begin
-			    	if (in_ready) begin
-					    master_ready	<= 0;
-   						//local data is only used for simulation
-    					//we should be really writing to the address
-	    				local_data	<= in_data;
-		    			out_data	<= in_data;
-				    	rw_count	<= rw_count - 1;
-						if (rw_count <= 1)begin
-        					state	<= IDLE;
-		    				out_en	<= 1;
-			    		end
-				    end
-   				end
     	    	default: begin
 	    		end
 		    endcase
