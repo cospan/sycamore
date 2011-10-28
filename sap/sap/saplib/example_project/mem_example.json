@@ -14,10 +14,7 @@
 	"MEMORY":{
 		"mem1":{
 			"filename":"wb_bram.v"
-		},
-		"mem2":{
-			"filename":"wb_bram.v"
-		}		
+		}
 	},
 
 	"CONSTRAINTS":{

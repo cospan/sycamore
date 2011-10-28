@@ -30,9 +30,17 @@ class GenProjectDefines(Gen):
 			buf = template.safe_substitute(VENDOR_FPGA = "VENDOR_XILINX")
 			vendor_string = "VENDOR_XILINX"
 
-		num_of_slaves = str(len(tags["SLAVES"]))
-		print "num of slaves: " + str(num_of_slaves)
-		buf = template.substitute(PROJECT_NAME = tags["PROJECT_NAME"], NUMBER_OF_DEVICES=num_of_slaves, VENDOR_FPGA=vendor_string)
+		num_of_slaves = len(tags["SLAVES"])
+		num_of_memories = 0
+		if (debug):
+			print "num of slaves: " + str(num_of_slaves)
+			if ("MEMORY" in tags):
+				print "num of memories: " + str(len(tags["MEMORY"]))
+		if ("MEMORY" in tags):
+			num_of_memories = len(tags["MEMORY"])	
+
+		num_of_entities = str(num_of_slaves + num_of_memories)
+		buf = template.substitute(PROJECT_NAME = tags["PROJECT_NAME"], NUMBER_OF_DEVICES=num_of_entities, VENDOR_FPGA=vendor_string)
 		return buf
 
 

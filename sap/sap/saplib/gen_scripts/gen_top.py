@@ -221,7 +221,7 @@ class GenTop(Gen):
 		absfilepath = saputils.find_rtl_file_location(io_filename)
 		io_tags = saputils.get_module_tags(filename = absfilepath, bus = "wishbone")
 
-		io_buf = self.generate_buffer(name = "io", module_tags = io_tags)
+		io_buf = self.generate_buffer(name = "io", module_tags = io_tags, io = True)
 
 
 		
@@ -296,8 +296,10 @@ class GenTop(Gen):
 			wmi_buf = wmi_buf + "\t.m_adr_i(mem_adr_o),\n"
 			wmi_buf = wmi_buf + "\t.m_int_o(mem_int_i),\n\n"
 
-			for i in range (0, len(tags["MEMORY"])):
-				wmi_buf = wmi_buf + "\t//slave " + str(i) + "\n"
+			num_mems = len(tags["MEMORY"])
+
+			for i in range (0, num_mems):
+				wmi_buf = wmi_buf + "\t//mem slave " + str(i) + "\n"
 				wmi_buf = wmi_buf + "\t.s" + str(i) + "_we_o(sm" + str(i) + "_wbs_we_i),\n"
 				wmi_buf = wmi_buf + "\t.s" + str(i) + "_cyc_o(sm" + str(i) + "_wbs_cyc_i),\n"
 				wmi_buf = wmi_buf + "\t.s" + str(i) + "_stb_o(sm" + str(i) + "_wbs_stb_i),\n"
@@ -308,7 +310,7 @@ class GenTop(Gen):
 				wmi_buf = wmi_buf + "\t.s" + str(i) + "_adr_o(sm" + str(i) + "_wbs_adr_i),\n"
 				wmi_buf = wmi_buf + "\t.s" + str(i) + "_int_i(sm" + str(i) + "_wbs_int_o)"
 
-				if (i < num_slaves - 1):
+				if ((num_mems > 0) and (i < num_mems - 1)):
 					wmi_buf = wmi_buf + ",\n"
 				
 				wmi_buf = wmi_buf + "\n\n"
@@ -438,7 +440,28 @@ class GenTop(Gen):
 		top_buffer = top_buffer + "\n\n" + buf_bind + "\n\n" + footer
 		return top_buffer
 
-	def generate_buffer(self, name="", index=-1, module_tags={}, mem_slave = False, debug = False):
+	def is_wishbone_port(self, port = ""):
+		if (port.endswith("we_i")):
+			return True
+		if (port.endswith("cyc_i")):
+			return True
+		if (port.endswith("stb_i")):
+			return True
+		if (port.endswith("sel_i")):
+			return True
+		if (port.endswith("ack_o")):
+			return True
+		if (port.endswith("dat_i")):
+			return True
+		if (port.endswith("dat_o")):
+			return True
+		if (port.endswith("adr_i")):
+			return True
+		if (port.endswith("int_o")):
+			return True
+		return False
+
+	def generate_buffer(self, name="", index=-1, module_tags={}, mem_slave = False, io = False, debug = False):
 		"""Generate a buffer that attaches wishbone signals and 
 		return a buffer that can be used to generate the top module"""
 
@@ -555,7 +578,14 @@ class GenTop(Gen):
 						if (port == "clk" or port == "rst"):
 							out_buf = out_buf + port
 						else:
-							out_buf = out_buf + pre_name +  port
+							if (self.is_wishbone_port(port)):
+								out_buf = out_buf + pre_name +  port
+							else:
+								if (not io):
+									out_buf = out_buf + name + "_" + port
+								else:
+									out_buf = out_buf + port
+
 				out_buf = out_buf + ")"
 				pindex = pindex + 1
 				if (pindex == last):

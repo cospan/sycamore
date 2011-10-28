@@ -70,7 +70,7 @@ class GenMemInterconnect(Gen):
 		mem_select_buf += "always @(posedge clk) begin\n"
 		mem_select_buf += "\tif (rst) begin\n"
 		mem_select_buf += "\t\t//nothing selected\n"
-		mem_select_buf += "\t\tmem_select <= 32'hFFFF\n"
+		mem_select_buf += "\t\tmem_select <= 32'hFFFF;\n"
 		mem_select_buf += "\tend\n"
 		mem_select_buf += "\telse begin\n"
 		for i in range (num_mems):
@@ -79,12 +79,12 @@ class GenMemInterconnect(Gen):
 			else:
 				mem_select_buf += "\t\telse if "
 
-			mem_select_buf += "(wbs_addr_i >= MEM_OFFSET_" + str(i) + " && wbs_addr_i < (MEM_OFFSET_" + str(i) + " + MEM_SIZE_" + str(i) + ") begin\n"
+			mem_select_buf += "(m_adr_i >= MEM_OFFSET_" + str(i) + " && m_adr_i < (MEM_OFFSET_" + str(i) + " + MEM_SIZE_" + str(i) + ")) begin\n"
 			mem_select_buf += "\t\t\tmem_select <= MEM_SEL_" + str(i) + ";\n"
 			mem_select_buf += "\t\tend\n"
 
 		mem_select_buf += "\t\telse begin\n"
-		mem_select_buf += "\t\t\tmem_select <= 32'hFFFF\n"
+		mem_select_buf += "\t\t\tmem_select <= 32'hFFFF;\n"
 		mem_select_buf += "\t\tend\n"
 		mem_select_buf += "\tend\n"
 		mem_select_buf += "end\n"
@@ -107,7 +107,7 @@ class GenMemInterconnect(Gen):
 			port_buf = port_buf + "\ts" + str(i) + "_adr_o,\n"
 			port_buf = port_buf + "\ts" + str(i) + "_int_i"
 
-			if (i < num_mems - 1):
+			if ((num_mems > 0) and (i < num_mems - 1)):
 				port_buf = port_buf + ",\n"
 				
 			port_buf = port_buf + "\n\n"

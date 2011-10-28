@@ -106,6 +106,7 @@ module wishbone_master (
 	output reg			wb_msk_o;
 	output reg [3:0]	wb_sel_o;
 	input				wb_ack_i;
+	input				wb_int_i;
 
 	//wishbone memory bus
 	output reg [31:0]	mem_adr_o;
@@ -117,6 +118,7 @@ module wishbone_master (
 	output reg			mem_msk_o;
 	output reg [3:0]	mem_sel_o;
 	input				mem_ack_i;
+	input				mem_int_i;
 
 
 	//parameters

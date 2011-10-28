@@ -152,8 +152,20 @@ class SapProject:
 		for slave in self.project_tags["SLAVES"]:
 			fdict = {"location":""}
 			file_dest = self.project_tags["BASE_DIR"] + "/rtl/bus/slave"
-			result = self.filegen.process_file(filename = slave, file_dict = fdict, directory=file_dest)
+			fn = self.project_tags["SLAVES"][slave]["filename"]
+			result = self.filegen.process_file(filename = fn, file_dict = fdict, directory=file_dest)
+			if (not result):
+				print "Error: Failed to process the slave file: " + fn
 			#each slave
+
+		if ("MEMORY" in self.project_tags):
+			for mem in self.project_tags["MEMORY"]:
+				fdict = {"location":""}
+				file_dest = self.project_tags["BASE_DIR"] + "/rtl/bus/slave"
+				fn = self.project_tags["MEMORY"][mem]["filename"]
+				result = self.filegen.process_file(filename = fn, file_dict = fdict, directory = file_dest, debug = True)
+				if (not result):
+					print "Error: Failed to proecess memory file!: " + mem
 
 		#Copy the user specified constraint files to the constraints directory
 		for constraint_fname in self.project_tags["CONSTRAINTS"]["constraint_files"]:

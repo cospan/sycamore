@@ -83,6 +83,20 @@ class Test (unittest.TestCase):
 		result = self.sapfile.process_file(filename = "README", directory="~/sandbox", file_dict = file_tags, debug = self.dbg)
 		#print self.sapfile.buf
 		self.assertEqual(result, True)
+	
+	def test_process_bram_file(self):
+		"""excercise all functions of the class"""
+		#print "testing process file"
+		project_tags_file = os.getenv("SAPLIB_BASE") + "/example_project/mem_example.json"
+		filein = open(project_tags_file)
+		json_tags = json.load(filein)
+		filein.close()
+
+		self.sapfile.set_tags(json_tags)
+		file_tags = {"location":"bus"}
+		result = self.sapfile.process_file(filename = "wb_bram.v", directory="~/sandbox", file_dict = file_tags, debug = self.dbg)
+		#print self.sapfile.buf
+		self.assertEqual(result, True)
 		
 	def test_process_gen_script(self):
 		"""excercise the script"""
