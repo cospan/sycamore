@@ -33,7 +33,8 @@
 							},
 							"interconnect":{"dir":true,
 								"files":{
-									"wishbone_interconnect.v":{"location":"hdl/rtl/wishbone/interconnect", "gen_script":"gen_interconnect"}
+									"wishbone_interconnect.v":{"location":"hdl/rtl/wishbone/interconnect", "gen_script":"gen_interconnect"},
+									"wishbone_mem_interconnect.v":{"location":"hdl/rtl/wishbone/interconnect", "gen_script":"gen_mem_interconnect"}
 								}
 							},
 							"slave":{"dir":true,

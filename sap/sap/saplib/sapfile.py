@@ -134,25 +134,31 @@ class SapFile:
 				print "run generation script: " + file_dict["gen_script"]
 			#open up the new gen module
 			cl = __import__("gen")
-			print "cl: " + str(cl)
+			if debug:
+				print "cl: " + str(cl)
 			Gen = getattr(cl, "Gen")
-			print "Gen: " + str(Gen)
+			if debug:
+				print "Gen: " + str(Gen)
 			self.gen_module = __import__(file_dict["gen_script"])	
 			gen_success_flag = False
 			for name in dir(self.gen_module):
 				obj = getattr(self.gen_module, name)
 	#			print "object type: " + str(obj)
 #debug section start
-				print "name: " + name
+				if debug:
+					print "name: " + name
 				if isclass(obj):
-					print "\tobject type: " + str(obj)
-					print "\tis class"
+					if debug:
+						print "\tobject type: " + str(obj)
+						print "\tis class"
 					if issubclass(obj, cl.Gen):
-						print "\t\tis subclass"
+						if debug:
+							print "\t\tis subclass"
 #debug section end
 				if isclass(obj) and issubclass(obj, Gen) and obj is not Gen:
 					self.gen = obj()
-					print "obj = " + str(self.gen)
+					if debug:
+						print "obj = " + str(self.gen)
 					self.buf = self.gen.gen_script(tags = self.tags, buf = self.buf)
 					gen_success_flag = True
 
@@ -162,17 +168,18 @@ class SapFile:
 			#perform the format function
 			self.apply_tags()	
 
-		if (debug):	
+		if debug:	
 			print self.buf
 		#write the file to the specified directory
-		result = self.write_file(directory, filename)
+		if (len(self.buf) > 0):
+			result = self.write_file(directory, filename)
 
 		if (self.has_dependencies(filename)):
 			deps = self.get_list_of_dependencies(filename) 
 			for d in deps:
 				result = self.find_module_filename(d)
 				if (len(result) == 0):
-					print "Error couldn't find dependency filename"
+					print "Error: couldn't find dependency filename"
 					continue
 				f = self.find_module_filename(d)
 				if (not self.verilog_dependency_list.__contains__(f) and
@@ -209,7 +216,8 @@ class SapFile:
 				result = self.resolve_dependencies(dep_filename, debug = ldebug)
 				if debug:
 					if result == True:
-						print "found all sub dependencies for: " + dep_filename
+						if debug:
+							print "found all sub dependencies for: " + dep_filename
 				local_file_list.append(dep_filename)
 
 		#go through the local file list and add anything found to the list of dependencies or verilog files
@@ -268,7 +276,8 @@ class SapFile:
 		for item in str_list:
 			item = item.strip()
 			if (item.startswith(".")):
-				print "found a module!"
+				if debug:
+					print "found a module!"
 				return True
 
 		return False
@@ -318,14 +327,16 @@ class SapFile:
 			ifile_name = ifile_name.splitlines()[0]
 			ifile_name = ifile_name.strip()
 			ifile_name = ifile_name.strip("\"")
-			print "\t\tfound an include " + ifile_name + " ",
+			if debug:
+				print "found an include " + ifile_name + " ",
 			if (not self.verilog_dependency_list.__contains__(ifile_name) and
 				not self.verilog_file_list.__contains__(ifile_name)):
 				self.verilog_dependency_list.append(ifile_name)
 				if debug:
 					print "adding " + ifile_name + " to the dependency list"
 			else:
-				print "... already in have it"
+				if debug:
+					print "... already in have it"
 			include_fbuf = include_fbuf.partition("`include")[2]
 
 		#remove the ports list and the module name
@@ -373,7 +384,8 @@ class SapFile:
 					print "module name: " + m_name
 
 				if (not deps.__contains__(m_name)):
-					print "adding it to the deps list"
+					if debug:
+						print "adding it to the deps list"
 					deps.append(module_string.partition(" ")[0])
 				
 

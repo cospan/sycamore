@@ -23,10 +23,10 @@ def create_project_config_file(filename, bus = "wishbone", interface="uart_io_ha
 def generate_project(filename):
 	"""given a project configuration file generate the project structure"""
 	sap = sapproject.SapProject()	
-	try:
-		print "generating project"
-		result = sap.generate_project(filename, debug = True)
-	except:
-		print "Error generating project"
-		return False
+#	try:
+#		print "generating project"
+	result = sap.generate_project(filename, debug = True)
+#	except:
+#		print "Error generating project: " + str(sys.exc_info()[0])
+#		return False
 	return result

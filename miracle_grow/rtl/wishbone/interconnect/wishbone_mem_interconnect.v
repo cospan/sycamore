@@ -24,7 +24,7 @@ SOFTWARE.
 
 
 
-module wishbone_interconnect (
+module wishbone_mem_interconnect (
 	clk,
 	rst,
 
