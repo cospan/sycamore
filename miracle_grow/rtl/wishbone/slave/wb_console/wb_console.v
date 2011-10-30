@@ -121,76 +121,78 @@ always @ (posedge clk) begin
 		wbs_int_o	<= 0;
 	end
 
-	//when the master acks our ack, then put our ack down
-	if (wbs_ack_o & ~ wbs_stb_i)begin
-		wbs_ack_o <= 0;
-	end
-
-	if (wbs_stb_i & wbs_cyc_i) begin
-		//master is requesting somethign
-		if (wbs_we_i) begin
-			//write request
-			case (wbs_adr_i) 
-				ADDR_0: begin
-					//writing something to address 0
-					//do something
-
-					//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-					//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-					$display("user wrote %h", wbs_dat_i);
-				end
-				ADDR_1: begin
-					//writing something to address 1
-					//do something
-
-					//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-					//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-					$display("user wrote %h", wbs_dat_i);
-				end
-				ADDR_2: begin
-					//writing something to address 3
-					//do something
-
-					//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-					//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-					$display("user wrote %h", wbs_dat_i);
-				end
-				//add as many ADDR_X you need here
-				default: begin
-				end
-			endcase
+	else begin
+		//when the master acks our ack, then put our ack down
+		if (wbs_ack_o & ~ wbs_stb_i)begin
+			wbs_ack_o <= 0;
 		end
 
-		else begin 
-			//read request
-			case (wbs_adr_i)
-				ADDR_0: begin
-					//reading something from address 0
-					//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-					//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-					$display("user read %h", ADDR_0);
-					wbs_dat_o <= ADDR_0;
-				end
-				ADDR_1: begin
-					//reading something from address 1
-					//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-					//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-					$display("user read %h", ADDR_1);
-					wbs_dat_o <= ADDR_1;
-				end
-				ADDR_2: begin
-					//reading soething from address 2
-					//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-					//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-					$display("user read %h", ADDR_2);
-					wbs_dat_o <= ADDR_2;
-				end
-				//add as many ADDR_X you need here
-				default: begin
-				end
-			endcase
+		if (wbs_stb_i & wbs_cyc_i) begin
+			//master is requesting somethign
+			if (wbs_we_i) begin
+				//write request
+				case (wbs_adr_i) 
+					ADDR_0: begin
+						//writing something to address 0
+						//do something
+	
+						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
+						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
+						$display("user wrote %h", wbs_dat_i);
+					end
+					ADDR_1: begin
+						//writing something to address 1
+						//do something
+	
+						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
+						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
+						$display("user wrote %h", wbs_dat_i);
+					end
+					ADDR_2: begin
+						//writing something to address 3
+						//do something
+	
+						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
+						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
+						$display("user wrote %h", wbs_dat_i);
+					end
+					//add as many ADDR_X you need here
+					default: begin
+					end
+				endcase
+			end
+
+			else begin 
+				//read request
+				case (wbs_adr_i)
+					ADDR_0: begin
+						//reading something from address 0
+						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
+						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
+						$display("user read %h", ADDR_0);
+						wbs_dat_o <= ADDR_0;
+					end
+					ADDR_1: begin
+						//reading something from address 1
+						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
+						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
+						$display("user read %h", ADDR_1);
+						wbs_dat_o <= ADDR_1;
+					end
+					ADDR_2: begin
+						//reading soething from address 2
+						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
+						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
+						$display("user read %h", ADDR_2);
+						wbs_dat_o <= ADDR_2;
+					end
+					//add as many ADDR_X you need here
+					default: begin
+					end
+				endcase
+			end
+			wbs_ack_o <= 1;
 		end
-		wbs_ack_o <= 1;
 	end
 end
 

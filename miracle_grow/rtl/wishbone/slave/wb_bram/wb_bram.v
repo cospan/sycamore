@@ -88,15 +88,12 @@ output reg  [31:0]	wbs_dat_o;
 output reg			wbs_ack_o;
 output reg			wbs_int_o;
 
-parameter			ADDR_0	=	32'h00000000;
-parameter			ADDR_1	=	32'h00000001;
-parameter			ADDR_2	=	32'h00000002;
-
 parameter			RAM_SIZE = 12;
 parameter			SLEEP_COUNT = 4;
 
 wire [31:0] read_data;
 reg [31:0] write_data;
+reg	[RAM_SIZE:0] ram_adr;
 reg en_ram;
 
 reg [3:0] ram_sleep;
@@ -106,8 +103,8 @@ bram br (
 	.rst(rst),
 	.en(en_ram),
 	.we(wbs_we_i),
-	.write_address(wbs_adr_i[RAM_SIZE:0]),
-	.read_address(wbs_adr_i[RAM_SIZE:0]),
+	.write_address(ram_adr),
+	.read_address(ram_adr),
 	.data_in(write_data),
 	.data_out(read_data)
 );
@@ -121,35 +118,40 @@ always @ (posedge clk) begin
 		wbs_ack_o	<= 0;
 		wbs_int_o	<= 0;
 		ram_sleep	<= SLEEP_COUNT;
+		ram_adr		<= 0;
 	end
 
-	//when the master acks our ack, then put our ack down
-	if (wbs_ack_o & ~ wbs_stb_i)begin
-		wbs_ack_o <= 0;
-		en_ram <= 0;
-	end
-
-	if (wbs_stb_i & wbs_cyc_i) begin
-		//master is requesting somethign
-		en_ram <= 1;
-		if (wbs_we_i) begin
-			//write request
-			//the bram module will handle all the writes
-			write_data <= wbs_dat_i;
-//			$display ("write a:%h, d:%h", wbs_adr_i[RAM_SIZE:0], wbs_dat_i);
+	else begin
+		//when the master acks our ack, then put our ack down
+		if (wbs_ack_o & ~wbs_stb_i)begin
+			wbs_ack_o <= 0;
+			en_ram <= 0;
 		end
 
-		else begin 
-			//read request
-			wbs_dat_o <= read_data;
-//			$display ("read a:%h, d:%h", wbs_adr_i[RAM_SIZE:0], read_data);
-		end
-		if (ram_sleep > 0) begin
-			ram_sleep <= ram_sleep - 1;
-		end
-		else begin
-			wbs_ack_o <= 1;
-			ram_sleep <= SLEEP_COUNT;
+		if (wbs_stb_i & wbs_cyc_i) begin
+			//master is requesting somethign
+			en_ram <= 1;
+			ram_adr <= wbs_adr_i[RAM_SIZE:0];
+			if (wbs_we_i) begin
+				//write request
+				//the bram module will handle all the writes
+				write_data <= wbs_dat_i;
+//				$display ("write a:%h, d:%h", wbs_adr_i[RAM_SIZE:0], wbs_dat_i);
+			end
+
+			else begin 
+				//read request
+				wbs_dat_o <= read_data;
+				//wbs_dat_o <= wbs_adr_i;
+//				$display ("read a:%h, d:%h", wbs_adr_i[RAM_SIZE:0], read_data);
+			end
+			if (ram_sleep > 0) begin
+				ram_sleep <= ram_sleep - 1;
+			end
+			else begin
+				wbs_ack_o <= 1;
+				ram_sleep <= SLEEP_COUNT;
+			end
 		end
 	end
 end

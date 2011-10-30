@@ -47,13 +47,13 @@ ${MEM_PARAMS}
 //state
 
 //control signals
-input 			clk;
-input 			rst;
+input 				clk;
+input 				rst;
 
 //wishbone master signals
-input 			m_we_i;
-input			m_stb_i;
-input			m_cyc_i;
+input 				m_we_i;
+input				m_stb_i;
+input				m_cyc_i;
 input		[3:0]	m_sel_i;
 input		[31:0]	m_adr_i;
 input  		[31:0]	m_dat_i;

@@ -138,210 +138,209 @@ module wishbone_master (
 	reg [31:0]			rw_count		= 32'h0;
     reg                 wait_for_slave  = 0;
 	//private wires
-	reg [15:0]			command_flags	= 16'h0;
+	wire [15:0]			command_flags;
+
+	assign command_flags 	= in_command[31:16];
 
 	
-	reg					mem_bus_select	= 0;
+	reg					mem_bus_select;
 
+	wire [15:0]			real_command;
+	assign real_command			= in_command[15:0];
 	//private assigns
 /*initial begin
     $monitor("%t, stb: %h", $time, wb_stb_o);
 end
 */
-	//blocks
-	always @ (posedge clk) begin
+//blocks
+always @ (posedge clk) begin
 		
-		out_en		<= 0;
+	out_en		<= 0;
 
 //master ready should be used as a flow control, for now its being reset every
 //clock cycle, but in the future this should be used to regulate data comming in so that the master can send data to the slaves without overflowing any buffers
-		master_ready	<= 1;
+	master_ready	<= 1;
 
-		if (rst) begin
-			out_status		<= 32'h0;
-			out_address 	<= 32'h0;
-			out_data		<= 32'h0;
-            out_data_count  <= 28'h0;
-			local_command	<= 32'h0;
-			local_address	<= 32'h0;
-			local_data		<= 32'h0;
-			master_flags	<= 32'h0;
-			master_ready	<= 1;
-			rw_count		<= 0;
-			state			<= IDLE;
-			command_flags	<= 0;
-			mem_bus_select	<= 0;
+	if (rst) begin
+		out_status		<= 32'h0;
+		out_address 	<= 32'h0;
+		out_data		<= 32'h0;
+		out_data_count  <= 28'h0;
+		local_command	<= 32'h0;
+		local_address	<= 32'h0;
+		local_data		<= 32'h0;
+		master_flags	<= 32'h0;
+		rw_count		<= 0;
+		state			<= IDLE;
+		mem_bus_select	<= 0;
 
-            wait_for_slave  <= 0;
+		wait_for_slave  <= 0;
 
-            //wishbone reset
-            wb_adr_o        <= 32'h0;
-            wb_dat_o        <= 32'h0;
-            wb_stb_o        <= 0;
-            wb_cyc_o        <= 0;
-            wb_we_o         <= 0;
-            wb_msk_o        <= 0;
-			//select is always on
-            wb_sel_o        <= 4'hF;
+		//wishbone reset
+		wb_adr_o        <= 32'h0;
+		wb_dat_o        <= 32'h0;
+		wb_stb_o        <= 0;
+		wb_cyc_o        <= 0;
+		wb_we_o         <= 0;
+		wb_msk_o        <= 0;
 
-	        //wishbone memory reset
-            mem_adr_o        <= 32'h0;
-            mem_dat_o        <= 32'h0;
-            mem_stb_o        <= 0;
-            mem_cyc_o        <= 0;
-            mem_we_o         <= 0;
-            mem_msk_o        <= 0;
-			//select is always on
-            mem_sel_o        <= 4'hF;
+		//select is always on
+		wb_sel_o        <= 4'hF;
 
+		//wishbone memory reset
+		mem_adr_o        <= 32'h0;
+		mem_dat_o        <= 32'h0;
+		mem_stb_o        <= 0;
+		mem_cyc_o        <= 0;
+		mem_we_o         <= 0;
+		mem_msk_o        <= 0;
+
+		//select is always on
+		mem_sel_o        <= 4'hF;
+
+	end
+
+	else begin 
+		if (wb_ack_i) begin
+			wb_stb_o <= 0;
+			wb_cyc_o <= 0;
+		end
+		if (mem_ack_i) begin
+			mem_stb_o <= 0;
+			mem_cyc_o <= 0;
 		end
 
-        else begin 
-            if (wb_ack_i) begin
-                wb_stb_o <= 0;
-                wb_cyc_o <= 0;
-            end
-            if (in_ready && (state == READ || state == WRITE)) begin
-                state   <= IDLE;
-            end
+		if (in_ready && (state == READ || state == WRITE)) begin
+			state   <= IDLE;
+		end
 
-            case (state)
+		case (state)
 
-            READ: begin
+			READ: begin
 				if (mem_bus_select) begin
-						mem_stb_o    <= 0;
-            	        mem_cyc_o    <= 0;
-        	            mem_we_o     <= 0;
-    	                out_en      <= 1; 
-	                    out_data    <= mem_dat_i;
-                    	state       <= IDLE;
-				end
-				else begin
-               	 	if (wb_ack_i) begin
-                    	//$display ("GOT AN ACK!!!");
-                	    wb_stb_o    <= 0;
-            	        wb_cyc_o    <= 0;
-        	            wb_we_o     <= 0;
-    	                out_en      <= 1; 
-	                    out_data    <= wb_dat_i;
-                    	state       <= IDLE;
+					if (mem_ack_i) begin
+						mem_stb_o   <= 0;
+						mem_cyc_o   <= 0;
+						mem_we_o    <= 0;
+						out_en      <= 1; 
+						out_data    <= mem_dat_i;
+						state       <= IDLE;
 					end
 				end
-            end
-            WRITE: begin
+				else begin
+					if (wb_ack_i) begin
+						wb_stb_o    <= 0;
+						wb_cyc_o    <= 0;
+						wb_we_o     <= 0;
+						out_en      <= 1; 
+						out_data    <= wb_dat_i;
+						state       <= IDLE;
+					end
+				end
+			end
+			WRITE: begin
 				if (mem_bus_select) begin
 					if (mem_ack_i) begin
 						mem_stb_o    <= 0;
-        	            mem_cyc_o    <= 0;
-            	        mem_we_o     <= 0;
+						mem_cyc_o    <= 0;
+						mem_we_o     <= 0;
 						out_en	   <= 1;
-                		state       <= IDLE;
+						state       <= IDLE;
 					end
 				end
-                else begin
-					if (wb_ack_i) begin
-                	    wb_stb_o    <= 0;
-               		    wb_cyc_o    <= 0;
-                    	wb_we_o     <= 0;
-						out_en	   <= 1;
-                		state       <= IDLE;
-                	end
-				end
-	           
-            end
-            default: begin
-            end
-            endcase 
-
-	    	//handle input
-		    if (in_ready) begin
-				mem_bus_select	<= 0;
-				if (in_command & 32'hFFFF0000) begin
-					command_flags <= in_command[31:16];
-					local_command <= {16'h0000, in_command[15:0]};
-				end
 				else begin
-    				local_command	<= in_command;
+					if (wb_ack_i) begin
+            	   	    wb_stb_o    <= 0;
+						wb_cyc_o    <= 0;
+						wb_we_o     <= 0;
+						out_en	   <= 1;
+						state       <= IDLE;
+					end
 				end
-	    		local_address	<= in_address;
-		    	local_data		<= in_data;
+			end
+			IDLE: begin
+				//handle input
+				if (in_ready) begin
+					mem_bus_select	<= 0;
 
-				if (state & 32'hFFFF0000) begin
-				end
+					local_address	<= in_address;
+					local_data		<= in_data;
 
-			    case(state)
-    				IDLE: begin
-		    			case (in_command)
+					//if (state & 32'hFFFF0000) begin
+					//end
 
-			    		`COMMAND_PING: begin
-					    	out_status	<= ~in_command;
-    						out_address	<= 32'h00000000;
-	    					out_data	<= S_PING_RESP;
-		    				out_en		<= 1;
-			    			state 		<= IDLE;
-				    	end
-    					`COMMAND_WRITE:	begin
-		    				out_status	<= ~in_command;
-							if (command_flags & `FLAG_MEM_BUS) begin
-								mem_bus_select	<= 1;	
-								mem_adr_o    <= in_address;
-								mem_stb_o    <= 1;
-                            	mem_cyc_o    <= 1;
-                            	mem_we_o     <= 1;
-                            	mem_dat_o    <= in_data;
+					case (real_command)
 
-							end
-							else begin
-                            	wb_adr_o    <= in_address;
-                            	wb_stb_o    <= 1;
-                            	wb_cyc_o    <= 1;
-                            	wb_we_o     <= 1;
-                            	wb_dat_o    <= in_data;
-							end
-							out_address	<= in_address;
-							out_data	<= in_data;
-    	    				state		<= WRITE;
-			    		end
-				    	`COMMAND_READ: 	begin
-							if (command_flags & `FLAG_MEM_BUS) begin
-								mem_bus_select	<= 1;	
-								mem_adr_o    <= in_address;
-            	                mem_stb_o    <= 1;
-                	            mem_cyc_o    <= 1;
-                    	        mem_we_o     <= 0;
-							end
-							else begin
-    	                        wb_adr_o    <= in_address;
-            	                wb_stb_o    <= 1;
-                	            wb_cyc_o    <= 1;
-                    	        wb_we_o     <= 0;
-							end
+						`COMMAND_PING: begin
+							out_status			<= ~in_command;
+							out_address			<= 32'h00000000;
+							out_data			<= S_PING_RESP;
+							out_en				<= 1;
+							state 				<= IDLE;
+						end
+						`COMMAND_WRITE:	begin
 							out_status	<= ~in_command;
-							out_address	<= in_address;
-    			    		state		<= READ;
-					    end
-    		    		`COMMAND_RW_FLAGS: begin
-					    	out_status	<= ~in_command;
-						    out_en		<= 1;
-    						state		<= IDLE;
-	    				end
-		    			`COMMAND_INTERRUPT: begin
-				    		out_status	<= ~in_command;
-					    	out_en		<= 1;
-						    state		<= IDLE;
-    					end
-    					default: 		begin
-	    					state		<= IDLE;
-		    		    end
-			    	endcase
-    		    end
-    	    	default: begin
-	    		end
-		    endcase
-    
-            end
-	    end
+							if (command_flags & `FLAG_MEM_BUS) begin
+								mem_bus_select	<= 1;	
+								mem_adr_o    	<= in_address;
+								mem_stb_o    	<= 1;
+								mem_cyc_o    	<= 1;
+								mem_we_o     	<= 1;
+								mem_dat_o    	<= in_data;
+							end
+							else begin
+								mem_bus_select 	<= 0;
+								wb_adr_o    	<= in_address;
+								wb_stb_o    	<= 1;
+								wb_cyc_o    	<= 1;
+								wb_we_o     	<= 1;
+								wb_dat_o    	<= in_data;
+							end	
+								out_address		<= in_address;
+								out_data		<= in_data;
+								state			<= WRITE;
+						end
+						`COMMAND_READ: 	begin
+							if (command_flags & `FLAG_MEM_BUS) begin
+								mem_bus_select	<= 1;	
+								mem_adr_o    	<= in_address;
+								mem_stb_o    	<= 1;
+								mem_cyc_o    	<= 1;
+								mem_we_o     	<= 0;
+								out_status		<= ~in_command;
+							end
+							else begin
+								mem_bus_select 	<= 0;
+								wb_adr_o    	<= in_address;
+								wb_stb_o    	<= 1;
+								wb_cyc_o    	<= 1;
+								wb_we_o     	<= 0;
+								out_status		<= ~in_command;
+							end
+								out_address		<= in_address;
+								state			<= READ;
+						end	
+						`COMMAND_RW_FLAGS: begin
+							out_status		<= ~in_command;
+							out_en			<= 1;
+							state			<= IDLE;
+						end
+						`COMMAND_INTERRUPT: begin
+							out_status		<= ~in_command;
+							out_en			<= 1;
+							state			<= IDLE;
+						end
+						default: 		begin
+						end
+					endcase
+				end
+			end
+			default: begin
+			state <= IDLE;
+			end
+		endcase
+	end
 	//handle output
-    end
+end
 
 endmodule

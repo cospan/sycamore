@@ -24,7 +24,9 @@ class GenDRT(Gen):
 		id_string = "{0:0=4X}"
 		id_string = id_string.format(id)
 		#add 1 for the DRT
-		number_of_devices = len(tags["SLAVES"])
+		number_of_devices = 0
+		#number_of_devices = 1
+		number_of_devices += len(tags["SLAVES"])
 
 		if debug:
 			print "number of slaves: " + str(number_of_devices)

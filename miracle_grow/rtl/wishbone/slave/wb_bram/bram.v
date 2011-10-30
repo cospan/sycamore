@@ -25,7 +25,7 @@ SOFTWARE.
 
 /*
  * This BRAM code was inspired by this website:
- * http://www.dilloneng.com/documents/hoto/ram_inference
+ * http://www.dilloneng.com/documents/howto/ram_inference
  *
  */
 
@@ -53,8 +53,8 @@ input [31:0] data_in;
 output reg [31:0] data_out;
 
 //synthesis attribute ram_style of mem is block
-reg [12:0] mem [0:1024]; //pragma attribute mem ram_block TRUE
-reg [12:0] read_address_reg;
+reg [31:0] mem [1023:0]; //pragma attribute mem ram_block TRUE
+reg [31:0] read_address_reg;
 
 
 /*

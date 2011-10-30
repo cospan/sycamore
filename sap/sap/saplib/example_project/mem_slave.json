@@ -8,10 +8,7 @@
 	"SLAVES":{
 		"gpio1":{
 			"filename":"simple_gpio.v"
-		}
-	},
-
-	"MEMORY":{
+		},
 		"mem1":{
 			"filename":"wb_bram.v"
 		}

@@ -1,3 +1,5 @@
+#! /usr/bin/python
+
 import serial
 import string
 import time
@@ -38,6 +40,20 @@ class Sycamore:
 	def get_address_from_dev_index(self, dev_index):	
 		return string.atoi(self.drt_lines[((dev_index + 1) * 4) + 2], 16)
 
+	def read_mem_data (self, dev_index, offset):
+		address = self.get_address_from_dev_index(dev_index)
+		#print "address: " + str(address)
+		read_cmd = "L000000000010002%0.8X00000000"
+		read_cmd = (read_cmd) % (address + offset)
+		self.ser.write(read_cmd)
+		read_resp = self.ser.read(25)
+		#print "read command: " + read_cmd
+		#print "response: " + read_resp
+		if (len(read_resp) == 0):
+			return -1
+		return string.atoi(read_resp.__getslice__(17, 25), 16)
+		
+		
 	def read_data(self, dev_index, offset):
 		address = self.get_address_from_dev_index(dev_index)
 		read_cmd = "L000000000000002%0.8X00000000"
@@ -48,7 +64,20 @@ class Sycamore:
 			return -1
 		return string.atoi(read_resp.__getslice__(17, 25), 16)
 		
-	
+	def write_mem_data(self, dev_index, offset, data):
+		data_string = ("%0.8X") % data
+		address = self.get_address_from_dev_index(dev_index)
+		write_cmd = "L000000000010001%0.8X" + data_string
+		write_cmd = (write_cmd) % (address + offset)
+		#print "write command: " + write_cmd
+		self.ser.flushInput()
+		self.ser.write(write_cmd)
+		write_resp = self.ser.read(25)
+		#print "write resposne: " + write_resp
+		if (len(write_resp) == 0):
+			return False
+		return True
+
 	def write_data(self, dev_index, offset, data):
 		data_string = ("%0.8X") % data
 		address = self.get_address_from_dev_index(dev_index)
@@ -77,20 +106,21 @@ class Sycamore:
 			#return
 			self.ser.write(cmd_string)
 			temp_string = self.ser.read(25)
+			#print "temp string: " + temp_string
 			if (len(temp_string) == 0):
 				return False
 			else:
 				self.drt_string = self.drt_string + temp_string.__getslice__(17, 25) + "\n"
 		
 			if (index == 1):
-				size_string = temp_string.__getslice__(9,17)
+				size_string = temp_string.__getslice__(17, 25)
 				#print "size_string: " + size_string
 				#print "number of device: " + str(string.atoi(size_string, 16))
 				self.num_of_devices = string.atoi(size_string, 10)
 			index = index + 1
 			count = count - 1
 
-		#print "number of devices: " + str(num_of_devices)
+		#print "number of devices: " + str(self.num_of_devices)
 		#print "id block: \n" + drt_string
 		count = 0
 		while (count < ((self.num_of_devices) * 4)):
@@ -128,7 +158,7 @@ class Sycamore:
 	def slave_unit_test(self):
 		print "Found " + str(self.num_of_devices) + " slave(s)"
 		print "Searching for standard devices..."
-		for dev_index in range (0, self.num_of_devices):
+		for dev_index in range (0, (self.num_of_devices)):
 			device_id = string.atoi(self.drt_lines[((dev_index + 1) * 4)], 16)
 			flags = string.atoi(self.drt_lines[((dev_index + 1) * 4) + 1], 16)
 			address_offset = string.atoi(self.drt_lines[((dev_index + 1) * 4) + 2], 16)
@@ -137,72 +167,69 @@ class Sycamore:
 			if (device_id == 1):
 				print "found gpio"
 				print "enable all GPIO's"
-				cmd_string = ("L000000000000001%0.8XFFFFFFFF") % (address_offset + 1)
-				print "cmd string: " + cmd_string
-				self.ser.write(cmd_string)
-				self.ser.read(25)
+				self.write_data(dev_index, 1, 0xFFFFFFFF)
 				print "flash all LED's once"
 				#clear
-				leds_off = ("L000000000000001%0.8X00000000") % (address_offset)
-				print "leds off string " + leds_off
-				self.ser.write(leds_off)
-				self.ser.read(25)
-				time.sleep(0.1)
-				leds_on = ("L000000000000001%0.8XFFFFFFFF") % (address_offset)
-				print "leds on string " + leds_on
-				self.ser.write(leds_on)
-				self.ser.read(25)
+				self.write_data(dev_index, 0, 0x00000000)
+				self.write_data(dev_index, 0, 0xFFFFFFFF)
 				time.sleep(1)
-				leds_off = ("L000000000000001%0.8X00000000") % (address_offset)
-				self.ser.write(leds_off)
-				self.ser.read(25)
-				time.sleep(0.1)
+				self.write_data(dev_index, 0, 0x00000000)
+				time.sleep(.1)
 	
 				print "read buttons in 1 second..."
-				gpio_read = ("L000000000000002%0.8X00000000") % (address_offset)
-				print "gpio read string: " + gpio_read
-				self.ser.write(gpio_read)
-				old_timeout = self.ser.timeout
-				self.ser.timeout = 1
-				gpio_val_string = self.ser.read(25)
-				print "gpio string: " + gpio_val_string
-				self.ser.timeout = old_timeout
-				if (len(gpio_val_string) > 0):
-					gpio_val = string.atoi(gpio_val_string.__getslice__(17, 25), 16)
-					print "gpio values: " + str(gpio_val)
+				time.sleep(1)
+				gpio_read = self.read_data(dev_index, 0)
+				print "gpio read: " + hex(gpio_read)
 	
 
 			elif (device_id == 10):
 				print "found LCD"
-				lcd_en = ("L000000000000001%0.8X00000001") % (address_offset)
 				print "enable"
-				self.ser.write(lcd_en)
-				self.ser.read(25)
+				self.write_data(dev_index, 0, 0x00000001)
 				print "set all black for two seconds"
-				black_string = ("L000000000000001%0.8X00000000") % (address_offset + 1)
-				self.ser.write(black_string)
-				self.ser.read(25)
+				self.write_data(dev_index, 1, 0x00000000)
 				time.sleep(2)
 				print "set all red for two seconds"
-				red_string = ("L000000000000001%0.8X00FF0000") % (address_offset + 1)
-				self.ser.write(red_string)
-				self.ser.read(25)
+				self.write_data(dev_index, 1, 0x00FF0000)
 				time.sleep(2)
 				print "set all green for two seconds"
-				green_string = ("L000000000000001%0.8X0000FF00") % (address_offset + 1)
-				self.ser.write(green_string)
-				self.ser.read(25)
+				self.write_data(dev_index, 1, 0x0000FF00)
 				time.sleep(2)
-				print "set all blue for two secons"
-				blue_string = ("L000000000000001%0.8X000000FF") % (address_offset + 1)
-				self.ser.write(blue_string)
-				self.ser.read(25)
+				print "set all blue for two seconsd"
+				self.write_data(dev_index, 1, 0x000000FF)
 				time.sleep(2)
 				print "lcd disable"
-				lcd_disable = ("L000000000000001%0.8X00000000") % (address_offset)
+				self.write_data(dev_index, 0, 0x00000000)
+
 
 			elif (device_id == 5):
-				print "found DDR Ram"
+				print "found Memory device"
+				mem_bus = False
+				if ((flags & 0x00010000) > 0):
+					print "Memory slave is on Memory bus"
+					mem_bus = True 
+				else:
+					print "Memory slave is on peripheral bus"
+
+				print "Write to 10 locations:"
+				for i in range (0, 10):
+					print "writing " + str(i) + " to " + str(i * 4)
+					if (mem_bus):
+						self.write_mem_data(dev_index, i * 4, i)
+					else:
+						self.write_data(dev_index, i * 4, i)
+
+				print "Reading from the 10 locations:"
+				mem_value = 0
+				for i in range (0, 10):
+					if (mem_bus):
+						mem_value = self.read_mem_data(dev_index, i * 4)
+					else:
+						mem_value = self.read_mem_data(dev_index, i * 4)
+
+					print "reading " + str(mem_value) + " from " + str(i * 4)
+
+
 	
 	def open_serial(self, dev_name='/dev/ttyUSB0', baudrate=9600):
 		self.ser = serial.Serial(dev_name, baudrate)
@@ -219,7 +246,7 @@ if __name__ == '__main__':
 	syc = Sycamore()
 	ping_result = syc.ping()
 	#ping 
-	if (ping_result):
+	if (not ping_result):
 		print "ping fail :("
 
 	syc.drt_string

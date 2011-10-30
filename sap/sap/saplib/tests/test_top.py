@@ -62,6 +62,16 @@ class Test (unittest.TestCase):
 		self.assertEqual(len(result) > 0, True)
 
 
+	def test_is_not_wishbone_port(self):
+		result = False
+		result = self.gen.is_wishbone_port("gpio")	
+		self.assertEqual(result, False)
+
+	def test_is_wishbone_port(self):
+		result = False	
+		result = self.gen.is_wishbone_port("lcd_stb_i")
+		self.assertEqual(result, True)
+
 	def test_gen_top(self):
 		"""generate a top.v file"""
 		

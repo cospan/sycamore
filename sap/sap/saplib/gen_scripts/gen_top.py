@@ -221,7 +221,7 @@ class GenTop(Gen):
 		absfilepath = saputils.find_rtl_file_location(io_filename)
 		io_tags = saputils.get_module_tags(filename = absfilepath, bus = "wishbone")
 
-		io_buf = self.generate_buffer(name = "io", module_tags = io_tags, io = True)
+		io_buf = self.generate_buffer(name = "io", module_tags = io_tags, io_module = True)
 
 
 		
@@ -461,7 +461,7 @@ class GenTop(Gen):
 			return True
 		return False
 
-	def generate_buffer(self, name="", index=-1, module_tags={}, mem_slave = False, io = False, debug = False):
+	def generate_buffer(self, name="", index=-1, module_tags={}, mem_slave = False, io_module = False, debug = False):
 		"""Generate a buffer that attaches wishbone signals and 
 		return a buffer that can be used to generate the top module"""
 
@@ -572,7 +572,10 @@ class GenTop(Gen):
 							if (port == "clk" or port == "rst"):
 								out_buf = out_buf + port
 							else:
-								out_buf = out_buf + pre_name + port
+								if (self.is_wishbone_port(port)):
+									out_buf = out_buf + pre_name +  port
+								else:
+									out_buf = out_buf + name + "_" + port
 							
 					else:
 						if (port == "clk" or port == "rst"):
@@ -581,7 +584,7 @@ class GenTop(Gen):
 							if (self.is_wishbone_port(port)):
 								out_buf = out_buf + pre_name +  port
 							else:
-								if (not io):
+								if (not io_module):
 									out_buf = out_buf + name + "_" + port
 								else:
 									out_buf = out_buf + port
