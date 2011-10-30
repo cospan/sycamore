@@ -1,5 +1,20 @@
 #! /usr/bin/python
 
+"""
+Sycamore: the main front interface to the Sycamore bus system on the FPGA	
+"""
+
+"""
+Changes:
+
+10/30/2011
+	-Changed the number of devices read from DRT, now the actual DRT slave is not counted
+	-Made the script executable
+	-Changed the unit test to actually call functions read and write as apposed to generating
+		the serial read/write manually
+	-Added unit test for memory devices
+"""
+
 import serial
 import string
 import time

@@ -23,6 +23,10 @@ SOFTWARE.
 */
 
 /*
+	10/30/2011
+		-fixed the memory bus issue where that master was not responding to a slave ack
+		-changed the READ and WRITE command to call either the memory bus depending on the
+		flags in the command sent from the user
 	10/25/2011
 		-added the interrupt input pin for both busses
 	10/23/2011
