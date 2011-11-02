@@ -186,7 +186,8 @@ class Test (unittest.TestCase):
 			print "File Error: " + str(err)
 			self.assertEqual(False, True)
 
-		arb_buf = self.gen.generate_arbitrator_buffer(tags, debug = self.dbg)
+		self.gen.tags = tags
+		arb_buf = self.gen.generate_arbitrator_buffer(debug = self.dbg)
 		self.assertEqual(len(arb_buf), 0)
 
 	def test_generate_arbitrator_buffer_simple(self):
@@ -202,8 +203,9 @@ class Test (unittest.TestCase):
 		except IOError as err:
 			print "File Error: " + str(err)
 			self.assertEqual(False, True)
-
-		arb_buf = self.gen.generate_arbitrator_buffer(tags, debug = self.dbg)
+		
+		self.gen.tags = tags
+		arb_buf = self.gen.generate_arbitrator_buffer(debug = self.dbg)
 		print "arbitrator buffer: \n" + arb_buf
 		self.assertEqual(len(arb_buf) > 0, True)
 

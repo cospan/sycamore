@@ -140,6 +140,13 @@ class SapProject:
 		saputils.create_dir(self.project_tags["BASE_DIR"])		
 		if debug:
 			print "generated the first dir"
+
+		#generate the arbitrator tags, this is important because the top
+		#needs the arbitrator tags
+		arb_tags = saparbitrator.generate_arbitrator_tags(self.project_tags, False) 
+		self.project_tags["ARBITRATORS"] = arb_tags
+
+
 		#print "Parent dir: " + self.project_tags["BASE_DIR"]
 		for key in self.template_tags["PROJECT_TEMPLATE"]["files"]:
 			self.recursive_structure_generator(
@@ -265,11 +272,12 @@ class SapProject:
 
 		#we have some arbitrators, add the tag to the project
 		#	(this is needed for gen_top)
-		arb_tags = saparbitrator.generate_arbitrator_tags(self.project_tags, False) 
-		self.project_tags["ARBITRATORS"] = arb_tags
+#		arb_tags = saparbitrator.generate_arbitrator_tags(self.project_tags, False) 
+#		self.project_tags["ARBITRATORS"] = arb_tags
 
 		#for each of the items in the arbitrator list create a file tags
 		#item that can be proecessed by sapfile.process file
+		arb_tags = self.project_tags["ARBITRATORS"]
 		for i in range (0, len(arb_tags.keys())):
 			key = arb_tags.keys()[i]
 			arb_size = len(arb_tags[key]) + 1
