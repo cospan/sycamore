@@ -1,5 +1,6 @@
 import unittest
 import sapproject
+import saputils
 import sys
 import os
 
@@ -72,6 +73,62 @@ class Test (unittest.TestCase):
 		"""determine in a handler exists"""
 		result = True
 		self.assertEqual(result, True)
+
+	def test_generate_arbitrators_none(self):
+		"""confirm that no arbitrators are generated with this project tag"""
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_v2.json"
+		result = self.project.generate_project(file_name, debug=self.dbg)
+		self.assertEqual(result, True)
+		num_arbs = self.project.generate_arbitrators(debug = self.dbg)
+		self.assertEqual(num_arbs, 0)
+
+	def test_generate_arbitrators_simple(self):
+		"""the project file is supposed to generate one file"""
+		config_file_name = os.getenv("SAPLIB_BASE") + "/example_project/arb_example.json"
+		result = self.project.read_config_file(config_file_name)
+		self.assertEqual(result, True)
+		result = self.project.read_template(self.project.project_tags["TEMPLATE"])
+		self.assertEqual(result, True)
+		self.project.filegen.set_tags(self.project.project_tags)
+		#generate the project directories and files
+		self.project.project_tags["BASE_DIR"] = "~/sandbox/test_syc"
+		saputils.create_dir(self.project.project_tags["BASE_DIR"])		
+
+		#print "Parent dir: " + self.project.project_tags["BASE_DIR"]
+		for key in self.project.template_tags["PROJECT_TEMPLATE"]["files"]:
+			self.project.recursive_structure_generator(
+							self.project.template_tags["PROJECT_TEMPLATE"]["files"],
+							key,
+							self.project.project_tags["BASE_DIR"])
+
+		result = self.project.generate_arbitrators(debug = self.dbg)
+		self.assertEqual(result, 1)
+
+	def test_generate_arbitrators_difficult(self):
+		"""the project calls for three arbitrators, but two are identical"""
+		config_file_name = os.getenv("SAPLIB_BASE") + "/example_project/arb_difficult_example.json"
+		result = self.project.read_config_file(config_file_name)
+		self.assertEqual(result, True)
+		result = self.project.read_template(self.project.project_tags["TEMPLATE"])
+		self.assertEqual(result, True)
+		self.project.filegen.set_tags(self.project.project_tags)
+		#generate the project directories and files
+		self.project.project_tags["BASE_DIR"] = "~/sandbox/test_syc"
+		saputils.create_dir(self.project.project_tags["BASE_DIR"])		
+
+		#print "Parent dir: " + self.project.project_tags["BASE_DIR"]
+		for key in self.project.template_tags["PROJECT_TEMPLATE"]["files"]:
+			self.project.recursive_structure_generator(
+							self.project.template_tags["PROJECT_TEMPLATE"]["files"],
+							key,
+							self.project.project_tags["BASE_DIR"])
+
+	
+	
+		result = self.project.generate_arbitrators(debug = self.dbg)
+		self.assertEqual(result, 2)
+
+
 
 if __name__ == "__main__":
 	unittest.main()

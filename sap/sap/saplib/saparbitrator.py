@@ -37,10 +37,27 @@ def generate_arbitrator_tags(tags = {}, debug = False):
 				continue
 			if debug:
 				print "slave: " + slave + " is an arbtrator master"
+			for bus in slave_tags[slave]["BUS"].keys():
+				if debug:
+					print "bus for " + slave + " is " + bus
+				arb_slave = slave_tags[slave]["BUS"][bus]
+				if debug:
+					print "adding: " + arb_slave + " to the arb_tags for " + bus
+				
+				if (not already_existing_arb_bus(arb_tags, arb_slave)):
+					#create a new list
+					arb_tags[arb_slave] = {}
 
+				arb_tags[arb_slave][slave] = bus
 
 	return arb_tags 
 
+def already_existing_arb_bus(arb_tags = {}, arb_slave = "", debug = False):
+	"""check if the arbitrated slave already exists in the arbitrator tags"""
+	for arb_item in arb_tags.keys():
+		if (arb_item == arb_slave):
+			return True
 
+	return False
 
 

@@ -37,6 +37,8 @@
 									"wishbone_mem_interconnect.v":{"location":"hdl/rtl/wishbone/interconnect", "gen_script":"gen_mem_interconnect"}
 								}
 							},
+							"arbitrators":{"dir":true
+							},
 							"slave":{"dir":true,
 								"files":{
 									"device_rom_table.v":{"location":"hdl/rtl/wishbone/slave/device_rom_table"},

@@ -1,5 +1,6 @@
 from gen import Gen
 import saputils
+import saparbitrator
 from string import Template
 
 class GenTop(Gen):
@@ -599,6 +600,115 @@ class GenTop(Gen):
 		out_buf = out_buf + "\t);"
 
 		return out_buf
+
+	def generate_arbitrator_buffer(self, project_tags = {}, debug = False):
+		result = ""
+		#self.wires 
+		arbitrator_count = 0
+		if (not saparbitrator.is_arbitrator_required(project_tags)):
+			return ""	
+		
+		if debug:
+			print "arbitration is required"
+
+		result += "//Project Arbitrators\n\n"
+		arb_tags = saparbitrator.generate_arbitrator_tags(project_tags)
+
+		for i in range (0, len(arb_tags.keys())):
+			arb_slave = arb_tags.keys()[i]
+			master_count = 1
+			arb_name = ""
+			if debug:
+				print "found arbitrated slave: " + arb_slave 
+			result += "//" + arb_slave + " arbitrator\n\n"
+			master_count += len(arb_tags[arb_slave].keys())
+			arb_name = "arb" + str(i)
+			arb_module = "arbitrator_" + str(master_count) + "_masters"
+			if debug:
+				print "number of masters for this arbitrator: " + str(master_count)
+				print "using: " + arb_module 	
+				print "arbitrator name: " + arb_name
+
+			result += arb_module + " " + arb_name + "(\n"
+			result += "\tclk(clk),\n"
+			result += "\trst(rst),\n"
+			result += "\n"
+			result += "\t//masters\n"
+
+			for mi in range (0, master_count):
+			
+				wbm_name = ""
+
+				#first master is always from the interconnect
+				if (mi == 0):
+					if debug:
+						print "mi: " + str(mi)
+					on_periph_bus = False
+					#in this case I need to use the wishbone interconnect
+					#search for the index of the slave
+					for i in range (0, len(project_tags["SLAVES"].keys())):
+						name = project_tags["SLAVES"].keys()[i]
+						if name == arb_slave:
+							interconnect_index = i + 1 # +1 to account for DRT
+							on_periph_bus = True
+							wbm_name = "s" + str(interconnect_index)
+							if debug:
+								print "arb slave on peripheral bus"
+								print "slave index: " + str(interconnect_index - 1)
+								print "accounting for drt, actual bus index == " + str(interconnect_index)
+							break
+					#check mem bus
+					if (not on_periph_bus):
+						if ("MEMORY" in project_tags.keys()):
+							#There is a memory bus, look in here
+							for i in range (0, len(project_tags["MEMORY"].keys())):
+								name = project_tags["MEMORY"].keys()[i]
+								if name == arb_slave:
+									mem_inc_index = i
+									wbm_name = "sm" + str(i)
+									if debug:
+										print "arb slave on mem bus"
+										print "slave index: " + str(mem_inc_index)
+									break
+
+				#not the first index
+				else:
+					if debug:
+						print "mi: " + str(mi)
+					master_name = arb_tags[arb_slave].keys()[mi - 1]
+					bus_name = arb_tags[arb_slave][master_name]
+					wbm_name = master_name + "_" + bus_name 
+
+				result +="\t.m" + str(mi) + "_stb_i(" + wbm_name + "_stb_i),\n"
+				result +="\t.m" + str(mi) + "_cyc_i(" + wbm_name + "_cyc_i),\n"
+				result +="\t.m" + str(mi) + "_we_i(" + wbm_name + "_we i),\n"
+				result +="\t.m" + str(mi) + "_sel_i(" + wbm_name + "_sel_i),\n"
+				result +="\t.m" + str(mi) + "_dat_i(" + wbm_name + "_dat_i),\n"
+				result +="\t.m" + str(mi) + "_adr_i(" + wbm_name + "_adr_i),\n"
+				result +="\t.m" + str(mi) + "_dat_o(" + wbm_name + "_dat_o),\n"
+				result +="\t.m" + str(mi) + "_ack_o(" + wbm_name + "_ack_o),\n"
+				result +="\t.m" + str(mi) + "_int_o(" + wbm_name + "_int_o),\n"
+				result +="\n\n"
+
+			
+			result += "\t//slave\n"
+			result += "\t.s_stb_o(" + arb_name + "_stb_o),\n"
+			result += "\t.s_cyc_o(" + arb_name + "_cyc_o),\n"
+			result += "\t.s_we_o(" + arb_name + "_we_o),\n"
+			result += "\t.s_sel_o(" + arb_name + "_sel_out),\n"
+			result += "\t.s_dat_o(" + arb_name + "_dat_o),\n"
+			result += "\t.s_adr_o(" + arb_name + "_adr_o),\n"
+			result += "\t.s_dat_i(" + arb_name + "_dat_i),\n"
+			result += "\t.s_ack_i(" + arb_name + "_ack_i),\n"
+			result += "\t.s_int_i(" + arb_name + " int i)\n"
+
+			result += ");\n"
+
+			
+		
+
+		
+		return result
 
 	def get_name (self):
 		print "generate top!"

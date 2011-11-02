@@ -18,14 +18,15 @@ class Test (unittest.TestCase):
 			if (os.environ["SAPLIB_DEBUG"] == "True"):
 				self.dbg = True
 
-		print "debug flag: " + str(self.dbg)
+		#print "debug flag: " + str(self.dbg)
 
 		os.environ["SAPLIB_BASE"] = sys.path[0] + "/saplib"
 		for name in dir(self.gen_module):
 			obj = getattr(self.gen_module, name)
 			if isclass(obj) and issubclass(obj, Gen) and obj is not Gen:
 				self.gen = obj()
-				print "found " + name
+				if (self.dbg):
+					print "found " + name
 
 		return
 
@@ -170,6 +171,49 @@ class Test (unittest.TestCase):
 		buf = result
 		#print "out:\n" + buf
 		self.assertEqual(len(buf) > 0, True)
+
+	def test_generate_arbitrator_buffer_not_needed(self):
+		"""test if the generate arbitrator buffer will successfully generate a buffer"""
+		arb_buf = ""
+		tags = {}
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/mem_example.json"
+			filein = open(filename)
+			filestr = filein.read()
+			tags = json.loads(filestr)
+
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+
+		arb_buf = self.gen.generate_arbitrator_buffer(tags, debug = self.dbg)
+		self.assertEqual(len(arb_buf), 0)
+
+	def test_generate_arbitrator_buffer_simple(self):
+		"""test if the generate arbitrator buffer will successfully generate a buffer"""
+		arb_buf = ""
+		tags = {}
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/arb_example.json"
+			filein = open(filename)
+			filestr = filein.read()
+			tags = json.loads(filestr)
+
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+
+		arb_buf = self.gen.generate_arbitrator_buffer(tags, debug = self.dbg)
+		print "arbitrator buffer: \n" + arb_buf
+		self.assertEqual(len(arb_buf) > 0, True)
+
+
+
+#	def test_generate_arbitrator_buffer_difficult(self):
+#		"""test if the generate arbitrator buffer will successfully generate a complex arbitrator entry buffer"""
+#		self.assertEqual(False, False)
+
+
 
 if __name__ == "__main__":
 	unittest.main()

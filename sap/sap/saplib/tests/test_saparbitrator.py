@@ -70,7 +70,16 @@ class Test (unittest.TestCase):
 
 		result = saparbitrator.generate_arbitrator_tags(tags, debug = self.dbg)
 
-		self.assertEqual((len(result.keys()) > 0), False)
+		if (self.dbg):
+			for aslave in result.keys():
+				print "arbitrated slave: " + aslave
+
+				for master in result[aslave]:
+					print "\tmaster: " + master + " bus: " + result[aslave][master]
+					
+
+		self.assertEqual((len(result.keys()) > 0), True)
+
 
 if __name__ == "__main__":
 	unittest.main()

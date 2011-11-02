@@ -23,12 +23,14 @@ class GenArbitrator(Gen):
 		data_buf = ""
 		assign_buf = ""
 
+		for key in tags.keys():
+			print "arbitrator key: " + key
 		#get the number of masters
 		if (tags.has_key("MASTERS")):
 			num_masters = len(tags["MASTERS"])
 			
 		else:
-			print "Error in generate arbitrator: there is no list of masters in the tag"
+			print "Error in generate arbitrator: no list of masters in the tag"
 #XXX HOW DO i RAISE AN EXCEPTION?
 			return
 
@@ -47,11 +49,9 @@ class GenArbitrator(Gen):
 			port_buf = port_buf + "\tm" + str(i) + "_dat_o,\n"
 			port_buf = port_buf + "\tm" + str(i) + "_adr_i,\n"
 			port_buf = port_buf + "\tm" + str(i) + "_int_o"
-
-			if (i < num_masters - 1):
-				port_buf = port_buf + ",\n"
+			port_buf = port_buf + ",\n"
 				
-			port_buf = "\n\n" + port_buf + "\n\n"
+			port_buf = port_buf + "\n\n"
 	
 		if (debug):
 			print "port_buf: " + port_buf

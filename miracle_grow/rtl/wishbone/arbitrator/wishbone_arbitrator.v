@@ -39,7 +39,7 @@ ${PORTS}
     s_dat_o,
     s_dat_i,
     s_adr_o,
-    s_int_i,
+    s_int_i
 
 );
 
