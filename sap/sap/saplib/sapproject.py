@@ -262,21 +262,6 @@ class SapProject:
 		arb_size_list = []
 		arbitrator_buffer = ""
 
-		cl = __import__("gen")
-		Gen = getattr(cl, "Gen")
-		gen_arbitrator = __import__("gen_arbitrator")
-
-
-		#get the template file
-		try:
-				filename = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/arbitrator/wishbone_arbitrator.v"
-				filein = open(filename)
-				arbitrator_buffer = filein.read()
-				filein.close()
-		except IOError as err:
-			print "File Error: " + str(err)
-
-
 
 		#we have some arbitrators, add the tag to the project
 		#	(this is needed for gen_top)
@@ -285,32 +270,19 @@ class SapProject:
 
 		#for each of the items in the arbitrator list create a file tags
 		#item that can be proecessed by sapfile.process file
-		ga = gen_arbitrator.GenArbitrator()
 		for i in range (0, len(arb_tags.keys())):
 			key = arb_tags.keys()[i]
-#			if debug:
-#				print "working on arbitrator: " + key
-#				for sub_key in arb_tags[key].keys():
-#					print "\tarbitrator item: " + sub_key
 			arb_size = len(arb_tags[key]) + 1
 			if (arb_size in arb_size_list): 
 				continue
 			#we don't already have this size, so add it into the list
-			f_tags = {}
-			f_tags ["MASTERS"] = []
-			f_tags ["MASTERS"].append("main_interconnect")
-
-			for master in arb_tags[key].keys():
-				print "\tarbitrator item: " + master
-				f_tags["MASTERS"].append(arb_tags[key][master])
-			f_tags["gen_script"] = "gen_arbitrator"
 			arb_size_list.append(arb_size)
 			fn = "arbitrator_" + str(arb_size) + "_masters.v"
 			d = self.project_tags["BASE_DIR"] + "/rtl/bus/arbitrators"
 			
-			self.filegen.buf = ga.gen_script(f_tags, arbitrator_buffer, True)
-			print "\n\n\n\n\n\n\n\n\n\n\nHERE!!!\n\n\n\n\n\n"
-			print "arbitrator buffer: " + self.filegen.buf
+			self.filegen.buf = saparbitrator.generate_arbitrator_buffer(arb_size)
+			if debug:
+				print "arbitrator buffer: " + self.filegen.buf
 			self.filegen.write_file(d, fn)
 
 		return len(arb_size_list)

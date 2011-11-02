@@ -80,6 +80,13 @@ class Test (unittest.TestCase):
 
 		self.assertEqual((len(result.keys()) > 0), True)
 
+	
+	def test_generate_arbitrator_buffer (self):
+		"""generate an arbitrator buffer"""
+		result = saparbitrator.generate_arbitrator_buffer(2, debug = self.dbg)
+		if (self.dbg):
+			print "generated arbitrator buffer: \n" + result
+		self.assertEqual((len(result) > 0), True)
 
 if __name__ == "__main__":
 	unittest.main()
