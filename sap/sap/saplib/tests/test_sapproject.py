@@ -1,5 +1,6 @@
 import unittest
 import sapproject
+import saparbitrator
 import saputils
 import sys
 import os
@@ -101,6 +102,9 @@ class Test (unittest.TestCase):
 							key,
 							self.project.project_tags["BASE_DIR"])
 
+		arb_tags = saparbitrator.generate_arbitrator_tags(self.project.project_tags)
+		self.project.project_tags["ARBITRATORS"] = arb_tags
+
 		result = self.project.generate_arbitrators(debug = self.dbg)
 		self.assertEqual(result, 1)
 
@@ -123,6 +127,8 @@ class Test (unittest.TestCase):
 							key,
 							self.project.project_tags["BASE_DIR"])
 
+		arb_tags = saparbitrator.generate_arbitrator_tags(self.project.project_tags)
+		self.project.project_tags["ARBITRATORS"] = arb_tags
 	
 	
 		result = self.project.generate_arbitrators(debug = self.dbg)

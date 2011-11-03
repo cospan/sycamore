@@ -65,7 +65,7 @@ class GenDRT(Gen):
 			drt_size_buffer = "{0:0=8X}"
 
 			offset = 0x01000000 * (i + 1)
-			drt_id_buffer = drt_id_buffer.format(atoi(slave_tags["keywords"]["DRT_ID"]))
+			drt_id_buffer = drt_id_buffer.format(atoi(slave_tags["keywords"]["DRT_ID"].strip()))
 			drt_flags_buffer = drt_flags_buffer.format(0x00000000 + atoi(slave_tags["keywords"]["DRT_FLAGS"]))
 			drt_offset_buffer = drt_offset_buffer.format(offset)
 			drt_size_buffer = drt_size_buffer.format(atoi(slave_tags["keywords"]["DRT_SIZE"]))

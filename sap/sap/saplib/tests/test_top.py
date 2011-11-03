@@ -70,7 +70,7 @@ class Test (unittest.TestCase):
 
 	def test_is_wishbone_port(self):
 		result = False	
-		result = self.gen.is_wishbone_port("lcd_stb_i")
+		result = self.gen.is_wishbone_port("wbs_stb_i")
 		self.assertEqual(result, True)
 
 	def test_gen_top(self):

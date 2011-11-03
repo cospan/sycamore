@@ -447,23 +447,23 @@ class GenTop(Gen):
 		return top_buffer
 
 	def is_wishbone_port(self, port = ""):
-		if (port.endswith("we_i")):
+		if (port.endswith("wbs_we_i")):
 			return True
-		if (port.endswith("cyc_i")):
+		if (port.endswith("wbs_cyc_i")):
 			return True
-		if (port.endswith("stb_i")):
+		if (port.endswith("wbs_stb_i")):
 			return True
-		if (port.endswith("sel_i")):
+		if (port.endswith("wbs_sel_i")):
 			return True
-		if (port.endswith("ack_o")):
+		if (port.endswith("wbs_ack_o")):
 			return True
-		if (port.endswith("dat_i")):
+		if (port.endswith("wbs_dat_i")):
 			return True
-		if (port.endswith("dat_o")):
+		if (port.endswith("wbs_dat_o")):
 			return True
-		if (port.endswith("adr_i")):
+		if (port.endswith("wbs_adr_i")):
 			return True
-		if (port.endswith("int_o")):
+		if (port.endswith("wbs_int_o")):
 			return True
 		return False
 
@@ -503,7 +503,7 @@ class GenTop(Gen):
 				else:
 					pre_name += "s" + str(index) + "_"
 
-
+		#generate all the wires
 		for io in io_types:
 			for port in module_tags["ports"][io].keys():
 				pdict = module_tags["ports"][io][port]
@@ -640,6 +640,119 @@ class GenTop(Gen):
 				print "using: " + arb_module 	
 				print "arbitrator name: " + arb_name
 
+			#generate the wires
+			for mi in range (0, master_count):
+				wbm_name = ""
+				if (mi == 0):
+					#these wires are taken care of by the interconnect
+					continue
+				else:
+	
+					master_name = arb_tags[arb_slave].keys()[mi - 1]
+					bus_name = arb_tags[arb_slave][master_name]
+					wbm_name = master_name + "_" + bus_name 
+
+					#strobe
+					wire = wbm_name + "_stb_o"
+					if (not (wire in self.wires)):
+						result +="\twire\t\t\t" + wire + ";\n"
+						self.wires.append(wire)
+					#cycle
+					wire = wbm_name + "_cyc_o"
+					if (not (wire in self.wires)):
+						result +="\twire\t\t\t" + wire + ";\n" 
+						self.wires.append(wire)
+					#write enable
+					wire = wbm_name + "_we_o"
+					if (not (wire in self.wires)):
+						result +="\twire\t\t\t" + wire + ";\n"
+						self.wires.append(wire)
+					#select
+					wire = wbm_name + "_sel_o"
+					if (not (wire in self.wires)):
+						result +="\twire\t[3:0]\t" + wire + ";\n"
+						self.wires.append(wire)
+					#in data
+					wire = wbm_name + "_dat_o"
+					if (not (wire in self.wires)):
+						result +="\twire\t[31:0]\t" + wire + ";\n"
+						self.wires.append(wire)
+					#out data
+					wire = wbm_name + "_dat_i"
+					if (not (wire in self.wires)):
+						result +="\twire\t[31:0]\t" + wire + ";\n"
+						self.wires.append(wire)
+					#address
+					wire = wbm_name + "_adr_o"
+					if (not (wire in self.wires)):
+						result +="\twire\t[31:0]\t" + wire + ";\n"
+						self.wires.append(wire)
+					#acknowledge
+					wire = wbm_name + "_ack_i"
+					if (not (wire in self.wires)):
+						result +="\twire\t\t\t" + wire + ";\n"
+						self.wires.append(wire)
+					#interrupt
+					wire = wbm_name + "_int_i"
+					if (not (wire in self.wires)):
+						result +="\twire\t\t\t" + wire + ";\n"
+						self.wires.append(wire)
+
+			#generate arbitrator signals
+			#strobe
+			wire = arb_name + "_wbs_stb_i"
+			if (not (wire in self.wires)):
+				result +="\twire\t\t\t" + wire + ";\n"
+				self.wires.append(wire)
+			#cycle
+			wire = arb_name + "_wbs_cyc_i"
+			if (not (wire in self.wires)):
+				result +="\twire\t\t\t" + wire + ";\n" 
+				self.wires.append(wire)
+			#write enable
+			wire = arb_name + "_wbs_we_i"
+			if (not (wire in self.wires)):
+				result +="\twire\t\t\t" + wire + ";\n"
+				self.wires.append(wire)
+			#select
+			wire = arb_name + "_wbs_sel_i"
+			if (not (wire in self.wires)):
+				result +="\twire\t[3:0]\t" + wire + ";\n"
+				self.wires.append(wire)
+			#in data
+			wire = arb_name + "_wbs_dat_i"
+			if (not (wire in self.wires)):
+				result +="\twire\t[31:0]\t" + wire + ";\n"
+				self.wires.append(wire)
+			#out data
+			wire = arb_name + "_wbs_dat_o"
+			if (not (wire in self.wires)):
+				result +="\twire\t[31:0]\t" + wire + ";\n"
+				self.wires.append(wire)
+			#address
+			wire = arb_name + "_wbs_adr_i"
+			if (not (wire in self.wires)):
+				result +="\twire\t[31:0]\t" + wire + ";\n"
+				self.wires.append(wire)
+			#acknowledge
+			wire = arb_name + "_wbs_ack_o"
+			if (not (wire in self.wires)):
+				result +="\twire\t\t\t" + wire + ";\n"
+				self.wires.append(wire)
+			#interrupt
+			wire = arb_name + "_wbs_int_o"
+			if (not (wire in self.wires)):
+				result +="\twire\t\t\t" + wire + ";\n"
+				self.wires.append(wire)
+
+			result +="\n\n"
+
+
+				
+
+
+			#finished generating the wires
+
 			result += "\t" + arb_module + " " + arb_name + "(\n"
 			result += "\t\t.clk(clk),\n"
 			result += "\t\t.rst(rst),\n"
@@ -683,7 +796,7 @@ class GenTop(Gen):
 									break
 					result +="\t\t.m" + str(mi) + "_stb_i(" + wbm_name + "_wbs_stb_i),\n"
 					result +="\t\t.m" + str(mi) + "_cyc_i(" + wbm_name + "_wbs_cyc_i),\n"
-					result +="\t\t.m" + str(mi) + "_we_i(" + wbm_name + "_wbs_we i),\n"
+					result +="\t\t.m" + str(mi) + "_we_i(" + wbm_name + "_wbs_we_i),\n"
 					result +="\t\t.m" + str(mi) + "_sel_i(" + wbm_name + "_wbs_sel_i),\n"
 					result +="\t\t.m" + str(mi) + "_dat_i(" + wbm_name + "_wbs_dat_i),\n"
 					result +="\t\t.m" + str(mi) + "_adr_i(" + wbm_name + "_wbs_adr_i),\n"
@@ -704,7 +817,7 @@ class GenTop(Gen):
 
 					result +="\t\t.m" + str(mi) + "_stb_i(" + wbm_name + "_stb_o),\n"
 					result +="\t\t.m" + str(mi) + "_cyc_i(" + wbm_name + "_cyc_o),\n"
-					result +="\t\t.m" + str(mi) + "_we_i(" + wbm_name + "_we o),\n"
+					result +="\t\t.m" + str(mi) + "_we_i(" + wbm_name + "_we_o),\n"
 					result +="\t\t.m" + str(mi) + "_sel_i(" + wbm_name + "_sel_o),\n"
 					result +="\t\t.m" + str(mi) + "_dat_i(" + wbm_name + "_dat_o),\n"
 					result +="\t\t.m" + str(mi) + "_adr_i(" + wbm_name + "_adr_o),\n"
@@ -723,7 +836,7 @@ class GenTop(Gen):
 			result += "\t\t.s_adr_o(" + arb_name + "_wbs_adr_i),\n"
 			result += "\t\t.s_dat_i(" + arb_name + "_wbs_dat_o),\n"
 			result += "\t\t.s_ack_i(" + arb_name + "_wbs_ack_o),\n"
-			result += "\t\t.s_int_i(" + arb_name + "_wbs_int o)\n"
+			result += "\t\t.s_int_i(" + arb_name + "_wbs_int_o)\n"
 
 			result += ");\n"
 

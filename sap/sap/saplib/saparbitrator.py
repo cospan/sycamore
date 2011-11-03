@@ -112,7 +112,7 @@ def generate_arbitrator_buffer(master_count = 0, debug = False):
 		port_def_buf = port_def_buf + "input\t[31:0]\tm" + str(i) + "_dat_i;\n"
 		port_def_buf = port_def_buf + "output\t[31:0]\tm" + str(i) + "_dat_o;\n"
 		port_def_buf = port_def_buf + "output\t\tm" + str(i) + "_ack_o;\n"
-		port_def_buf = port_def_buf + "output\t\tm" + str(i) + "_ont_o;\n"
+		port_def_buf = port_def_buf + "output\t\tm" + str(i) + "_int_o;\n"
 		port_def_buf = port_def_buf + "\n\n"
 
 	if (debug):
@@ -275,12 +275,15 @@ def generate_arbitrator_buffer(master_count = 0, debug = False):
 	#generate the assigns
 	assign_buf = "//assign block\n"
 	for i in range(master_count):
-		assign_buf += "m" + str(i) + "_ack_o = (master_select == MASTER_" + str(i) + ") ? s_ack_i : 0;\n"
-		assign_buf += "m" + str(i) + "_dat_o = (master_select == MASTER_" + str(i) + ") ? s_ack_i : 0;\n"
-		assign_buf += "m" + str(i) + "_int_o = (master_select == MASTER_" + str(i) + ") ? s_ack_i : 0;\n"
+		assign_buf += "assign m" + str(i) + "_ack_o = (master_select == MASTER_" + str(i) + ") ? s_ack_i : 0;\n"
+		assign_buf += "assign m" + str(i) + "_dat_o = (master_select == MASTER_" + str(i) + ") ? s_ack_i : 0;\n"
+		assign_buf += "assign m" + str(i) + "_int_o = (master_select == MASTER_" + str(i) + ") ? s_ack_i : 0;\n"
 		assign_buf += "\n"
 
-	buf = template.substitute ( PORTS=port_buf,
+	arbitrator_name = "arbitrator_" + str(master_count) + "_masters"
+
+	buf = template.substitute ( ARBITRATOR_NAME=arbitrator_name,
+								PORTS=port_buf,
 								PORT_DEFINES=port_def_buf,
 								MASTER_SELECT=master_sel_buf,
 								WRITE=write_buf,

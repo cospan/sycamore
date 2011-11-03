@@ -23,7 +23,7 @@ SOFTWARE.
 */
 
 
-module wishbone_arbitrator (
+module ${ARBITRATOR_NAME} (
 	clk,
 	rst,
 
@@ -49,22 +49,22 @@ input 				clk;
 input 				rst;
 
 //wishbone slave signals
-input 				m_we_o;
-input 				m_stb_o;
-input 				m_cyc_o;
-input		[3:0]	m_sel_o;
-input		[31:0]	m_adr_o;
-input  		[31:0]	m_dat_o;
-output reg  [31:0]	m_dat_i;
-output reg      	m_ack_i;
-output reg 			m_int_i;
+output reg			s_we_o;
+output reg			s_stb_o;
+output reg 			s_cyc_o;
+output reg	[3:0]	s_sel_o;
+output reg	[31:0]	s_adr_o;
+output reg  [31:0]	s_dat_o;
+input  		[31:0]	s_dat_i;
+input      			s_ack_i;
+input 				s_int_i;
 
 
 //wishbone master signals
 ${PORT_DEFINES}
 
 //this should be parameterized
-wire [7:0]master_select;
+reg [7:0]master_select;
 
 ${MASTER_SELECT}
 

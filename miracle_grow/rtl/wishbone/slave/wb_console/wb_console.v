@@ -22,19 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
-
 /*
-	10/23/2011
-		-fixed the wbs_ack_i to wbs_ack_o
-		-added the default entries for read and write
-			to illustrate the method of communication
-		-added license
-*/
-/*
-	9/10/2011
-		-removed the duplicate wbs_dat_i
-		-added the wbs_sel_i port
+	11/02/2011
+		-changed the DRT ID to 6
 */
 
 /*
@@ -44,7 +34,7 @@ SOFTWARE.
 	META DATA
 
 	identification of your device 0 - 65536
-	DRT_ID: 0
+	DRT_ID:6
 
 	flags (read drt.txt in the slave/device_rom_table directory 1 means
 	a standard device
