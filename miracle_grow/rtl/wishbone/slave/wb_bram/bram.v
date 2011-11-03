@@ -47,13 +47,13 @@ input rst;
 
 input en;
 input we;
-input [12:0] write_address;
-input [12:0] read_address;
+input [31:0] write_address;
+input [31:0] read_address;
 input [31:0] data_in;
 output reg [31:0] data_out;
 
 //synthesis attribute ram_style of mem is block
-reg [31:0] mem [1023:0]; //pragma attribute mem ram_block TRUE
+reg [31:0] mem [0:1023]; //pragma attribute mem ram_block TRUE
 reg [31:0] read_address_reg;
 
 

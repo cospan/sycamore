@@ -88,7 +88,7 @@ output reg  [31:0]	wbs_dat_o;
 output reg			wbs_ack_o;
 output reg			wbs_int_o;
 
-parameter			RAM_SIZE = 12;
+parameter			RAM_SIZE = 31;
 parameter			SLEEP_COUNT = 4;
 
 wire [31:0] read_data;

@@ -229,6 +229,8 @@ class SapProject:
 		"""recursively generate all directories and files"""
 		if (parent_dict[key].has_key("dir") and parent_dict[key]["dir"]):
 			#print "found dir"
+			if (key == "arbitrators" and (len(self.project_tags["ARBITRATORS"].keys()) == 0)):
+				return True
 			saputils.create_dir(parent_dir + "/" + key)
 			if (parent_dict[key].has_key("files")):
 				for sub_key in parent_dict[key]["files"]:
