@@ -104,15 +104,15 @@ def generate_arbitrator_buffer(master_count = 0, debug = False):
 
 	#generate the port defines
 	for i in range (master_count):
-		port_def_buf = port_def_buf + "input\t\tm" + str(i) + "_we_i;\n"
-		port_def_buf = port_def_buf + "input\t\tm" + str(i) + "_cyc_i;\n"
-		port_def_buf = port_def_buf + "input\t\tm" + str(i) + "_stb_i;\n"
+		port_def_buf = port_def_buf + "input\t\t\tm" + str(i) + "_we_i;\n"
+		port_def_buf = port_def_buf + "input\t\t\tm" + str(i) + "_cyc_i;\n"
+		port_def_buf = port_def_buf + "input\t\t\tm" + str(i) + "_stb_i;\n"
 		port_def_buf = port_def_buf + "input\t[3:0]\tm" + str(i) + "_sel_i;\n"
 		port_def_buf = port_def_buf + "input\t[31:0]\tm" + str(i) + "_adr_i;\n"
 		port_def_buf = port_def_buf + "input\t[31:0]\tm" + str(i) + "_dat_i;\n"
 		port_def_buf = port_def_buf + "output\t[31:0]\tm" + str(i) + "_dat_o;\n"
-		port_def_buf = port_def_buf + "output\t\tm" + str(i) + "_ack_o;\n"
-		port_def_buf = port_def_buf + "output\t\tm" + str(i) + "_int_o;\n"
+		port_def_buf = port_def_buf + "output\t\t\tm" + str(i) + "_ack_o;\n"
+		port_def_buf = port_def_buf + "output\t\t\tm" + str(i) + "_int_o;\n"
 		port_def_buf = port_def_buf + "\n\n"
 
 	if (debug):
@@ -177,7 +177,7 @@ def generate_arbitrator_buffer(master_count = 0, debug = False):
 		write_buf += "\t\tend\n"
 
 	write_buf += "\t\tdefault: begin\n"
-	write_buf += "\t\t\ts_we_o <= 1'hx;\n"
+	write_buf += "\t\t\ts_we_o <= 1'h0;\n"
 	write_buf += "\t\tend\n"
 	write_buf += "\tendcase\n"
 	write_buf += "end\n"
@@ -195,7 +195,7 @@ def generate_arbitrator_buffer(master_count = 0, debug = False):
 		strobe_buf += "\t\tend\n"
 
 	strobe_buf += "\t\tdefault: begin\n"
-	strobe_buf += "\t\t\ts_stb_o <= 1'hx;\n"
+	strobe_buf += "\t\t\ts_stb_o <= 1'h0;\n"
 	strobe_buf += "\t\tend\n"
 	strobe_buf += "\tendcase\n"
 	strobe_buf += "end\n"
@@ -213,7 +213,7 @@ def generate_arbitrator_buffer(master_count = 0, debug = False):
 		cycle_buf += "\t\tend\n"
 
 	cycle_buf += "\t\tdefault: begin\n"
-	cycle_buf += "\t\t\ts_cyc_o <= 1'hx;\n"
+	cycle_buf += "\t\t\ts_cyc_o <= 1'h0;\n"
 	cycle_buf += "\t\tend\n"
 	cycle_buf += "\tendcase\n"
 	cycle_buf += "end\n"
@@ -231,7 +231,7 @@ def generate_arbitrator_buffer(master_count = 0, debug = False):
 		select_buf += "\t\tend\n"
 
 	select_buf += "\t\tdefault: begin\n"
-	select_buf += "\t\t\ts_sel_o <= 1'hx;\n"
+	select_buf += "\t\t\ts_sel_o <= 4'h0;\n"
 	select_buf += "\t\tend\n"
 	select_buf += "\tendcase\n"
 	select_buf += "end\n"
@@ -249,7 +249,7 @@ def generate_arbitrator_buffer(master_count = 0, debug = False):
 		address_buf += "\t\tend\n"
 
 	address_buf += "\t\tdefault: begin\n"
-	address_buf += "\t\t\ts_adr_o <= 1'hx;\n"
+	address_buf += "\t\t\ts_adr_o <= 32'h00000000;\n"
 	address_buf += "\t\tend\n"
 	address_buf += "\tendcase\n"
 	address_buf += "end\n"
@@ -267,7 +267,7 @@ def generate_arbitrator_buffer(master_count = 0, debug = False):
 		data_buf += "\t\tend\n"
 
 	data_buf += "\t\tdefault: begin\n"
-	data_buf += "\t\t\ts_dat_o <= 1'hx;\n"
+	data_buf += "\t\t\ts_dat_o <= 32'h00000000;\n"
 	data_buf += "\t\tend\n"
 	data_buf += "\tendcase\n"
 	data_buf += "end\n"
@@ -276,8 +276,8 @@ def generate_arbitrator_buffer(master_count = 0, debug = False):
 	assign_buf = "//assign block\n"
 	for i in range(master_count):
 		assign_buf += "assign m" + str(i) + "_ack_o = (master_select == MASTER_" + str(i) + ") ? s_ack_i : 0;\n"
-		assign_buf += "assign m" + str(i) + "_dat_o = (master_select == MASTER_" + str(i) + ") ? s_ack_i : 0;\n"
-		assign_buf += "assign m" + str(i) + "_int_o = (master_select == MASTER_" + str(i) + ") ? s_ack_i : 0;\n"
+		assign_buf += "assign m" + str(i) + "_dat_o = (master_select == MASTER_" + str(i) + ") ? s_dat_i : 0;\n"
+		assign_buf += "assign m" + str(i) + "_int_o = (master_select == MASTER_" + str(i) + ") ? s_int_i : 0;\n"
 		assign_buf += "\n"
 
 	arbitrator_name = "arbitrator_" + str(master_count) + "_masters"

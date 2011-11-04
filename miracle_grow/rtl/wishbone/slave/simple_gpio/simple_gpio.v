@@ -93,10 +93,11 @@ always @ (posedge clk) begin
     	//when the master acks our ack, then put our ack down
 	    if (wbs_ack_o & ~ wbs_stb_i)begin
     		wbs_ack_o <= 0;
+			$display ("ack_o down");
 	    end
 
     	if (wbs_stb_i & wbs_cyc_i) begin
-            $display ("new transaction in GPIO, ADDR: %h", wbs_adr_i);
+            //$display ("new transaction in GPIO, ADDR: %h", wbs_adr_i);
 	    	//master is requesting somethign
     		if (wbs_we_i) begin
 		    	//write request
@@ -106,6 +107,7 @@ always @ (posedge clk) begin
 					    gpio_out	<= wbs_dat_i & mask;
 				    end
 			    	ADDR_MASK: begin
+						$display ("setting mask value to: %h", wbs_dat_i);
 		    			mask		<= wbs_dat_i;
 	    			end
     				default: begin
@@ -118,9 +120,11 @@ always @ (posedge clk) begin
     			case (wbs_adr_i)
 				    ADDR_IO	: begin
       //                  $display ("Reading GPIO");
+	  					$display ("Reading GPIO: %h", gpio_in);
 			    		wbs_dat_o	<= gpio_in;
 		    		end
 	    			ADDR_MASK: begin
+						$display ("Reading mask: %h", mask);
     					wbs_dat_o	<= mask;
 				    end
 				    default: begin

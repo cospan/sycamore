@@ -1,4 +1,4 @@
-//wishbone_arbitrator.v
+//wishbone_interconnect.v
 /*
 Distributed under the MIT licesnse.
 Copyright (c) 2011 Dave McCoy (dave.mccoy@leaflabs.com)
@@ -23,129 +23,117 @@ SOFTWARE.
 */
 
 
-/* 
-    Thanks Rudolf Usselmann yours was a better implementation than mine
-
-    Copyright (C) 2000-2002
-    Rudolf Usselmann
-    www.asics.ws
-    rudi@asics.ws
-*/
-
-module wishbone_arbitrator (
+module arbitrator_2_masters (
 	clk,
 	rst,
 
-    m0_we_i,
-    m0_cyc_i,
-    m0_stb_i,
+	//master ports
+	m0_we_i,
+	m0_cyc_i,
+	m0_stb_i,
 	m0_sel_i,
-    m0_ack_o,
-    m0_dat_i,
-    m0_dat_o,
-    m0_adr_i,
-    m0_int_o,
+	m0_ack_o,
+	m0_dat_i,
+	m0_dat_o,
+	m0_adr_i,
+	m0_int_o,
 
-    m1_we_i,
-    m1_cyc_i,
-    m1_stb_i,
+
+	m1_we_i,
+	m1_cyc_i,
+	m1_stb_i,
 	m1_sel_i,
-    m1_ack_o,
-    m1_dat_i,
-    m1_dat_o,
-    m1_adr_i,
-    m1_int_o,
+	m1_ack_o,
+	m1_dat_i,
+	m1_dat_o,
+	m1_adr_i,
+	m1_int_o,
 
-	//these are constant
-	s_we_o,
-	s_cyc_o,
-	s_stb_o,
+
+
+
+	//slave port
+    s_we_o,
+    s_cyc_o,
+    s_stb_o,
 	s_sel_o,
-	s_ack_i,
-	s_dat_o,
-	s_dat_i,
-	s_adr_o,
-	s_int_i
-
+    s_ack_i,
+    s_dat_o,
+    s_dat_i,
+    s_adr_o,
+    s_int_i
 
 );
 
-
-
-//state
 
 //control signals
 input 				clk;
 input 				rst;
 
-//wishbone master 0 signals
-input 				m0_we_i;
-input 				m0_stb_i;
-input 				m0_cyc_i;
-input		[3:0]	m0_sel_i;
-input		[31:0]	m0_adr_i;
-input  		[31:0]	m0_dat_i;
-output 		[31:0]	m0_dat_o;
-output		      	m0_ack_o;
-output				m0_int_o;
-
-//wishbone master 1 signals
-input 				m1_we_i;
-input 				m1_stb_i;
-input 				m1_cyc_i;
-input		[3:0]	m1_sel_i;
-input		[31:0]	m1_adr_i;
-input  		[31:0]	m1_dat_i;
-output 		[31:0]	m1_dat_o;
-output		      	m1_ack_o;
-output	 			m1_int_o;
-
 //wishbone slave signals
 output reg			s_we_o;
 output reg			s_stb_o;
-output reg			s_cyc_o;
+output reg 			s_cyc_o;
 output reg	[3:0]	s_sel_o;
 output reg	[31:0]	s_adr_o;
-output reg	[31:0]	s_dat_o;
-input		[31:0]	s_dat_i;
-input				s_ack_i;
-//I think I should attach int to both masters
-input				s_int_i;
+output reg  [31:0]	s_dat_o;
+input  		[31:0]	s_dat_i;
+input      			s_ack_i;
+input 				s_int_i;
+
+
+//wishbone master signals
+input			m0_we_i;
+input			m0_cyc_i;
+input			m0_stb_i;
+input	[3:0]	m0_sel_i;
+input	[31:0]	m0_adr_i;
+input	[31:0]	m0_dat_i;
+output	[31:0]	m0_dat_o;
+output			m0_ack_o;
+output			m0_int_o;
+
+
+input			m1_we_i;
+input			m1_cyc_i;
+input			m1_stb_i;
+input	[3:0]	m1_sel_i;
+input	[31:0]	m1_adr_i;
+input	[31:0]	m1_dat_i;
+output	[31:0]	m1_dat_o;
+output			m1_ack_o;
+output			m1_int_o;
+
+
 
 
 //this should be parameterized
 reg [7:0]master_select;
 
+//master select block
 parameter MASTER_NO_SEL = 8'hFF;
-parameter MASTER_0 = 8'h0;
-parameter MASTER_1 = 8'h1;
+parameter MASTER_0 = 0;
+parameter MASTER_1 = 1;
 
-//initial begin
-//    $monitor ("%t: master_select: %h, m0_stb: %h, m1_stb: %h, s_ack: %h", $time, master_select, m0_stb_i, m1_stb_i, s_ack_i); 
-//end
-always @(rst or master_select or m0_stb_i or m1_stb_i) begin
+
+always @(rst or master_select or m0_stb_i or m1_stb_i ) begin
 	if (rst) begin
-		$display("master select reset");
 		master_select <= MASTER_NO_SEL;
 	end
 	else begin
 		case (master_select)
 			MASTER_0: begin
-				$display("master 0 selected");
 				if (~m0_stb_i) begin
 					master_select <= MASTER_NO_SEL;
 				end
 			end
 			MASTER_1: begin
-				$display("master 1 selected");
 				if (~m1_stb_i) begin
 					master_select <= MASTER_NO_SEL;
 				end
 			end
 			default: begin
-				//nothing is selected
-				$display("nothing selected");
-				//priority goes to lowest
+				//nothing selected
 				if (m0_stb_i) begin
 					master_select <= MASTER_0;
 				end
@@ -157,7 +145,8 @@ always @(rst or master_select or m0_stb_i or m1_stb_i) begin
 	end
 end
 
-//we
+
+//write select block
 always @(master_select or m0_we_i or m1_we_i) begin
 	case (master_select)
 		MASTER_0: begin
@@ -167,12 +156,14 @@ always @(master_select or m0_we_i or m1_we_i) begin
 			s_we_o <= m1_we_i;
 		end
 		default: begin
-			s_we_o <= 1'hx;
+			s_we_o <= 1'h0;
 		end
 	endcase
 end
-//stb
-always @(master_select or m0_stb_i or m1_stb_i) begin
+
+
+//strobe select block
+always @(master_select or m0_we_i or m1_we_i) begin
 	case (master_select)
 		MASTER_0: begin
 			s_stb_o <= m0_stb_i;
@@ -181,12 +172,13 @@ always @(master_select or m0_stb_i or m1_stb_i) begin
 			s_stb_o <= m1_stb_i;
 		end
 		default: begin
-			s_stb_o <= 1'hx;
+			s_stb_o <= 1'h0;
 		end
 	endcase
 end
 
-//cyc
+
+//cycle select block
 always @(master_select or m0_cyc_i or m1_cyc_i) begin
 	case (master_select)
 		MASTER_0: begin
@@ -196,12 +188,13 @@ always @(master_select or m0_cyc_i or m1_cyc_i) begin
 			s_cyc_o <= m1_cyc_i;
 		end
 		default: begin
-			s_cyc_o <= 1'hx;
+			s_cyc_o <= 1'h0;
 		end
 	endcase
 end
 
-//sel
+
+//select select block
 always @(master_select or m0_sel_i or m1_sel_i) begin
 	case (master_select)
 		MASTER_0: begin
@@ -211,12 +204,13 @@ always @(master_select or m0_sel_i or m1_sel_i) begin
 			s_sel_o <= m1_sel_i;
 		end
 		default: begin
-			s_sel_o <= 4'hx;
+			s_sel_o <= 4'h0;
 		end
 	endcase
 end
 
-//adr
+
+//address seelct block
 always @(master_select or m0_adr_i or m1_adr_i) begin
 	case (master_select)
 		MASTER_0: begin
@@ -226,12 +220,13 @@ always @(master_select or m0_adr_i or m1_adr_i) begin
 			s_adr_o <= m1_adr_i;
 		end
 		default: begin
-			s_adr_o <= 32'hx;
+			s_adr_o <= 32'h00000000;
 		end
 	endcase
 end
 
-//dat
+
+//data select block
 always @(master_select or m0_dat_i or m1_dat_i) begin
 	case (master_select)
 		MASTER_0: begin
@@ -241,19 +236,21 @@ always @(master_select or m0_dat_i or m1_dat_i) begin
 			s_dat_o <= m1_dat_i;
 		end
 		default: begin
-			s_dat_o <= 32'hx;
+			s_dat_o <= 32'h00000000;
 		end
 	endcase
 end
 
 
-assign m0_ack_o	=	(master_select == MASTER_0) ? s_ack_i : 0;
-assign m0_dat_o	=	(master_select == MASTER_0) ? s_dat_o : 0;
-assign m0_int_o =	(master_select == MASTER_0) ? s_int_o : 0;
+//assign block
+assign m0_ack_o = (master_select == MASTER_0) ? s_ack_i : 0;
+assign m0_dat_o = (master_select == MASTER_0) ? s_dat_i : 0;
+assign m0_int_o = (master_select == MASTER_0) ? s_int_i : 0;
 
-assign m1_ack_o	=	(master_select == MASTER_1) ? s_ack_i : 0;
-assign m1_dat_o	=	(master_select == MASTER_1) ? s_dat_o : 0;
-assign m1_int_o =	(master_select == MASTER_1) ? s_int_o : 0;
+assign m1_ack_o = (master_select == MASTER_1) ? s_ack_i : 0;
+assign m1_dat_o = (master_select == MASTER_1) ? s_dat_i : 0;
+assign m1_int_o = (master_select == MASTER_1) ? s_int_i : 0;
+
 
 
 endmodule
