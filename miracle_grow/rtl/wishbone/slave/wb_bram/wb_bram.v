@@ -23,6 +23,10 @@ SOFTWARE.
 */
 
 
+/*
+	11/05/2011
+		set en_ram to 0 on reset
+*/
 
 /*
 	10/23/2011
@@ -119,6 +123,7 @@ always @ (posedge clk) begin
 		wbs_int_o	<= 0;
 		ram_sleep	<= SLEEP_COUNT;
 		ram_adr		<= 0;
+		en_ram		<= 0;
 	end
 
 	else begin

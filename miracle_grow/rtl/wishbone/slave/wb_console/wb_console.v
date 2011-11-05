@@ -71,7 +71,18 @@ module wb_console (
 	fb_dat_o,
 	fb_dat_i,
 	fb_ack_i,
-	fb_int_i
+	fb_int_i,
+
+	lcd_we_o,
+	lcd_stb_o,
+	lcd_cyc_o,
+	lcd_sel_o,
+	lcd_adr_o,
+	lcd_dat_o,
+	lcd_dat_i,
+	lcd_ack_i,
+	lcd_int_i
+
 );
 
 input 				clk;
@@ -88,7 +99,7 @@ output reg  [31:0]	wbs_dat_o;
 output reg			wbs_ack_o;
 output reg			wbs_int_o;
 
-//master control signal for arbitration
+//master control signal for memory arbitration
 output reg			fb_we_o;
 output reg			fb_stb_o;
 output reg			fb_cyc_o;
@@ -99,16 +110,78 @@ input		[31:0]	fb_dat_i;
 input				fb_ack_i;
 input				fb_int_i;
 
-parameter			ADDR_0	=	32'h00000000;
-parameter			ADDR_1	=	32'h00000001;
-parameter			ADDR_2	=	32'h00000002;
+//master control signal for lcd arbitration
+output reg			lcd_we_o;
+output reg			lcd_stb_o;
+output reg			lcd_cyc_o;
+output reg	[3:0]	lcd_sel_o;
+output reg	[31:0]	lcd_adr_o;
+output reg	[31:0]	lcd_dat_o;
+input		[31:0]	lcd_dat_i;
+input				lcd_ack_i;
+input				lcd_int_i;
+
+
+
+parameter			TIMEOUT				=	32'd10;
+//30 times a second
+//parameter			TIMEOUT				=	32'd1666666;
+//60 times a second
+//parameter			TIMEOUT				=	32'd833333;
+
+parameter			ADDR_CONTROL		=	32'h00000000;
+parameter			ADDR_TIMEOUT		=	32'h00000001;
+parameter			ADDR_UPDATE_RATE	=	32'h00000002;
+parameter			ADDR_SCREEN_WIDTH	=	32'h00000003;
+parameter			ADDR_SCREEN_HEIGHT	=	32'h00000004;
+parameter			ADDR_FONT_ADDRESS	=	32'h00000005;
+parameter			ADDR_FRONT			=	32'h00000006;
+parameter			ADDR_BACK			=	32'h00000007;
+
+
+reg			[31:0]	local_data;
+reg			[31:0]	timeout;
+
+reg			[31:0]	screen_width;
+reg			[31:0]	screen_height;
+
+reg			[31:0]	buffer_pointer;
+reg			[31:0]	front;
+reg			[31:0]	back;
+reg			[31:0]	font_address;
+
+wire		[31:0]	status;
+
+reg					timeout_elapsed;
+
+//flags
+reg					console_ready;
+reg					enable_console;
+reg					enable_timeout;
+
+assign	status[0]	=	console_ready;
+assign	status[1]	=	enable_console;
+assign 	status[2]	=	enable_timeout;
+
+
 
 //blocks
 always @ (posedge clk) begin
+	enable_console			<= 0;
 	if (rst) begin
-		wbs_dat_o	<= 32'h0;
-		wbs_ack_o	<= 0;
-		wbs_int_o	<= 0;
+		wbs_dat_o			<= 32'h0;
+		wbs_ack_o			<= 0;
+		wbs_int_o			<= 0;
+
+		local_data			<= 32'h00000000;
+		console_ready		<= 0;
+		timeout				<= TIMEOUT;
+		timeout_elapsed			<= 0;
+
+		enable_console		<= 0;
+//		enable_timeout		<= 0;
+		enable_timeout		<= 1;
+		
 	end
 
 	else begin
@@ -122,23 +195,27 @@ always @ (posedge clk) begin
 			if (wbs_we_i) begin
 				//write request
 				case (wbs_adr_i) 
-					ADDR_0: begin
+					ADDR_CONTROL: begin
 						//writing something to address 0
 						//do something
 	
 						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
 						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
 						$display("user wrote %h", wbs_dat_i);
+						enable_console	<= wbs_dat_i[0];
+						enable_timeout	<= wbs_dat_i[1];
+						local_data <= wbs_dat_i;
 					end
-					ADDR_1: begin
+					ADDR_TIMEOUT: begin
 						//writing something to address 1
 						//do something
 	
 						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
 						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
 						$display("user wrote %h", wbs_dat_i);
+						timeout			<= wbs_dat_i;
 					end
-					ADDR_2: begin
+					ADDR_UPDATE_RATE: begin
 						//writing something to address 3
 						//do something
 	
@@ -155,26 +232,20 @@ always @ (posedge clk) begin
 			else begin 
 				//read request
 				case (wbs_adr_i)
-					ADDR_0: begin
-						//reading something from address 0
-						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-						$display("user read %h", ADDR_0);
-						wbs_dat_o <= ADDR_0;
+					ADDR_CONTROL: begin
+						//read the control and status flags
+						$display("user read %h", ADDR_CONTROL);
+						wbs_dat_o <= status;
 					end
-					ADDR_1: begin
-						//reading something from address 1
-						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-						$display("user read %h", ADDR_1);
-						wbs_dat_o <= ADDR_1;
+					ADDR_TIMEOUT: begin
+						//read the timeout value
+						$display("user read %h", ADDR_TIMEOUT);
+						wbs_dat_o <= timeout;
 					end
-					ADDR_2: begin
-						//reading soething from address 2
-						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-						$display("user read %h", ADDR_2);
-						wbs_dat_o <= ADDR_2;
+					ADDR_UPDATE_RATE: begin
+						//read the update rate
+						$display("user read %h", ADDR_UPDATE_RATE);
+						wbs_dat_o <= ADDR_UPDATE_RATE;
 					end
 					//add as many ADDR_X you need here
 					default: begin
@@ -186,5 +257,62 @@ always @ (posedge clk) begin
 	end
 end
 
+
+//wishbone master module
+always @ (posedge clk) begin
+	if (rst) begin
+		fb_we_o		<= 0;
+		fb_stb_o 	<= 0;
+		fb_cyc_o 	<= 0;
+		fb_sel_o 	<= 4'h0;
+		fb_adr_o	<= 32'h00000000;
+		fb_dat_o	<= 32'h00000000;
+	end
+	else begin
+		if (timeout_elapsed) begin
+			$display ("write to the memory");
+		end
+		if (fb_ack_i) begin
+			$display ("got an ack!");
+			fb_stb_o	<= 0;
+			fb_cyc_o	<= 0;
+		end
+		if (enable_console) begin
+			$display("enable a host write! of %h", local_data);
+			fb_stb_o <= 1;
+			fb_cyc_o <= 1;
+			fb_stb_o <= 1;
+			fb_we_o	<= 1;
+			fb_adr_o <= 0;
+			fb_dat_o <= 32'h0000000F;  
+		end
+	end
+end
+
+
+//timeout
+reg		[31:0]	timeout_count;
+always @ (posedge clk) begin
+	timeout_elapsed	<= 0;
+	if (rst) begin
+		timeout_count	<= 32'h00000000;
+	end
+	else begin
+		if (enable_timeout) begin
+			if (timeout_count > timeout) begin
+				//reached the max, reset everything
+				timeout_count 	<= 32'h00000000;
+				timeout_elapsed	<= 1;
+				$display ("timeout!");
+			end
+			else begin
+				timeout_count <= timeout_count + 1;
+			end
+		end
+		else begin
+			timeout_count <= 32'h00000000;
+		end
+	end
+end
 
 endmodule

@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 /*
  * This BRAM code was inspired by this website:
  * http://www.dilloneng.com/documents/howto/ram_inference

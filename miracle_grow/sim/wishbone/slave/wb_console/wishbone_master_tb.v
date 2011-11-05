@@ -146,6 +146,50 @@ wire [31:0]	wbs1_dat_i;
 wire [31:0]	wbs1_adr_o;
 wire		wbs1_int_i;
 
+//arbitrator signals
+wire		arb_we_o;
+wire		arb_cyc_o;
+wire[31:0]	arb_dat_o;
+wire		arb_stb_o;
+wire [3:0]	arb_sel_o;
+wire		arb_ack_i;
+wire [31:0]	arb_dat_i;
+wire [31:0]	arb_adr_o;
+wire		arb_int_i;
+
+
+//frame buffer master bus
+wire		fb_we_o;
+wire		fb_cyc_o;
+wire[31:0]	fb_dat_o;
+wire		fb_stb_o;
+wire [3:0]	fb_sel_o;
+wire		fb_ack_i;
+wire [31:0]	fb_dat_i;
+wire [31:0]	fb_adr_o;
+wire		fb_int_i;
+
+
+//slave 0
+wb_bram s0 (
+
+	.clk(clk),
+	.rst(rst),
+	
+	.wbs_we_i(arb_we_o),
+	.wbs_cyc_i(arb_cyc_o),
+	.wbs_dat_i(arb_dat_o),
+	.wbs_stb_i(arb_stb_o),
+	.wbs_ack_o(arb_ack_i),
+	.wbs_dat_o(arb_dat_i),
+	.wbs_adr_i(arb_adr_o),
+	.wbs_int_o(arb_int_i)
+
+
+);
+
+
+
 //slave 1
 wb_console s1 (
 
@@ -159,9 +203,56 @@ wb_console s1 (
 	.wbs_ack_o(wbs1_ack_i),
 	.wbs_dat_o(wbs1_dat_i),
 	.wbs_adr_i(wbs1_adr_o),
-	.wbs_int_o(wbs1_int_i)
+	.wbs_int_o(wbs1_int_i),
+
+	.fb_we_o(fb_we_o),
+	.fb_cyc_o(fb_cyc_o),
+	.fb_dat_o(fb_dat_o),
+	.fb_stb_o(fb_stb_o),
+	.fb_ack_i(fb_ack_i),
+	.fb_dat_i(fb_dat_i),
+	.fb_adr_o(fb_adr_o),
+	.fb_int_i(fb_int_i)
+
 
 );
+
+//arbitrator
+arbitrator_2_masters arb (
+	.clk(clk),
+	.rst(rst),
+
+	.m0_we_i(wbs0_we_o),
+	.m0_cyc_i(wbs0_cyc_o),
+	.m0_stb_i(wbs0_stb_o),
+	.m0_sel_i(wbs0_sel_o),
+	.m0_ack_o(wbs0_ack_i),
+	.m0_dat_i(wbs0_dat_o),
+	.m0_dat_o(wbs0_dat_i),
+	.m0_adr_i(wbs0_adr_o),
+	.m0_int_o(wbs0_int_i),
+
+	.m1_we_i(fb_we_o),
+	.m1_cyc_i(fb_cyc_o),
+	.m1_stb_i(fb_stb_o),
+	.m1_sel_i(fb_sel_o),
+	.m1_ack_o(fb_ack_i),
+	.m1_dat_i(fb_dat_o),
+	.m1_dat_o(fb_dat_i),
+	.m1_adr_i(fb_adr_o),
+	.m1_int_o(fb_int_1),
+
+	.s_we_o(arb_we_o),
+	.s_cyc_o(arb_cyc_o),
+	.s_stb_o(arb_stb_o),
+	.s_sel_o(arb_sel_o),
+	.s_ack_i(arb_ack_i),
+	.s_dat_o(arb_dat_o),
+	.s_dat_i(arb_dat_i),
+	.s_adr_o(arb_adr_o),
+	.s_int_i(arb_int_i)
+);
+
 
 
 wishbone_interconnect wi (
@@ -241,6 +332,7 @@ initial begin
 	end
 	else begin
 		while (!$feof(fd_in)) begin
+			#20
 			//read in a command
 			read_count = $fscanf (fd_in, "%h:%h:%h\n", in_command, in_address, in_data);
 			$display ("read %d items", read_count);
@@ -271,6 +363,7 @@ initial begin
 			end
 		end
 	end
+	#200000
 	$fclose (fd_in);
 	$fclose (fd_out);
 	$finish();
