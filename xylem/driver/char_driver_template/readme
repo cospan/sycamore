@@ -1,0 +1,46 @@
+Notes:
+
+REALLY IMPORTANT NOTES FIRST!!!!!!!!: 
+	-to get back into the GUI mode press together: CTRL + ALT + F7
+	-to view files in the command line mode (say for example you want to view THIS file in command line mode) type: less <filename>
+	-driver development is DANGEROUS! it could possibly physically damage your puter! most often if there is an error there is a segfault (VERY BAD IN KERNEL LAND), your kernel will panic and you will have to reset your puter, one super nifty command is the "sync" command which will write any data that is supposed to be written to the harddrive. If you are going to do something that might lead to a kernel panick, type: sync so that your computer might recover without loosing much info
+
+
+
+
+OTHER NOT SO IMPORTANT NOTES:
+
+1. screen is an awesome program, it would take a little long to go over all it's capability here, but essentially you can run virtual terminals in screen, and my favorite way to debug items when all I have is a terminal is openening up two vertical screen windows side by side.
+
+Here's how to do that.
+
+When your on the command line type: screen
+	if it's not installed sudo apt-get install screen
+
+press 'enter' to get out of the welcome screen
+
+your presented with what looks like a normal terminal
+
+press: CTRL + A (then) |
+
+this will create a split window, to go to the other window type: CTRL + A (then) TAB
+
+the new window will be empty, you can start a new session by typing: CTRL + A (then) C
+
+To destroy a window type: CTRL + A (then) :remove 
+
+
+
+2. in order to debug things its easier if the kernel log level is set to a high number like 9, so it prints everything that happens.
+
+The fastest way to use this is to go into the terminal (not an xterm) by pressing 
+
+	CTRL + ALT + F1 
+	
+there you will find yourself in a world without GUI's this is not an xterm so normal magical sysrq commands will work here. To turn on verbose kernel output type:
+
+	ALT + SYSRQ + # 
+
+	the number can be 1 - 9, (higher will be more verbose)
+	
+	
