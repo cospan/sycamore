@@ -116,6 +116,16 @@ UART output handler
 			Z: data
             M: added data bytes (from a stream read)
 
+UART output handler
+	-format of interrupts
+	-initial proposed format
+		'I10000000XXXXXXXXYYYYYYYY'
+			X: interrupt address
+				size: 32 bits
+					address 0 = 0 - 31 slave
+					address 1 = 32 - 63 slave
+			Y: interrupts
+
 
 UART example exchange:
 
@@ -145,3 +155,11 @@ UART example exchange:
 -response
 	SFFFFFFFE01000000FFFFFFFF
 
+
+-interrupt initiated by the wishbone master for slave 0
+	I100000000000000000000001
+-interrupt initiated by the wishbone master for slave 65
+	I100000000000000100000002
+
+
+-interrupt occured

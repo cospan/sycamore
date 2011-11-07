@@ -23,9 +23,15 @@ SOFTWARE.
 */
 
 /*
+	11/07/2011
+		-added interrupt handling to the master
+		-when the master is idle the interconnect will output the interrupt 
+			on the wbs data
 	10/30/2011
-		-fixed the memory bus issue where that master was not responding to a slave ack
-		-changed the READ and WRITE command to call either the memory bus depending on the
+		-fixed the memory bus issue where that master was not responding 
+			to a slave ack
+		-changed the READ and WRITE command to call either the memory 
+			bus depending on the
 		flags in the command sent from the user
 	10/25/2011
 		-added the interrupt input pin for both busses
@@ -141,21 +147,30 @@ module wishbone_master (
 	reg [31:0]			master_flags	= 32'h0;
 	reg [31:0]			rw_count		= 32'h0;
     reg                 wait_for_slave  = 0;
+
+
+	reg					prev_int		= 0;
+
+
+	reg					interrupt_mask	= 32'h00000000;
 	//private wires
 	wire [15:0]			command_flags;
 
-	assign command_flags 	= in_command[31:16];
 
 	
 	reg					mem_bus_select;
 
 	wire [15:0]			real_command;
-	assign real_command			= in_command[15:0];
+
 	//private assigns
-/*initial begin
-    $monitor("%t, stb: %h", $time, wb_stb_o);
-end
-*/
+	assign command_flags 				= in_command[31:16];
+	assign real_command					= in_command[15:0];
+
+//initial begin
+//    $monitor("%t, int: %h", $time, wb_int_i);
+//end
+
+
 //blocks
 always @ (posedge clk) begin
 		
@@ -177,6 +192,7 @@ always @ (posedge clk) begin
 		rw_count		<= 0;
 		state			<= IDLE;
 		mem_bus_select	<= 0;
+		prev_int		<= 0;
 
 		wait_for_slave  <= 0;
 
@@ -201,6 +217,9 @@ always @ (posedge clk) begin
 
 		//select is always on
 		mem_sel_o        <= 4'hF;
+
+		//interrupts
+		interrupt_mask	<= 32'h00000000;
 
 	end
 
@@ -264,6 +283,7 @@ always @ (posedge clk) begin
 			end
 			IDLE: begin
 				//handle input
+				local_address		<= 32'hFFFFFFFF; 
 				if (in_ready) begin
 					mem_bus_select	<= 0;
 
@@ -329,14 +349,38 @@ always @ (posedge clk) begin
 							out_en			<= 1;
 							state			<= IDLE;
 						end
-						`COMMAND_INTERRUPT: begin
+						`COMMAND_WR_INT_EN: begin
 							out_status		<= ~in_command;
+							interrupt_mask 	<= in_data;
+							out_address		<= 32'h00000000;
+							out_data		<= in_data;
+							out_en			<= 1;
+							state			<= IDLE;
+						end
+						`COMMAND_RD_INT_EN: begin
+							out_status		<= ~in_command;
+							out_data		<= interrupt_mask;
+							out_address		<= 32'h00000000;
 							out_en			<= 1;
 							state			<= IDLE;
 						end
 						default: 		begin
 						end
 					endcase
+				end
+				//not handling an input, if there is an interrupt send it to the user
+				else if (state == IDLE) begin
+					//check if there is an interrupt
+					//if the wb_int_i goes positive then send a nortifiaction to the user
+					if ((~prev_int) & wb_int_i) begin	
+						$display("master found an interrupt!");
+						out_status			<= `PERIPH_INTERRUPT;	
+						//only supporting interrupts on slave 0 - 31
+						out_address			<= 32'h00000000;
+						out_data			<= wb_dat_i;
+						out_en				<= 1;
+					end
+					prev_int	<= wb_int_i;
 				end
 			end
 			default: begin

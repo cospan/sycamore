@@ -70,8 +70,10 @@ module wishbone_interconnect (
 );
 
 
-parameter ADDR_0    =   32'h00;
-parameter ADDR_1    =   32'h01;
+parameter ADDR_0    =   8'h00;
+parameter ADDR_1    =   8'h01;
+
+parameter ADDR_FF	=	8'hFF;
 
 //state
 
@@ -88,7 +90,7 @@ input		[31:0]	m_adr_i;
 input  		[31:0]	m_dat_i;
 output reg  [31:0]	m_dat_o;
 output reg      	m_ack_o;
-output reg 			m_int_o;
+output	 			m_int_o;
 
 output              s0_we_o;
 output              s0_stb_o;
@@ -120,6 +122,16 @@ end
 wire [7:0]slave_select;
 assign slave_select =   m_adr_i[31:24];
 
+
+wire [31:0]	interrupts;
+
+
+/*initial begin
+    $monitor("%t, int: %h, s0_int_i: %h, s1_int_i: %h", $time, interrupts, s0_int_i, s1_int_i);
+end
+*/
+
+
 //data
 always @ (slave_select or s0_dat_i or s1_dat_i) begin
     case (slave_select)
@@ -130,7 +142,7 @@ always @ (slave_select or s0_dat_i or s1_dat_i) begin
             m_dat_o <= s1_dat_i;
         end
         default: begin
-            m_dat_o <= 32'hx;
+            m_dat_o <= interrupts;
         end
     endcase
 end
@@ -144,26 +156,21 @@ always @ (slave_select or s0_ack_i or s1_ack_i) begin
         ADDR_1: begin
             m_ack_o <= s1_ack_i;
         end
-        default: begin
+		default: begin
             m_ack_o <= 1'hx;
         end
     endcase
 end
 
 //int
-always @ (slave_select or s0_int_i or s1_int_i) begin
-    case (slave_select)
-        ADDR_0: begin
-            m_int_o <= s0_int_i;
-        end
-        ADDR_1: begin
-            m_int_o <= s1_int_i;
-        end
-        default: begin
-            m_int_o <= 1'hx;
-        end
-    endcase
-end
+//set up the interrupts flags
+assign interrupts[0]	= s0_int_i;
+assign interrupts[1]	= s1_int_i;
+//set all other interrupts to zero
+assign interrupts[31:2]	= 0;
+
+assign m_int_o	= (interrupts != 0);
+
 
 
 assign s0_we_o    =  (slave_select == ADDR_0) ? m_we_i: 0;

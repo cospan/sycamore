@@ -147,8 +147,14 @@ wire [31:0]	wbs1_dat_i;
 wire [31:0]	wbs1_adr_o;
 wire		wbs1_int_i;
 
+
+reg	[31:0]	gpio_in;
+wire [31:0]	gpio_out;
+
+assign wbs0_int_i = 0;
+
 //slave 1
-USER_SLAVE s1 (
+wb_gpio s1 (
 
 	.clk(clk),
 	.rst(rst),
@@ -160,7 +166,10 @@ USER_SLAVE s1 (
 	.wbs_ack_o(wbs1_ack_i),
 	.wbs_dat_o(wbs1_dat_i),
 	.wbs_adr_i(wbs1_adr_o),
-	.wbs_int_o(wbs1_int_i)
+	.wbs_int_o(wbs1_int_i),
+
+	.gpio_in(gpio_in),
+	.gpio_out(gpio_out)
 
 );
 
@@ -233,6 +242,7 @@ initial begin
 		in_data			<= 32'h0;
 		out_ready		<= 32'h0;
 		//clear wishbone signals
+
 	#20
 		rst				<= 0;
 		out_ready 		<= 1;
@@ -272,9 +282,56 @@ initial begin
 			end
 		end
 	end
+	#200
 	$fclose (fd_in);
 	$fclose (fd_out);
 	$finish();
+end
+
+parameter	gpio_timeout	= 10;
+reg	[31:0] count;
+
+always @ (posedge clk) begin
+	if (rst) begin
+		gpio_in			<= 32'h00000000;
+		count 			<= 32'h0;
+	end
+	else begin
+		if (count >= gpio_timeout) begin
+			gpio_in[0] <= ~gpio_in[0];
+			count <= 0;
+		end
+		else begin
+			count <= count + 1;
+		end
+	end
+end
+
+reg prev_int = 0;
+
+always @ (posedge clk) begin
+	if (rst) begin
+		prev_int	<= 0;
+	end
+	else begin
+//		if (~prev_int & wbm_int_i) begin
+//			$display ("interrupt!");	
+//			$display ("\tout_en: %h", out_en);
+//			$display ("\tcommand: %h", out_status);
+//			$display ("\taddress: %h", out_address);
+//			$display ("\tdata: %h", out_data);
+//		end
+		if (out_en && out_status == `PERIPH_INTERRUPT) begin
+			$display ("***output handler recieved interrupt");
+			$display ("\tcommand: %h", out_status);
+			$display ("\taddress: %h", out_address);
+			$display ("\tdata: %h", out_data);
+
+		end
+
+		prev_int 	<= wbm_int_i;
+		
+	end
 end
 
 endmodule
