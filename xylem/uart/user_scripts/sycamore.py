@@ -6,6 +6,10 @@ Sycamore: the main front interface to the Sycamore bus system on the FPGA
 
 """
 Changes:
+11/07/2011
+	-Added the capability to detect interrupts and read find out if a slave was the one that
+		generated the interrupt
+	-Perhaps launching a second read thread so the code always detects interrupts
 
 10/30/2011
 	-Changed the number of devices read from DRT, now the actual DRT slave is not counted
@@ -24,6 +28,8 @@ class Sycamore:
 
 	drt_string = ""
 	drt_lines = []
+	interrupts = 0
+	interrupt_address = 0
 	num_of_devices = 0
 	ser = serial.Serial()
 
@@ -168,7 +174,25 @@ class Sycamore:
 			if (device_id == device_id):
 				return dev_index
 		return -1
-		
+
+	def wait_for_interrupts(self, wait_time = 1):
+		temp_timeout = self.ser.timeout
+		self.ser.timeout = wait_time
+		temp_string = self.ser.read(25)
+		#put the old timeout back
+		self.ser.timeout = temp_timeout
+		if(len(temp_string) == 0):
+			return False
+		print "interrupt string: " + temp_string
+		self.interrupt_address = string.atoi(temp_string[9:16], 16)
+		self.interrupts = string.atoi(temp_string[17:25], 16)
+		return True
+
+	def is_interrupt_for_slave(self, device_id = 0):
+		device_id += 1
+		if (2**device_id & self.interrupts):
+			return True
+		return False
 
 	def slave_unit_test(self):
 		print "Found " + str(self.num_of_devices) + " slave(s)"
@@ -195,6 +219,24 @@ class Sycamore:
 				time.sleep(1)
 				gpio_read = self.read_data(dev_index, 0)
 				print "gpio read: " + hex(gpio_read)
+
+				print "testing interrupts, setting interrupts up for postivie edge detect"
+				#positive edge detect
+				self.write_data(dev_index, 4, 0xFFFFFFFF)
+				#enable all interrupts
+				self.write_data(dev_index, 3, 0xFFFFFFFF)
+				print "testing interrupts, waiting for 5 seconds..."
+				if (self.wait_for_interrupts(wait_time = 5)):
+					#print "detected interrupts!"
+					#print "interrupts: " + str(self.interrupts)
+					#print "device index: " + str(dev_index)
+					#print "blah: " + str(2**(dev_index + 1))
+					if (self.is_interrupt_for_slave(dev_index)):
+						print "interrupt for GPIO!"
+						gpio_read = self.read_data(dev_index, 0)
+						print "gpio read: " + hex(gpio_read)
+
+
 	
 
 			elif (device_id == 10):

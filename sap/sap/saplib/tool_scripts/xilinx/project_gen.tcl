@@ -3,9 +3,11 @@
 
 #this project looks for things in the /src directory
 
+#11/07/2011 fixed glob from not crashing when there is an empty directory like "arbitrator"
+
 proc findVerilogFiles { dir } {
-	set contents [glob -directory $dir *]
 	set vSources [list]
+	set contents [glob -nocomplain -directory $dir *] 
 	
 	foreach item $contents {
 		#puts $item

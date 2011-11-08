@@ -283,7 +283,6 @@ always @ (posedge clk) begin
 			end
 			IDLE: begin
 				//handle input
-				local_address		<= 32'hFFFFFFFF; 
 				if (in_ready) begin
 					mem_bus_select	<= 0;
 
@@ -369,7 +368,11 @@ always @ (posedge clk) begin
 					endcase
 				end
 				//not handling an input, if there is an interrupt send it to the user
-				else if (state == IDLE) begin
+				else if (wb_ack_i == 0 & wb_stb_o == 0 & wb_cyc_o == 0) begin
+				    //work around to add a delay
+				    wb_adr_o <= local_address;
+				    //handle input
+				    local_address		<= 32'hFFFFFFFF; 				
 					//check if there is an interrupt
 					//if the wb_int_i goes positive then send a nortifiaction to the user
 					if ((~prev_int) & wb_int_i) begin	
