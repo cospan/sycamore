@@ -22,6 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+	11/08/2011
+		added interrupt support
+*/
 
 /**
  * 	excersize the wishbone master by executing all the commands and observing
@@ -275,6 +279,27 @@ initial begin
 	$fclose (fd_in);
 	$fclose (fd_out);
 	$finish();
+end
+
+reg prev_int = 0;
+
+always @ (posedge clk) begin
+	if (rst) begin
+		prev_int	<= 0;
+	end
+	else begin
+		
+		if (out_en && out_status == `PERIPH_INTERRUPT) begin
+			$display ("***output handler recieved interrupt");
+			$display ("\tcommand: %h", out_status);
+			$display ("\taddress: %h", out_address);
+			$display ("\tdata: %h", out_data);
+
+		end
+
+		prev_int 	<= wbm_int_i;
+		
+	end
 end
 
 endmodule
