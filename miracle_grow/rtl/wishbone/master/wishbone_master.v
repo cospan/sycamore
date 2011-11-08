@@ -167,7 +167,7 @@ module wishbone_master (
 	assign real_command					= in_command[15:0];
 
 //initial begin
-//    $monitor("%t, int: %h", $time, wb_int_i);
+//    $monitor("%t, int: %h, ih_ready: %h, ack: %h, stb: %h, cyc: %h", $time, wb_int_i, in_ready, wb_ack_i, wb_stb_o, wb_cyc_o);
 //end
 
 
@@ -355,6 +355,7 @@ always @ (posedge clk) begin
 							out_data		<= in_data;
 							out_en			<= 1;
 							state			<= IDLE;
+							$display("setting interrupt enable to: %h", in_data); 
 						end
 						`COMMAND_RD_INT_EN: begin
 							out_status		<= ~in_command;

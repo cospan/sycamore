@@ -22,6 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+	11/08/2011
+		fixed the wb_ack_o to be 0 when nothing is selected
+*/
 
 /* 
     Thanks Rudolf Usselmann yours was a better implementation than mine
@@ -142,6 +146,7 @@ always @ (slave_select or s0_dat_i or s1_dat_i) begin
             m_dat_o <= s1_dat_i;
         end
         default: begin
+			$display("interconnect: sending interrupt data");
             m_dat_o <= interrupts;
         end
     endcase
@@ -157,7 +162,7 @@ always @ (slave_select or s0_ack_i or s1_ack_i) begin
             m_ack_o <= s1_ack_i;
         end
 		default: begin
-            m_ack_o <= 1'hx;
+            m_ack_o <= 1'h0;
         end
     endcase
 end

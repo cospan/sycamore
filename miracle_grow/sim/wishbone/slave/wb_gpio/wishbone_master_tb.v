@@ -321,6 +321,7 @@ always @ (posedge clk) begin
 //			$display ("\taddress: %h", out_address);
 //			$display ("\tdata: %h", out_data);
 //		end
+		
 		if (out_en && out_status == `PERIPH_INTERRUPT) begin
 			$display ("***output handler recieved interrupt");
 			$display ("\tcommand: %h", out_status);
