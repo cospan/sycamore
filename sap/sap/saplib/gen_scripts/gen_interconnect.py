@@ -86,7 +86,7 @@ class GenInterconnect(Gen):
 		data_block_buf = data_block_buf + ") begin\n\tcase (slave_select)\n"
 		for i in range (0, num_slaves):
 			data_block_buf = data_block_buf + "\t\tADDR_" + str(i) + ": begin\n\t\t\tm_dat_o <= s" + str(i) + "_dat_i;\n\t\tend\n";
-		data_block_buf = data_block_buf + "\t\tdefault: begin\n\t\t\tm_dat_o <= 32\'hx;\n\t\tend\n\tendcase\nend\n\n"
+		data_block_buf = data_block_buf + "\t\tdefault: begin\n\t\t\tm_dat_o <= interrupts;\n\t\tend\n\tendcase\nend\n\n"
 
 		#ack in block
 		ack_block_buf = "//ack in from slave\n\n"	
@@ -100,14 +100,18 @@ class GenInterconnect(Gen):
 
 
 		#int in block
-		int_block_buf = "//int in from slave\n\n"	
-		int_block_buf = int_block_buf + "always @ (slave_select"
-		for i in range (0, num_slaves):
-			int_block_buf = int_block_buf + " or s" + str(i) + "_int_i"
-		int_block_buf = int_block_buf + ") begin\n\tcase (slave_select)\n"
-		for i in range (0, num_slaves):
-			int_block_buf = int_block_buf + "\t\tADDR_" + str(i) + ": begin\n\t\t\tm_int_o <= s" + str(i) + "_int_i;\n\t\tend\n";
-		int_block_buf = int_block_buf + "\t\tdefault: begin\n\t\t\tm_int_o <= 1\'hx;\n\t\tend\n\tendcase\nend\n\n"
+		int_block_buf = "//int in from slave\n"	
+		int_num_slaves = num_slaves;
+
+#XXX: right now were only handling 32 interrupts
+		if (int_num_slaves > 32):
+			int_num_slaves = 32
+		for i in range (0, int_num_slaves):
+			int_block_buf += "assign interrupts[" + str(i) + "]\t\t=\ts" + str(i) + "_int_i;\n"
+
+		if (num_slaves < 31):
+			int_block_buf += "assign interrupts[31:" + str(num_slaves) + "]\t\t=\t0;\n\n"
+		
 
 
 		buf = template.substitute(	PORTS=port_buf, 

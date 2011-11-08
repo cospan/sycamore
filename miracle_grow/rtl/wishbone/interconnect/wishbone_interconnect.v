@@ -52,6 +52,8 @@ ${PORTS}
 
 ${ADDRESSES}
 
+parameter ADDR_FF = 8'hFF;
+
 //state
 
 //control signals
@@ -67,7 +69,7 @@ input		[31:0]	m_adr_i;
 input  		[31:0]	m_dat_i;
 output reg  [31:0]	m_dat_o;
 output reg      	m_ack_o;
-output reg 			m_int_o;
+output	 			m_int_o;
 
 
 //wishbone slave signals
@@ -75,6 +77,8 @@ ${PORT_DEFINES}
 
 //this should be parameterized
 wire [7:0]slave_select;
+wire [31:0] interrupts;
+
 assign slave_select =   m_adr_i[31:24];
 
 ${DATA}
@@ -82,6 +86,7 @@ ${DATA}
 ${ACK}
 
 ${INT}
+assign m_int_o	= 	(interrupts != 0);
 
 ${ASSIGN}
 
