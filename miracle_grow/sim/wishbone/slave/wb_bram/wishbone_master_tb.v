@@ -268,9 +268,9 @@ initial begin
 	else begin
 		while (!$feof(fd_in)) begin
 			//read in a command
-			read_count = $fscanf (fd_in, "%h:%h:%h\n", in_command, in_address, in_data);
+			read_count = $fscanf (fd_in, "%h:%h:%h:%h", data_count, in_command, in_address, in_data);
 			$display ("read %d items", read_count);
-			$display ("read: C:A:D = %h:%h:%h", in_command, in_address, in_data);
+			$display ("read: #:C:A:D = %h:%h:%h:%h", data_count, in_command, in_address, in_data);
 			#4
 			//just send the command normally
 			in_ready 		<= 1;
@@ -280,20 +280,64 @@ initial begin
 			out_ready 		<= 1;
 			#2
 			$fwrite (fd_out, "command: %h:%h:%h response: ", in_command, in_address, in_data);
-			while (timeout_count > 0) begin
-				if (out_en) begin
-					//got a response before timeout
-					$display ("read: S:A:D = %h:%h:%h\n", out_status, out_address, out_data);
-					$fwrite (fd_out, "%h:%h:%h\n", out_status, out_address, out_data);
-					timeout_count	= -1;
+			//if write send all the double word data down
+			if ((in_command & 32'h0000FFFF) == 1) begin
+				//writing
+				
+				while (timeout_count > 0) begin
+					$display ("timeout_count: %h", timeout_count);
+					if (out_en) begin
+						timeout_count  	= `TIMEOUT_COUNT;
+						if (data_count > 0) begin
+							read_count = $fscanf(fd_in, ":%h", in_data);				
+							if (master_ready) begin
+								in_ready <= 0;
+								in_address	= in_address + 1;
+								#2
+								in_ready		<= 0;
+								out_ready		<= 1;
+								#2
+								data_count	= data_count - 1;
+								$display("sending data: %h to address: %h", in_data, in_address);
+							end
+						end
+						else begin
+							$display ("read: S:A:D = %h:%h:%h\n", out_status, out_address, out_data);
+							timeout_count	= -1;
+						end
+					end
+					else begin
+						#2
+						timeout_count = timeout_count - 1;
+					end
 				end
-				else begin
-					#2
-					timeout_count 	= timeout_count - 1;
+				if (timeout_count == 0) begin
+					$display ("Wishbone master timed out while executing write command");
 				end
 			end
-			if (timeout_count == 0) begin
-				$display ("Wishbone master timed out while executing command: %h", in_command);
+			else begin
+				//if either any other command then call the normal function
+				while (timeout_count > 0) begin
+					if (out_en) begin
+						//got a response before timeout
+						$display ("read: S:A:D = %h:%h:%h\n", out_status, out_address, out_data);
+						$fwrite (fd_out, "%h:%h:%h\n", out_status, out_address, out_data);
+						timeout_count	= -1;
+					end
+					else begin
+						#2
+						timeout_count 	= timeout_count - 1;
+					end
+				end
+				if (timeout_count == 0) begin
+					$display ("Wishbone master timed out while executing command: %h", in_command);
+				end
+				if (! $feof(fd_in)) begin
+					ch = $fgetc(fd_in);
+					while (ch != "\n")begin
+						ch = $fgetc(fd_in);
+					end
+				end
 			end
 		end
 	end

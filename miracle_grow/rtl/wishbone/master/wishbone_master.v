@@ -168,9 +168,10 @@ module wishbone_master (
 	assign command_flags 				= in_command[31:16];
 	assign real_command					= in_command[15:0];
 
-//initial begin
-//    $monitor("%t, int: %h, ih_ready: %h, ack: %h, stb: %h, cyc: %h", $time, wb_int_i, in_ready, wb_ack_i, wb_stb_o, wb_cyc_o);
-//end
+initial begin
+    //$monitor("%t, int: %h, ih_ready: %h, ack: %h, stb: %h, cyc: %h", $time, wb_int_i, in_ready, wb_ack_i, wb_stb_o, wb_cyc_o);
+    //$monitor("%t, cyc: %h, stb: %h, ack: %h, in_ready: %h, out_en: %h", $time, wb_cyc_o, wb_stb_o, wb_ack_i, in_ready, out_en);
+end
 
 
 //blocks
@@ -305,6 +306,7 @@ always @ (posedge clk) begin
 							//finished all writes	
 							mem_cyc_o	<= 0;
 							state		<= IDLE;
+							out_en		<= 1;
 						end
 						mem_stb_o    <= 0;
 						mem_we_o     <= 0;
@@ -316,7 +318,7 @@ always @ (posedge clk) begin
 							master_ready	<=	0;
 							mem_stb_o		<= 1;
 							mem_we_o		<= 1;
-							mem_adr_o		<= in_address + 4;
+							mem_adr_o		<= mem_adr_o + 4;
 							mem_dat_o		<= in_data;
 
 						end
@@ -327,6 +329,7 @@ always @ (posedge clk) begin
 						if (in_data_count == 0) begin
 							wb_cyc_o	<= 0;
 							state		<= IDLE;
+							out_en		<= 1;
 						end
             	   	    wb_stb_o    <= 0;
 						wb_cyc_o    <= 0;
@@ -336,10 +339,11 @@ always @ (posedge clk) begin
 					end
 					else begin
 						if (in_ready) begin 
+							$display ("reading another double word");
 							master_ready	<=	0;
 							wb_stb_o		<= 1;
 							wb_we_o			<= 1;
-							wb_adr_o		<= in_address + 1;
+							wb_adr_o		<= wb_adr_o + 1;
 							wb_dat_o		<= in_data;
 						end
 					end
