@@ -95,6 +95,7 @@ uart_output_handler uoh (
 wire		wbm_we_o;
 wire		wbm_cyc_o;
 wire		wbm_stb_o;
+wire [3:0]	wbm_sel_o;
 wire [31:0]	wbm_adr_o;
 wire [31:0]	wbm_dat_i;
 wire [31:0]	wbm_dat_o;

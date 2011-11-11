@@ -26,6 +26,8 @@ lappend signals "wishbone_master_tb.s1.wbs_adr_i"
 lappend signals "wishbone_master_tb.s1.wbs_dat_i"
 lappend signals "wishbone_master_tb.s1.wbs_dat_o"
 lappend signals "wishbone_master_tb.s1.wbs_int_i"
+lappend signals "wishbone_master_tb.wb_stb_o"
+lappend signals "wishbone_master_tb.wb_cyc_o"
 
 set num_added [gtkwave::addSignalsFromList $signals]
 

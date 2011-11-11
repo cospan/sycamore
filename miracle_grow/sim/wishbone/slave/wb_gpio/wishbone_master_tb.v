@@ -78,6 +78,7 @@ reg 		in_ready;
 reg [31:0]	in_command;
 reg [31:0] 	in_address;
 reg [31:0] 	in_data;
+reg [27:0]	in_data_count;
 reg 		out_ready;
 wire 		out_en;
 wire [31:0] out_status;
@@ -104,6 +105,7 @@ wishbone_master wm (
 	.in_command(in_command),
 	.in_address(in_address),
 	.in_data(in_data),
+	.in_data_count(in_data_count),
 	.out_ready(out_ready),
 	.out_en(out_en),
 	.out_status(out_status),
@@ -240,6 +242,7 @@ initial begin
 		in_command		<= 0;
 		in_address		<= 32'h0;
 		in_data			<= 32'h0;
+		in_data_count	<= 28'h0;
 		out_ready		<= 32'h0;
 		//clear wishbone signals
 

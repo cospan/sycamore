@@ -54,6 +54,7 @@ module wishbone_master (
 	in_command,
 	in_address,
 	in_data,
+	in_data_count,
 
 	//output handler interface
 	out_ready,
@@ -98,6 +99,7 @@ module wishbone_master (
 	input [31:0]		in_command;
 	input [31:0] 		in_address;
 	input [31:0]		in_data;
+	input [27:0]		in_data_count;
 
 	input				out_ready;
 	output reg			out_en			= 0;
@@ -224,60 +226,122 @@ always @ (posedge clk) begin
 	end
 
 	else begin 
+/*
 		if (wb_ack_i) begin
 			wb_stb_o <= 0;
-			wb_cyc_o <= 0;
+//			wb_cyc_o <= 0;
 		end
 		if (mem_ack_i) begin
 			mem_stb_o <= 0;
-			mem_cyc_o <= 0;
+//			mem_cyc_o <= 0;
 		end
+*/
 
-		if (in_ready && (state == READ || state == WRITE)) begin
-			state   <= IDLE;
-		end
+//XXX: this may change for burst mode
+//		if (in_ready && (state == READ || state == WRITE)) begin
+//			state   <= IDLE;
+//		end
 
 		case (state)
 
 			READ: begin
 				if (mem_bus_select) begin
 					if (mem_ack_i) begin
+						if (out_data_count == 0) begin
+							//finished all the reads, put de-assert the cycle
+							mem_cyc_o   <= 0;
+							state       <= IDLE;
+						end
+						else begin
+							//finished the next double word
+							out_data_count	<= out_data_count -1;
+						end
+						//put the strobe down to say we got that double word
 						mem_stb_o   <= 0;
-						mem_cyc_o   <= 0;
 						mem_we_o    <= 0;
-						out_en      <= 1; 
 						out_data    <= mem_dat_i;
-						state       <= IDLE;
+						//initiate an output transfer
+						out_en      <= 1; 
+					end
+					else begin
+						if (out_ready) begin
+							//don't start a new transaction until the output is ready
+							mem_stb_o	<= 1;
+							mem_we_o	<= 0;
+						end
 					end
 				end
 				else begin
 					if (wb_ack_i) begin
+						if (out_data_count == 0) begin
+							//finished all the reads, put de-assert the cycle
+							wb_cyc_o    <= 0;
+							state       <= IDLE;
+						end
+						else begin
+							out_data_count	<= out_data_count - 1;
+						end
+						//just but the strobe down at least until a cycle passes
 						wb_stb_o    <= 0;
-						wb_cyc_o    <= 0;
 						wb_we_o     <= 0;
-						out_en      <= 1; 
+						//put the data in the otput
 						out_data    <= wb_dat_i;
-						state       <= IDLE;
+						//tell the io_handler to send data
+						out_en      <= 1; 
+					end
+					else begin
+						if (out_ready) begin
+							//don't start a new transaction until io handler is ready
+							wb_stb_o	<= 1;
+							wb_we_o		<= 0;
+						end
 					end
 				end
 			end
 			WRITE: begin
 				if (mem_bus_select) begin
 					if (mem_ack_i) begin
+						if (in_data_count == 0) begin
+							//finished all writes	
+							mem_cyc_o	<= 0;
+							state		<= IDLE;
+						end
 						mem_stb_o    <= 0;
-						mem_cyc_o    <= 0;
 						mem_we_o     <= 0;
-						out_en	   <= 1;
-						state       <= IDLE;
+						//tell the IO handler were ready for the next one
+						master_ready	<=	1;
+					end
+					else begin
+						if (in_ready) begin
+							master_ready	<=	0;
+							mem_stb_o		<= 1;
+							mem_we_o		<= 1;
+							mem_adr_o		<= in_address + 4;
+							mem_dat_o		<= in_data;
+
+						end
 					end
 				end
 				else begin
 					if (wb_ack_i) begin
+						if (in_data_count == 0) begin
+							wb_cyc_o	<= 0;
+							state		<= IDLE;
+						end
             	   	    wb_stb_o    <= 0;
 						wb_cyc_o    <= 0;
 						wb_we_o     <= 0;
-						out_en	   <= 1;
-						state       <= IDLE;
+						//tell the IO handler were ready for the next one
+						master_ready	<= 1;
+					end
+					else begin
+						if (in_ready) begin 
+							master_ready	<=	0;
+							wb_stb_o		<= 1;
+							wb_we_o			<= 1;
+							wb_adr_o		<= in_address + 1;
+							wb_dat_o		<= in_data;
+						end
 					end
 				end
 			end
@@ -288,9 +352,6 @@ always @ (posedge clk) begin
 
 					local_address	<= in_address;
 					local_data		<= in_data;
-
-					//if (state & 32'hFFFF0000) begin
-					//end
 
 					case (real_command)
 
@@ -324,6 +385,7 @@ always @ (posedge clk) begin
 								state			<= WRITE;
 						end
 						`COMMAND_READ: 	begin
+							out_data_count		<= in_data_count;
 							if (command_flags & `FLAG_MEM_BUS) begin
 								mem_bus_select	<= 1;	
 								mem_adr_o    	<= in_address;

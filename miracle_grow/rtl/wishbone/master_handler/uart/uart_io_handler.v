@@ -24,6 +24,7 @@ SOFTWARE.
 
 
 //generalize the uart handler
+`include "mg_defines.v"
 
 module uart_io_handler (
 	//globals
@@ -129,7 +130,12 @@ reg [3:0]	out_nibble_count;
 reg [15:0] 	r_count;
 
 
-reg send_first_data;
+reg 		send_first_data;
+
+wire 		[15:0]	user_command;
+wire 		is_writing;
+assign 		user_command = in_command[15:0];
+assign		is_writing = (user_command == `COMMAND_WRITE);
 
 //REAL UART use this when actually implementing on a board
 uart uart_dev (
@@ -145,7 +151,6 @@ uart uart_dev (
 	.is_transmitting(uart_out_busy)
 //	.recv_error(),
 );
-
 
 //input handler
 always @ (posedge clk) begin
@@ -306,7 +311,7 @@ always @ (posedge clk) begin
 						end
 
 						if (in_nibble_count >= 7) begin
-                            if (in_data_count > 0) begin
+                            if (is_writing && in_data_count > 0) begin
                                 in_data_count <= in_data_count - 1;
                             end
                             else begin
