@@ -86,7 +86,7 @@ SOFTWARE.
  *		-send a request to reall all the flags, and verify that only half of
  *		the flags were written to
  */
-`define TIMEOUT_COUNT 20
+`define TIMEOUT_COUNT 50
 `define INPUT_FILE "master_input_test_data.txt"  
 `define OUTPUT_FILE "master_output_test_data.txt"
 
@@ -243,30 +243,31 @@ initial begin
 	fd_out			=	0;
 	read_count		= 	0;
 	data_count		=	0;
+	data_read		<= 	0;
 	timeout_count	=	0;
 	execute_command	<=	0;
 
 	$dumpfile ("design.vcd");
 	$dumpvars (0, wishbone_master_tb);
-	$dumpvars (0, wm);
+	//$dumpvars (0, wm);
 	fd_in = $fopen(`INPUT_FILE, "r");
 	fd_out = $fopen(`OUTPUT_FILE, "w");
 
-		rst				<= 0;
+	rst				<= 0;
 	#4
-		rst				<= 1;
+	rst				<= 1;
 
-		//clear the handler signals
-		in_ready		<= 0;
-		in_command		<= 0;
-		in_address		<= 32'h0;
-		in_data			<= 32'h0;
-		in_data_count	<= 0;
-		out_ready		<= 32'h0;
-		//clear wishbone signals
+	//clear the handler signals
+	in_ready		<= 0;
+	in_command		<= 0;
+	in_address		<= 32'h0;
+	in_data			<= 32'h0;
+	in_data_count	<= 0;
+	out_ready		<= 32'h0;
+	//clear wishbone signals
 	#20
-		rst				<= 0;
-		out_ready 		<= 1;
+	rst				<= 0;
+	out_ready 		<= 1;
 
 	if (fd_in == 0) begin
 		$display ("TB: input stimulus file was not found");
@@ -274,39 +275,47 @@ initial begin
 	else begin
 		while (!$feof(fd_in)) begin
 			//read in a command
-			read_count = $fscanf (fd_in, "%h:%h:%h:%h", in_data_count, in_command, in_address, in_data);
+			read_count = $fscanf (fd_in, "%h:%h:%h:%h\n", in_data_count, in_command, in_address, in_data);
 
 			if (read_count != 4) begin
 				ch = $fgetc(fd_in);
-				//$display ("Error: read_count = %h", read_count);
+				$display ("Error: read_count = %h", read_count);
+				$display ("Character: %h", ch);
 			end
 			else begin
+				$display ("TB: executing command");
 				execute_command	<= 1;
+				#4
 				while (~command_finished) begin
 					data_read	<= 0;
 
 					if ((in_command & 32'h0000FFFF) == 1) begin
-						if (read_data) begin
-							read_count = $fscanf(fd_in, ":%h", in_data);	
+						if (read_data && ~data_read) begin
+							read_count = $fscanf(fd_in, "%h\n", in_data);	
+							$display ("TB: reading a new double word: %h", in_data);
 							data_read	<= 1;
 						end
 					end
 
 					//so time porgresses wait a tick
-					#1
+					#4
 					//this doesn't need to be here, but there is a bug with iverilog that wont allow me to put a delay in right before an 'end' statement
 					execute_command	<= 1;
 				end //while command is not finished
-				execute_command	<= 0;
+				while (command_finished) begin
+					#1
+					execute_command <= 0;
+				end
 				#10
 				$display ("TB: finished command");
-				if (!$feof(fd_in)) begin
-					ch = $fgetc(fd_in);
+				//if (!$feof(fd_in)) begin
+				//	ch = $fgetc(fd_in);
 					//$display("ch: %h", ch);
-				end
+				//end
 			end //end read_count == 4
 		end //end while ! eof
 	end //end not reset
+	#100
 	$fclose (fd_in);
 	$fclose (fd_out);
 	$finish();
@@ -318,6 +327,9 @@ parameter TB_WRITE		=	4'h2;
 parameter TB_READ		=	4'h3;
 
 reg	[3:0]	state;
+
+reg	reading_multiple	= 0;
+reg	prev_int			= 0;
 
 //initial begin
 //    $monitor("%t, state: %h", $time, state);
@@ -331,7 +343,9 @@ always @ (posedge clk) begin
 	if (rst) begin
 		state				<= TB_IDLE;
 		read_data			<= 0;
+		reading_multiple	<= 0;
 		timeout_count		<= 0;
+		prev_int			<= 0;
 	end
 	else begin
 		if (timeout_count > 0) begin
@@ -350,7 +364,7 @@ always @ (posedge clk) begin
 					state	<= TB_READ;
 					out_ready	<= 0;
 				end
-				if (execute_command) begin
+				if (execute_command & ~command_finished) begin
 					$display ("TB: #:C:A:D = %h:%h:%h:%h", in_data_count, in_command, in_address, in_data);
 					timeout_count	<= `TIMEOUT_COUNT;
 					state			<= TB_EXECUTE;
@@ -376,13 +390,12 @@ always @ (posedge clk) begin
 				end
 			end
 			TB_WRITE: begin
-				$display ("in write");
 				//write data to the master
 				if (out_en) begin
 					//got a response
 					$display ("TB: read: S:A:D = %h:%h:%h\n", out_status, out_address, out_data);
 				end
-				else if (master_ready) begin
+				else if (master_ready && ~in_ready) begin
 					if (in_data_count == 0) begin
 						$display("TB: finishd write");
 						//wrote last double word of data
@@ -392,7 +405,7 @@ always @ (posedge clk) begin
 					else begin
 						//need to write more data, ask the read block to read more
 						if (data_read) begin
-							$display ("TB: send new data");
+							$display ("TB: send new data: %h", in_data);
 							read_data	<= 0;
 							in_ready	<= 1;
 							in_data_count	<= in_data_count -1;
@@ -412,8 +425,17 @@ always @ (posedge clk) begin
 					$display ("TB: read: S:A:D = %h:%h:%h", out_status, out_address, out_data);
 					out_ready	<= 0;
 					if (out_data_count == 0) begin
-						command_finished	<= 1;
-						state	<= TB_IDLE;
+						if (reading_multiple) begin
+							reading_multiple	<= 0;
+						end
+						else begin
+							command_finished	<= 1;
+							state	<= TB_IDLE;
+						end
+					end
+					else begin
+						reading_multiple	<= 1;
+						timeout_count <= `TIMEOUT_COUNT;
 					end
 				end //enable an write to the output handler
 			end //read or other commands
@@ -422,6 +444,12 @@ always @ (posedge clk) begin
 				state	<= TB_IDLE;
 			end //somethine wrong here
 		endcase //state machine
+		if (out_en && out_status == `PERIPH_INTERRUPT) begin
+			$display("TB: Output Handler Recieved interrupt");
+			$display("TB:\tcommand: %h", out_status);
+			$display("TB:\taddress: %h", out_address);
+			$display("TB:\tdata: %h", out_data);
+		end
 	end//not reset
 end
 

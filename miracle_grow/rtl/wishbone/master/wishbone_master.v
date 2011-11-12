@@ -153,6 +153,9 @@ module wishbone_master (
 
 
 	reg					interrupt_mask	= 32'h00000000;
+
+	reg [31:0]			nack_timeout	= `DEF_NACK_TIMEOUT; 
+	reg	[31:0]			nack_count		= 0;
 	//private wires
 	wire [15:0]			command_flags;
 
@@ -221,31 +224,35 @@ always @ (posedge clk) begin
 
 		//interrupts
 		interrupt_mask	<= 32'h00000000;
+		nack_timeout	<= `DEF_NACK_TIMEOUT;
 
 	end
 
 	else begin 
-/*
-		if (wb_ack_i) begin
-			wb_stb_o <= 0;
-//			wb_cyc_o <= 0;
+		//check for timeout conditions
+		if (nack_count == 0) begin
+			if (state != IDLE) begin
+				$display ("WBM: Timed out");
+				//timeout occured, send a nack and go back to IDLE
+				state		<= IDLE;
+				out_status	<= `NACK_TIMEOUT;
+				out_address <= 32'h00000000;
+				out_data	<= 32'h00000000;
+				out_en 		<= 1;
+			end
 		end
-		if (mem_ack_i) begin
-			mem_stb_o <= 0;
-//			mem_cyc_o <= 0;
+		else begin
+			nack_count = nack_count - 1;
 		end
-*/
-
-//XXX: this may change for burst mode
-//		if (in_ready && (state == READ || state == WRITE)) begin
-//			state   <= IDLE;
-//		end
-
 		case (state)
 
 			READ: begin
 				if (mem_bus_select) begin
 					if (mem_ack_i) begin
+						mem_stb_o	<= 0;
+					end
+					else if (~mem_stb_o && out_ready) begin
+						$display("WBM: out_data_count = %h", out_data_count);
 						if (out_data_count == 0) begin
 							//finished all the reads, put de-assert the cycle
 							mem_cyc_o   <= 0;
@@ -253,21 +260,16 @@ always @ (posedge clk) begin
 						end
 						else begin
 							//finished the next double word
+							nack_count		<= nack_timeout;
 							out_data_count	<= out_data_count -1;
+							mem_adr_o		<= mem_adr_o + 4;
 						end
+					
 						//put the strobe down to say we got that double word
-						mem_stb_o   <= 0;
-						mem_we_o    <= 0;
 						out_data    <= mem_dat_i;
 						//initiate an output transfer
 						out_en      <= 1; 
-					end
-					else begin
-						if (out_ready) begin
-							//don't start a new transaction until the output is ready
-							mem_stb_o	<= 1;
-							mem_we_o	<= 0;
-						end
+						mem_stb_o	<= 1;
 					end
 				end
 				else begin
@@ -278,13 +280,14 @@ always @ (posedge clk) begin
 					else if (~wb_stb_o && out_ready) begin
 						$display("WBM: out_data_count = %h", out_data_count);
 						if (out_data_count == 0) begin
-							$display("WBM: out_data_count == 0");
 							//finished all the reads, put de-assert the cycle
 							wb_cyc_o    <= 0;
 							state       <= IDLE;
 						end
 						else begin
+							nack_count		<= nack_timeout;
 							out_data_count	<= out_data_count - 1;
+							wb_adr_o		<= wb_adr_o + 1;
 						end
 
 						//put the data in the otput
@@ -298,15 +301,15 @@ always @ (posedge clk) begin
 			WRITE: begin
 				if (mem_bus_select) begin
 					if (mem_ack_i) begin
+						mem_stb_o    <= 0;
 						if (in_data_count == 0) begin
 							//finished all writes	
 							$display ("WBM: in_data_count == 0");
 							mem_cyc_o	<= 0;
 							state		<= IDLE;
 							out_en		<= 1;
-							wb_we_o		<= 0;
+							mem_we_o	<= 0;
 						end
-						mem_stb_o    <= 0;
 						//tell the IO handler were ready for the next one
 						master_ready	<=	1;
 					end
@@ -314,13 +317,14 @@ always @ (posedge clk) begin
 						$display ("WBM: (burst mode) writing another double word");
 						master_ready	<=	0;
 						mem_stb_o		<= 1;
-						mem_we_o		<= 1;
 						mem_adr_o		<= mem_adr_o + 4;
 						mem_dat_o		<= in_data;
+						nack_count		<= nack_timeout;
 					end
 				end //end working with mem_bus
 				else begin //peripheral bus
 					if (wb_ack_i) begin
+            	   	    wb_stb_o    <= 0;
 						if (in_data_count == 0) begin
 							$display ("WBM: in_data_count == 0");
 							wb_cyc_o	<= 0;
@@ -328,7 +332,6 @@ always @ (posedge clk) begin
 							out_en		<= 1;
 							wb_we_o     <= 0;
 						end
-            	   	    wb_stb_o    <= 0;
 						//tell the IO handler were ready for the next one
 						master_ready	<= 1;
 					end
@@ -336,9 +339,9 @@ always @ (posedge clk) begin
 						$display ("WBM: (burst mode) writing another double word");
 						master_ready	<=	0;
 						wb_stb_o		<= 1;
-						wb_we_o			<= 1;
 						wb_adr_o		<= wb_adr_o + 1;
 						wb_dat_o		<= in_data;
+						nack_count		<= nack_timeout;
 					end
 				end
 			end
@@ -347,6 +350,7 @@ always @ (posedge clk) begin
 				master_ready	<= 1;
 				if (in_ready) begin
 					mem_bus_select	<= 0;
+					nack_count		<= nack_timeout;
 
 					local_address	<= in_address;
 					local_data		<= in_data;
@@ -426,6 +430,16 @@ always @ (posedge clk) begin
 							out_address		<= 32'h00000000;
 							out_en			<= 1;
 							state			<= IDLE;
+						end
+						`COMMAND_NACK_TO_WR: begin
+							out_status		<= ~in_command;
+							out_address		<= 32'h00000000;
+							nack_timeout	<= in_data;
+						end
+						`COMMAND_NACK_TO_RD: begin
+							out_status		<= ~in_command;
+							out_address		<= 32'h00000000;
+							out_data		<= nack_timeout;
 						end
 						default: 		begin
 						end

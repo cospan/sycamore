@@ -92,8 +92,8 @@ input 				m_cyc_i;
 input		[3:0]	m_sel_i;
 input		[31:0]	m_adr_i;
 input  		[31:0]	m_dat_i;
-output reg  [31:0]	m_dat_o;
-output reg      	m_ack_o;
+output reg  [31:0]	m_dat_o = 32'h0;
+output reg      	m_ack_o = 1'h0;
 output	 			m_int_o;
 
 output              s0_we_o;
