@@ -23,6 +23,9 @@ SOFTWARE.
 */
 
 /*
+	11/12/2011
+		-added support for burst read and writes
+		-added support for nacks when the slave doesn't respond in time
 	11/07/2011
 		-added interrupt handling to the master
 		-when the master is idle the interconnect will output the interrupt 

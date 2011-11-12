@@ -23,8 +23,12 @@ SOFTWARE.
 */
 
 /*
+	11/12/2011
+		-overhauled the design to behave more similar to a real I/O handler
+		-changed the timeout to 40 seconds to allow the wishbone master to catch
+		nacks
 	11/08/2011
-		added interrupt support
+		-added interrupt support
 */
 
 /**
