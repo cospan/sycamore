@@ -87,8 +87,6 @@ module wishbone_master (
 	mem_sel_o,
 	mem_ack_i,
 	mem_int_i
-
-
 	);
 
 	input 				clk;
@@ -170,7 +168,7 @@ module wishbone_master (
 
 initial begin
     //$monitor("%t, int: %h, ih_ready: %h, ack: %h, stb: %h, cyc: %h", $time, wb_int_i, in_ready, wb_ack_i, wb_stb_o, wb_cyc_o);
-    //$monitor("%t, cyc: %h, stb: %h, ack: %h, in_ready: %h, out_en: %h", $time, wb_cyc_o, wb_stb_o, wb_ack_i, in_ready, out_en);
+    //$monitor("%t, cyc: %h, stb: %h, ack: %h, in_ready: %h, out_en: %h, master_ready: %h", $time, wb_cyc_o, wb_stb_o, wb_ack_i, in_ready, out_en, master_ready);
 end
 
 
@@ -181,7 +179,7 @@ always @ (posedge clk) begin
 
 //master ready should be used as a flow control, for now its being reset every
 //clock cycle, but in the future this should be used to regulate data comming in so that the master can send data to the slaves without overflowing any buffers
-	master_ready	<= 1;
+	//master_ready	<= 1;
 
 	if (rst) begin
 		out_status		<= 32'h0;
@@ -274,7 +272,13 @@ always @ (posedge clk) begin
 				end
 				else begin
 					if (wb_ack_i) begin
+						//just but the strobe down at least until a cycle passes
+						wb_stb_o    <= 0;
+					end
+					else if (~wb_stb_o && out_ready) begin
+						$display("WBM: out_data_count = %h", out_data_count);
 						if (out_data_count == 0) begin
+							$display("WBM: out_data_count == 0");
 							//finished all the reads, put de-assert the cycle
 							wb_cyc_o    <= 0;
 							state       <= IDLE;
@@ -282,20 +286,12 @@ always @ (posedge clk) begin
 						else begin
 							out_data_count	<= out_data_count - 1;
 						end
-						//just but the strobe down at least until a cycle passes
-						wb_stb_o    <= 0;
-						wb_we_o     <= 0;
+
 						//put the data in the otput
 						out_data    <= wb_dat_i;
 						//tell the io_handler to send data
-						out_en      <= 1; 
-					end
-					else begin
-						if (out_ready) begin
-							//don't start a new transaction until io handler is ready
-							wb_stb_o	<= 1;
-							wb_we_o		<= 0;
-						end
+						out_en		<= 1;	
+						wb_stb_o	<= 1;
 					end
 				end
 			end
@@ -304,53 +300,51 @@ always @ (posedge clk) begin
 					if (mem_ack_i) begin
 						if (in_data_count == 0) begin
 							//finished all writes	
+							$display ("WBM: in_data_count == 0");
 							mem_cyc_o	<= 0;
 							state		<= IDLE;
 							out_en		<= 1;
+							wb_we_o		<= 0;
 						end
 						mem_stb_o    <= 0;
-						mem_we_o     <= 0;
 						//tell the IO handler were ready for the next one
 						master_ready	<=	1;
 					end
-					else begin
-						if (in_ready) begin
-							master_ready	<=	0;
-							mem_stb_o		<= 1;
-							mem_we_o		<= 1;
-							mem_adr_o		<= mem_adr_o + 4;
-							mem_dat_o		<= in_data;
-
-						end
+					else if (in_ready) begin
+						$display ("WBM: (burst mode) writing another double word");
+						master_ready	<=	0;
+						mem_stb_o		<= 1;
+						mem_we_o		<= 1;
+						mem_adr_o		<= mem_adr_o + 4;
+						mem_dat_o		<= in_data;
 					end
-				end
-				else begin
+				end //end working with mem_bus
+				else begin //peripheral bus
 					if (wb_ack_i) begin
 						if (in_data_count == 0) begin
+							$display ("WBM: in_data_count == 0");
 							wb_cyc_o	<= 0;
 							state		<= IDLE;
 							out_en		<= 1;
+							wb_we_o     <= 0;
 						end
             	   	    wb_stb_o    <= 0;
-						wb_cyc_o    <= 0;
-						wb_we_o     <= 0;
 						//tell the IO handler were ready for the next one
 						master_ready	<= 1;
 					end
-					else begin
-						if (in_ready) begin 
-							$display ("reading another double word");
-							master_ready	<=	0;
-							wb_stb_o		<= 1;
-							wb_we_o			<= 1;
-							wb_adr_o		<= wb_adr_o + 1;
-							wb_dat_o		<= in_data;
-						end
+					else if (in_ready) begin 
+						$display ("WBM: (burst mode) writing another double word");
+						master_ready	<=	0;
+						wb_stb_o		<= 1;
+						wb_we_o			<= 1;
+						wb_adr_o		<= wb_adr_o + 1;
+						wb_dat_o		<= in_data;
 					end
 				end
 			end
 			IDLE: begin
 				//handle input
+				master_ready	<= 1;
 				if (in_ready) begin
 					mem_bus_select	<= 0;
 
@@ -360,6 +354,7 @@ always @ (posedge clk) begin
 					case (real_command)
 
 						`COMMAND_PING: begin
+							$display ("WBM: ping");
 							out_status			<= ~in_command;
 							out_address			<= 32'h00000000;
 							out_data			<= S_PING_RESP;
@@ -384,9 +379,10 @@ always @ (posedge clk) begin
 								wb_we_o     	<= 1;
 								wb_dat_o    	<= in_data;
 							end	
-								out_address		<= in_address;
-								out_data		<= in_data;
-								state			<= WRITE;
+							out_address		<= in_address;
+							out_data		<= in_data;
+							master_ready	<= 0;
+							state			<= WRITE;
 						end
 						`COMMAND_READ: 	begin
 							out_data_count		<= in_data_count;
@@ -406,8 +402,9 @@ always @ (posedge clk) begin
 								wb_we_o     	<= 0;
 								out_status		<= ~in_command;
 							end
-								out_address		<= in_address;
-								state			<= READ;
+							master_ready	<= 0;
+							out_address		<= in_address;
+							state			<= READ;
 						end	
 						`COMMAND_RW_FLAGS: begin
 							out_status		<= ~in_command;
@@ -421,7 +418,7 @@ always @ (posedge clk) begin
 							out_data		<= in_data;
 							out_en			<= 1;
 							state			<= IDLE;
-							$display("setting interrupt enable to: %h", in_data); 
+							$display("WBM: setting interrupt enable to: %h", in_data); 
 						end
 						`COMMAND_RD_INT_EN: begin
 							out_status		<= ~in_command;
@@ -443,7 +440,7 @@ always @ (posedge clk) begin
 					//check if there is an interrupt
 					//if the wb_int_i goes positive then send a nortifiaction to the user
 					if ((~prev_int) & wb_int_i) begin	
-						$display("master found an interrupt!");
+						$display("WBM: found an interrupt!");
 						out_status			<= `PERIPH_INTERRUPT;	
 						//only supporting interrupts on slave 0 - 31
 						out_address			<= 32'h00000000;

@@ -234,11 +234,17 @@ integer data_count;
 always #2 clk = ~clk;
 
 
+reg		execute_command;
+reg		command_finished;
+reg		read_data;
+reg		data_read;
+
 initial begin
 	fd_out			=	0;
 	read_count		= 	0;
 	data_count		=	0;
 	timeout_count	=	0;
+	execute_command	<=	0;
 
 	$dumpfile ("design.vcd");
 	$dumpvars (0, wishbone_master_tb);
@@ -263,87 +269,160 @@ initial begin
 		out_ready 		<= 1;
 
 	if (fd_in == 0) begin
-		$display ("input stimulus file was not found");
+		$display ("TB: input stimulus file was not found");
 	end
 	else begin
 		while (!$feof(fd_in)) begin
 			//read in a command
-			read_count = $fscanf (fd_in, "%h:%h:%h:%h", data_count, in_command, in_address, in_data);
-			$display ("read %d items", read_count);
-			$display ("read: #:C:A:D = %h:%h:%h:%h", data_count, in_command, in_address, in_data);
-			#4
-			//just send the command normally
-			in_ready 		<= 1;
-			timeout_count	= `TIMEOUT_COUNT;
-			#2
-			in_ready		<= 0;
-			out_ready 		<= 1;
-			#2
-			$fwrite (fd_out, "command: %h:%h:%h response: ", in_command, in_address, in_data);
-			//if write send all the double word data down
-			if ((in_command & 32'h0000FFFF) == 1) begin
-				//writing
-				
-				while (timeout_count > 0) begin
-					$display ("timeout_count: %h", timeout_count);
-					if (out_en) begin
-						timeout_count  	= `TIMEOUT_COUNT;
-						if (data_count > 0) begin
-							read_count = $fscanf(fd_in, ":%h", in_data);				
-							if (master_ready) begin
-								in_ready <= 0;
-								in_address	= in_address + 1;
-								#2
-								in_ready		<= 0;
-								out_ready		<= 1;
-								#2
-								data_count	= data_count - 1;
-								$display("sending data: %h to address: %h", in_data, in_address);
-							end
-						end
-						else begin
-							$display ("read: S:A:D = %h:%h:%h\n", out_status, out_address, out_data);
-							timeout_count	= -1;
-						end
-					end
-					else begin
-						#2
-						timeout_count = timeout_count - 1;
-					end
-				end
-				if (timeout_count == 0) begin
-					$display ("Wishbone master timed out while executing write command");
-				end
+			read_count = $fscanf (fd_in, "%h:%h:%h:%h", in_data_count, in_command, in_address, in_data);
+
+			if (read_count != 4) begin
+				ch = $fgetc(fd_in);
+				//$display ("Error: read_count = %h", read_count);
 			end
 			else begin
-				//if either any other command then call the normal function
-				while (timeout_count > 0) begin
-					if (out_en) begin
-						//got a response before timeout
-						$display ("read: S:A:D = %h:%h:%h\n", out_status, out_address, out_data);
-						$fwrite (fd_out, "%h:%h:%h\n", out_status, out_address, out_data);
-						timeout_count	= -1;
+				execute_command	<= 1;
+				while (~command_finished) begin
+					data_read	<= 0;
+
+					if ((in_command & 32'h0000FFFF) == 1) begin
+						if (read_data) begin
+							read_count = $fscanf(fd_in, ":%h", in_data);	
+							data_read	<= 1;
+						end
 					end
-					else begin
-						#2
-						timeout_count 	= timeout_count - 1;
-					end
-				end
-				if (timeout_count == 0) begin
-					$display ("Wishbone master timed out while executing command: %h", in_command);
-				end
-				if (! $feof(fd_in)) begin
+
+					//so time porgresses wait a tick
+					#1
+					//this doesn't need to be here, but there is a bug with iverilog that wont allow me to put a delay in right before an 'end' statement
+					execute_command	<= 1;
+				end //while command is not finished
+				execute_command	<= 0;
+				#10
+				$display ("TB: finished command");
+				if (!$feof(fd_in)) begin
 					ch = $fgetc(fd_in);
-					while (ch != "\n")begin
-						ch = $fgetc(fd_in);
-					end
+					//$display("ch: %h", ch);
 				end
-			end
-		end
-	end
+			end //end read_count == 4
+		end //end while ! eof
+	end //end not reset
 	$fclose (fd_in);
 	$fclose (fd_out);
 	$finish();
+end
+
+parameter TB_IDLE		=	4'h0;
+parameter TB_EXECUTE	=	4'h1;
+parameter TB_WRITE		=	4'h2;
+parameter TB_READ		=	4'h3;
+
+reg	[3:0]	state;
+
+//initial begin
+//    $monitor("%t, state: %h", $time, state);
+//end
+
+always @ (posedge clk) begin
+	in_ready			<= 0;
+	out_ready			<= 1;
+	command_finished	<= 0;
+
+	if (rst) begin
+		state				<= TB_IDLE;
+		read_data			<= 0;
+		timeout_count		<= 0;
+	end
+	else begin
+		if (timeout_count > 0) begin
+			timeout_count	<= timeout_count - 1;
+		end
+		if (execute_command && timeout_count == 0) begin
+			$display ("TB: Master timed out while executing command: %h", in_command);
+			state	<= TB_IDLE;
+			command_finished <= 1;
+
+		end //end reached the end of a timeout
+
+		case (state)
+			TB_IDLE: begin
+				if (out_en) begin
+					state	<= TB_READ;
+					out_ready	<= 0;
+				end
+				if (execute_command) begin
+					$display ("TB: #:C:A:D = %h:%h:%h:%h", in_data_count, in_command, in_address, in_data);
+					timeout_count	<= `TIMEOUT_COUNT;
+					state			<= TB_EXECUTE;
+				end
+			end
+			TB_EXECUTE: begin
+				if (master_ready) begin
+					//send the command over	
+					in_ready	<= 1;
+					if ((in_command & 32'h0000FFFF) == 1) begin
+						//write command
+						//in_commands are read from the above initial statement
+						//in_data count
+						//in_command
+						//in_address
+						//in_data
+						state	<= TB_WRITE;
+					end
+					else begin
+						//read command
+						state	<= TB_READ;
+					end
+				end
+			end
+			TB_WRITE: begin
+				$display ("in write");
+				//write data to the master
+				if (out_en) begin
+					//got a response
+					$display ("TB: read: S:A:D = %h:%h:%h\n", out_status, out_address, out_data);
+				end
+				else if (master_ready) begin
+					if (in_data_count == 0) begin
+						$display("TB: finishd write");
+						//wrote last double word of data
+						command_finished	<= 1;
+						state	<= TB_IDLE;
+					end
+					else begin
+						//need to write more data, ask the read block to read more
+						if (data_read) begin
+							$display ("TB: send new data");
+							read_data	<= 0;
+							in_ready	<= 1;
+							in_data_count	<= in_data_count -1;
+							//the in data is set by the initial
+						end
+						else begin
+							$display("TB: (burst mode) get another double word");
+							timeout_count <= `TIMEOUT_COUNT;
+							read_data	<= 1;
+						end//send another data
+					end
+				end
+			end //write command
+			TB_READ: begin
+				//read data from the master
+				if (out_en) begin
+					$display ("TB: read: S:A:D = %h:%h:%h", out_status, out_address, out_data);
+					out_ready	<= 0;
+					if (out_data_count == 0) begin
+						command_finished	<= 1;
+						state	<= TB_IDLE;
+					end
+				end //enable an write to the output handler
+			end //read or other commands
+			default: begin
+				$display ("TB: state is wrong");
+				state	<= TB_IDLE;
+			end //somethine wrong here
+		endcase //state machine
+	end//not reset
 end
 
 endmodule
