@@ -67,6 +67,10 @@ module wishbone_master (
 	out_data,
     out_data_count,
 
+	//stimulus input
+	//debug output
+	debug_out,
+
 	//wishbone signals
 	wb_adr_o,
 	wb_dat_o,
@@ -108,6 +112,9 @@ module wishbone_master (
 	output reg [31:0]	out_address		= 32'h0;
 	output reg [31:0]	out_data		= 32'h0;
     output reg [27:0]   out_data_count  = 28'h0;
+
+	//debug output
+	output reg [31:0]	debug_out;
 	
 	//wishbone
 	output reg [31:0]	wb_adr_o;
@@ -146,6 +153,7 @@ module wishbone_master (
 	reg [31:0]			local_command	= 32'h0;
 	reg [31:0]			local_address	= 32'h0;
 	reg [31:0]			local_data		= 32'h0;
+	reg [27:0]			local_data_count= 27'h0;
 
 	reg [31:0]			master_flags	= 32'h0;
 	reg [31:0]			rw_count		= 32'h0;
@@ -161,9 +169,7 @@ module wishbone_master (
 	reg	[31:0]			nack_count		= 0;
 	//private wires
 	wire [15:0]			command_flags;
-
-
-	
+	wire				enable_nack;
 	reg					mem_bus_select;
 
 	wire [15:0]			real_command;
@@ -171,6 +177,9 @@ module wishbone_master (
 	//private assigns
 	assign command_flags 				= in_command[31:16];
 	assign real_command					= in_command[15:0];
+
+
+	assign				enable_nack		=	master_flags[0];
 
 initial begin
     //$monitor("%t, int: %h, ih_ready: %h, ack: %h, stb: %h, cyc: %h", $time, wb_int_i, in_ready, wb_ack_i, wb_stb_o, wb_cyc_o);
@@ -195,6 +204,7 @@ always @ (posedge clk) begin
 		local_command	<= 32'h0;
 		local_address	<= 32'h0;
 		local_data		<= 32'h0;
+		local_data_count<= 27'h0;
 		master_flags	<= 32'h0;
 		rw_count		<= 0;
 		state			<= IDLE;
@@ -202,6 +212,8 @@ always @ (posedge clk) begin
 		prev_int		<= 0;
 
 		wait_for_slave  <= 0;
+
+		debug_out		<= 32'h00000000;
 
 		//wishbone reset
 		wb_adr_o        <= 32'h0;
@@ -234,7 +246,8 @@ always @ (posedge clk) begin
 	else begin 
 		//check for timeout conditions
 		if (nack_count == 0) begin
-			if (state != IDLE) begin
+			if (state != IDLE && enable_nack) begin
+				debug_out[4]	<= ~debug_out[4];
 				$display ("WBM: Timed out");
 				//timeout occured, send a nack and go back to IDLE
 				state		<= IDLE;
@@ -245,7 +258,7 @@ always @ (posedge clk) begin
 			end
 		end
 		else begin
-			nack_count = nack_count - 1;
+			nack_count <= nack_count - 1;
 		end
 		case (state)
 
@@ -266,38 +279,40 @@ always @ (posedge clk) begin
 							nack_count		<= nack_timeout;
 							out_data_count	<= out_data_count -1;
 							mem_adr_o		<= mem_adr_o + 4;
+							mem_stb_o		<= 1;
 						end
 					
 						//put the strobe down to say we got that double word
 						out_data    <= mem_dat_i;
 						//initiate an output transfer
 						out_en      <= 1; 
-						mem_stb_o	<= 1;
 					end
 				end
 				else begin
 					if (wb_ack_i) begin
-						//just but the strobe down at least until a cycle passes
 						wb_stb_o    <= 0;
 					end
 					else if (~wb_stb_o && out_ready) begin
 						$display("WBM: out_data_count = %h", out_data_count);
 						if (out_data_count == 0) begin
 							//finished all the reads, put de-assert the cycle
+							debug_out[6]	<= ~debug_out[6];
 							wb_cyc_o    <= 0;
 							state       <= IDLE;
 						end
 						else begin
+//the nack count might need to be reset outside of these conditionals becuase
+//at this point we are waiting on the io handler
 							nack_count		<= nack_timeout;
 							out_data_count	<= out_data_count - 1;
 							wb_adr_o		<= wb_adr_o + 1;
+							wb_stb_o		<= 1;
 						end
 
 						//put the data in the otput
 						out_data    <= wb_dat_i;
 						//tell the io_handler to send data
 						out_en		<= 1;	
-						wb_stb_o	<= 1;
 					end
 				end
 			end
@@ -305,7 +320,7 @@ always @ (posedge clk) begin
 				if (mem_bus_select) begin
 					if (mem_ack_i) begin
 						mem_stb_o    <= 0;
-						if (in_data_count == 0) begin
+						if (local_data_count == 0) begin
 							//finished all writes	
 							$display ("WBM: in_data_count == 0");
 							mem_cyc_o	<= 0;
@@ -316,7 +331,8 @@ always @ (posedge clk) begin
 						//tell the IO handler were ready for the next one
 						master_ready	<=	1;
 					end
-					else if (in_ready) begin
+					else if ((local_data_count > 0) && in_ready && (mem_stb_o == 0)) begin
+						local_data_count	<= local_data_count - 1;
 						$display ("WBM: (burst mode) writing another double word");
 						master_ready	<=	0;
 						mem_stb_o		<= 1;
@@ -328,7 +344,7 @@ always @ (posedge clk) begin
 				else begin //peripheral bus
 					if (wb_ack_i) begin
             	   	    wb_stb_o    <= 0;
-						if (in_data_count == 0) begin
+						if (local_data_count == 0) begin
 							$display ("WBM: in_data_count == 0");
 							wb_cyc_o	<= 0;
 							state		<= IDLE;
@@ -338,7 +354,9 @@ always @ (posedge clk) begin
 						//tell the IO handler were ready for the next one
 						master_ready	<= 1;
 					end
-					else if (in_ready) begin 
+					else if ((local_data_count > 0) && in_ready && (wb_stb_o == 0)) begin 
+						local_data_count <= local_data_count - 1;
+						debug_out[5]	<= ~debug_out[5];
 						$display ("WBM: (burst mode) writing another double word");
 						master_ready	<=	0;
 						wb_stb_o		<= 1;
@@ -352,16 +370,19 @@ always @ (posedge clk) begin
 				//handle input
 				master_ready	<= 1;
 				if (in_ready) begin
+					debug_out[6]	<= ~debug_out[6];
 					mem_bus_select	<= 0;
 					nack_count		<= nack_timeout;
 
 					local_address	<= in_address;
 					local_data		<= in_data;
+					out_data_count	<= 0;
 
 					case (real_command)
 
 						`COMMAND_PING: begin
 							$display ("WBM: ping");
+							debug_out[0]		<= ~debug_out[0];
 							out_status			<= ~in_command;
 							out_address			<= 32'h00000000;
 							out_data			<= S_PING_RESP;
@@ -370,6 +391,7 @@ always @ (posedge clk) begin
 						end
 						`COMMAND_WRITE:	begin
 							out_status	<= ~in_command;
+							debug_out[1]	<= ~debug_out[1];
 							if (command_flags & `FLAG_MEM_BUS) begin
 								mem_bus_select	<= 1;	
 								mem_adr_o    	<= in_address;
@@ -393,6 +415,7 @@ always @ (posedge clk) begin
 						end
 						`COMMAND_READ: 	begin
 							out_data_count		<= in_data_count;
+							debug_out[2]	<= ~debug_out[2];
 							if (command_flags & `FLAG_MEM_BUS) begin
 								mem_bus_select	<= 1;	
 								mem_adr_o    	<= in_address;
@@ -414,6 +437,14 @@ always @ (posedge clk) begin
 							state			<= READ;
 						end	
 						`COMMAND_RW_FLAGS: begin
+							if (command_flags & 1)begin
+								//reading
+								out_data	<= master_flags;
+							end
+							else begin
+								master_flags <= in_data;
+							end
+							debug_out[3]	<= ~debug_out[3];
 							out_status		<= ~in_command;
 							out_en			<= 1;
 							state			<= IDLE;
@@ -450,6 +481,8 @@ always @ (posedge clk) begin
 				end
 				//not handling an input, if there is an interrupt send it to the user
 				else if (wb_ack_i == 0 & wb_stb_o == 0 & wb_cyc_o == 0) begin
+					//hack for getting the in_data_count before the io_handler decrements it
+					local_data_count	<= in_data_count;
 				    //work around to add a delay
 				    wb_adr_o <= local_address;
 				    //handle input
@@ -457,6 +490,7 @@ always @ (posedge clk) begin
 					//check if there is an interrupt
 					//if the wb_int_i goes positive then send a nortifiaction to the user
 					if ((~prev_int) & wb_int_i) begin	
+						debug_out[8]	<= ~debug_out[8];
 						$display("WBM: found an interrupt!");
 						out_status			<= `PERIPH_INTERRUPT;	
 						//only supporting interrupts on slave 0 - 31

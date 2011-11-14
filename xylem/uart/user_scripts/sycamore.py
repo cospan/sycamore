@@ -61,56 +61,89 @@ class Sycamore:
 	def get_address_from_dev_index(self, dev_index):	
 		return string.atoi(self.drt_lines[((dev_index + 1) * 4) + 2], 16)
 
-	def read_mem_data (self, dev_index, offset):
+	def read_mem_data (self, dev_index, offset, data_count = 0):
+		response = []
 		address = self.get_address_from_dev_index(dev_index)
-		#print "address: " + str(address)
-		read_cmd = "L000000000010002%0.8X00000000"
-		read_cmd = (read_cmd) % (address + offset)
+		#data_count = 0 will read one double word, so if data_count says 1 just do a default read
+		if (data_count > 0):
+			data_count = data_count - 1;
+
+		read_cmd = "L%0.7X00010002%0.8X00000000"
+		read_cmd = (read_cmd) % (data_count, address + offset)
 		self.ser.write(read_cmd)
-		read_resp = self.ser.read(25)
-		#print "read command: " + read_cmd
-		#print "response: " + read_resp
-		if (len(read_resp) == 0):
-			return -1
-		return string.atoi(read_resp.__getslice__(17, 25), 16)
+		read_resp = self.ser.read(25 + (data_count * 8))
+		print "read command: " + read_cmd
+		print "response: " + read_resp
+
+		if (len(read_resp) > 0):
+			for i in range (0, data_count + 1):
+				response.append(string.atoi(read_resp[(17 + (i * 8)):(25 + (i * 8))], 16))
+		return response
 		
-		
-	def read_data(self, dev_index, offset):
+	def read_data(self, dev_index, offset, data_count = 0):
+		response = []
 		address = self.get_address_from_dev_index(dev_index)
-		read_cmd = "L000000000000002%0.8X00000000"
-		read_cmd = (read_cmd) % (address + offset)
+		#data_count = 0 will read one double word, so if data_count says 1 just do a default read
+		if (data_count > 0):
+			data_count = data_count - 1;
+
+		read_cmd = "L%0.7X00000002%0.8X00000000"
+		read_cmd = (read_cmd) % (data_count, address + offset)
 		self.ser.write(read_cmd)
-		read_resp = self.ser.read(25)
-		if (len(read_resp) == 0):
-			return -1
-		return string.atoi(read_resp.__getslice__(17, 25), 16)
+		read_resp = self.ser.read(25 + (data_count * 8))
+		print "read command: " + read_cmd
+		print "response: " + read_resp
+
+		if (len(read_resp) > 0):
+			for i in range (0, data_count + 1):
+				response.append(string.atoi(read_resp[(17 + (i * 8)):(25 + (i * 8))], 16))
+
+		return response
 		
 	def write_mem_data(self, dev_index, offset, data):
-		data_string = ("%0.8X") % data
+
+		if (not isinstance (data, list)):
+			data = [data]
+
 		address = self.get_address_from_dev_index(dev_index)
-		write_cmd = "L000000000010001%0.8X" + data_string
-		write_cmd = (write_cmd) % (address + offset)
-		#print "write command: " + write_cmd
+		data_count = len(data) - 1
+		write_cmd = "L%0.7X00010001%0.8X"
+		write_cmd = (write_cmd) % (data_count, address + offset)
+
+		for i in range (0, data_count + 1):
+			data_string = ("%0.8X") % data[i]
+			write_cmd += data_string;
+
+		print "out string: " + write_cmd
 		self.ser.flushInput()
 		self.ser.write(write_cmd)
 		write_resp = self.ser.read(25)
-		#print "write resposne: " + write_resp
 		if (len(write_resp) == 0):
 			return False
 		return True
 
 	def write_data(self, dev_index, offset, data):
-		data_string = ("%0.8X") % data
+
+		if (not isinstance (data, list)):
+			data = [data]
+
 		address = self.get_address_from_dev_index(dev_index)
-		write_cmd = "L000000000000001%0.8X" + data_string
-		write_cmd = (write_cmd) % (address + offset)
-#		print "out string: " + write_cmd
+		data_count = len(data) - 1
+		write_cmd = "L%0.7X00000001%0.8X"
+		write_cmd = (write_cmd) % (data_count, address + offset)
+
+		for i in range (0, data_count + 1):
+			data_string = ("%0.8X") % data[i]
+			write_cmd += data_string;
+
+		print "out string: " + write_cmd
 		self.ser.flushInput()
 		self.ser.write(write_cmd)
 		write_resp = self.ser.read(25)
 		if (len(write_resp) == 0):
 			return False
 		return True
+	
 
 	def read_drt(self):
 		self.drt_string = ""
@@ -203,6 +236,7 @@ class Sycamore:
 			address_offset = string.atoi(self.drt_lines[((dev_index + 1) * 4) + 2], 16)
 			num_of_registers = string.atoi(self.drt_lines[((dev_index + 1) * 4) + 3], 16)
 			print "device ID: " + str(device_id)
+			data_list = list()
 			if (device_id == 1):
 				print "found gpio"
 				print "enable all GPIO's"
@@ -218,14 +252,25 @@ class Sycamore:
 				print "read buttons in 1 second..."
 				time.sleep(1)
 				gpio_read = self.read_data(dev_index, 0)
-				print "gpio read: " + hex(gpio_read)
+				print "gpio read: " + hex(gpio_read[0])
 
 				print "testing interrupts, setting interrupts up for postivie edge detect"
 				#positive edge detect
 				self.write_data(dev_index, 4, 0xFFFFFFFF)
 				#enable all interrupts
 				self.write_data(dev_index, 3, 0xFFFFFFFF)
+
+#				print "testing burst write: "
+#				self.write_data(dev_index, 0, [1, 2, 3, 4, 5])
+
+				
+#				print "testing burst read, results should be 1, 2: "
+#				gpio_read = self.read_data(dev_index, 0, 5)
+#				for v in gpio_read:
+#					print "gpio: " + str(v)
+
 				print "testing interrupts, waiting for 5 seconds..."
+				
 				if (self.wait_for_interrupts(wait_time = 5)):
 					#print "detected interrupts!"
 					#print "interrupts: " + str(self.interrupts)
@@ -234,7 +279,7 @@ class Sycamore:
 					if (self.is_interrupt_for_slave(dev_index)):
 						print "interrupt for GPIO!"
 						gpio_read = self.read_data(dev_index, 0)
-						print "gpio read: " + hex(gpio_read)
+						print "gpio read: " + hex(gpio_read[0])
 
 
 	
@@ -268,23 +313,33 @@ class Sycamore:
 				else:
 					print "Memory slave is on peripheral bus"
 
-				print "Write to 10 locations:"
-				for i in range (0, 10):
-					print "writing " + str(i) + " to " + str(i * 4)
-					if (mem_bus):
-						self.write_mem_data(dev_index, i * 4, i)
-					else:
-						self.write_data(dev_index, i * 4, i)
+				print "Burst Write to 10 locations:"
+				if (mem_bus):
+					self.write_mem_data(dev_index, 0, [0,1,2,3,4,5,6,7,8,9])
+				else:
+					self.write_data(dev_index, 0, [0,1,2,3,4,5,6,7,8,9])
+#				for i in range (0, 10):
+#					print "writing " + str(i) + " to " + str(i * 4)
+#					if (mem_bus):
+#						self.write_mem_data(dev_index, i * 4, i)
+#					else:
+#						self.write_data(dev_index, i * 4, i)
 
-				print "Reading from the 10 locations:"
-				mem_value = 0
-				for i in range (0, 10):
-					if (mem_bus):
-						mem_value = self.read_mem_data(dev_index, i * 4)
-					else:
-						mem_value = self.read_mem_data(dev_index, i * 4)
-
-					print "reading " + str(mem_value) + " from " + str(i * 4)
+				print "Burst Read from the 10 locations:"
+				mem_value = []
+				if (mem_bus):
+					mem_value = self.read_mem_data(dev_index, 0, 10)
+				else:
+					mem_value = self.read_data(dev_index, 0, 10)
+				for i in range (0, len(mem_value)):
+					print "reading " + str(mem_value[i]) + " from " + str(i * 4)
+#				for i in range (0, 10):
+#					if (mem_bus):
+#						mem_value = self.read_mem_data(dev_index, i * 4)
+#					else:
+#						mem_value = self.read_mem_data(dev_index, i * 4)
+#
+#					print "reading " + str(mem_value[0]) + " from " + str(i * 4)
 
 
 	

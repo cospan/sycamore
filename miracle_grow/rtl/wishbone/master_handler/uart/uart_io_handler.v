@@ -32,6 +32,7 @@ module uart_io_handler (
 	rst,
 
 	//input handler
+	master_ready,
 	ih_ready,
 	
 	//incomming data
@@ -61,6 +62,8 @@ input				rst;
 
 //input handler
 output reg			ih_ready;
+input				master_ready;
+
 output reg [31:0]	in_command;
 output reg [31:0]	in_address;
 output reg [31:0]	in_data;
@@ -156,13 +159,13 @@ uart uart_dev (
 always @ (posedge clk) begin
 
 	ih_ready	<= 0;
+
     if (rst) begin
         in_command     		<= 32'h0000;
 		in_address			<= 32'h0000;
 		in_data				<= 32'h0000;
         in_state   	    	<= IDLE;
 		in_nibble_count		<= 4'h0;
-		ih_ready			<= 0;
         in_data_count		<= 27'h0;
         send_first_data		<= 0;
     end
@@ -170,7 +173,6 @@ always @ (posedge clk) begin
         //main state machine goes here
         case (in_state)
             IDLE: begin
-				ih_ready			<= 0;
                 if (in_byte_available) begin
                     in_state     <= READ_ID;
                 end
@@ -181,7 +183,7 @@ always @ (posedge clk) begin
                 in_command			<= 32'h0000;
 				in_address			<= 32'h0000;
 				in_data				<= 32'h0000;
-                in_data_count		<= 24'h000;
+                in_data_count		<= 27'h000;
                 send_first_data 	<= 1;
                 if (in_byte == CHAR_L) begin
                     //read the first of in_byte
@@ -205,7 +207,7 @@ always @ (posedge clk) begin
                         //valid character
                         if (in_byte >= CHAR_A) begin
                             //A - F
-                            in_data_count  <= (in_data_count[23:0]) + (in_byte - CHAR_0); 
+                            in_data_count  <= (in_data_count[23:0]) + (in_byte - CHAR_HEX_OFFSET); 
                         end
                         else begin
                             in_data_count  <= (in_data_count[23:0]) + (in_byte - CHAR_0);
@@ -294,38 +296,39 @@ always @ (posedge clk) begin
 						((in_byte > CHAR_0 + 10) && (in_byte < CHAR_A)) || 
 						(in_byte > CHAR_F)) begin
 						/*
-						something went wront reset... this code could be put
+						something went wrong reset... this code could be put
 						outside all of the states, but within the state its
 						easier to understand the code
 						*/
                         in_state    <=    READ_ID;
                     end
                     else begin
-						if (in_byte >= CHAR_A) begin
-							//A - F value
-							in_data 		<= (in_data[31:0] << 4 | (in_byte - CHAR_HEX_OFFSET));
+						if (in_nibble_count <= 7) begin
+							if (in_byte >= CHAR_A) begin
+								//A - F value
+								in_data 		<= (in_data[31:0] << 4 | (in_byte - CHAR_HEX_OFFSET));
+							end
+							else begin
+								//0-9 value
+								in_data 		<= (in_data[31:0] << 4 |  (in_byte - CHAR_0));
+							end
+						    in_nibble_count	<= in_nibble_count + 1;
+						end
+					end
+                end //if in byte available
+				if (in_nibble_count > 7) begin
+					if (master_ready) begin
+						if (is_writing && in_data_count > 0) begin
+							in_data_count <= in_data_count - 1;
 						end
 						else begin
-							//0-9 value
-							in_data 		<= (in_data[31:0] << 4 |  (in_byte - CHAR_0));
+							in_state			<= IDLE;
 						end
-
-						if (in_nibble_count >= 7) begin
-                            if (is_writing && in_data_count > 0) begin
-                                in_data_count <= in_data_count - 1;
-                            end
-                            else begin
-							    in_state			<= IDLE;
-                            end
-                            in_nibble_count        <= 4'h0;
-                            ih_ready               <= 1;
-						end
-                        else begin
-						    in_nibble_count	<= in_nibble_count + 1;
-                        end
-                    end
-                end
-            end
+						ih_ready				<= 1;
+						in_nibble_count        	<= 4'h0;
+					end
+				end
+			end
             default: begin
                 in_command         <= 8'h0;
                 in_state         <= IDLE;
@@ -355,6 +358,7 @@ always @ (posedge clk) begin
 		lout_status				<= 32'h0;
 		lout_address			<= 32'h0;
 		uart_wait_for_tx		<= 0;
+		oh_ready				<= 0;
 	end
 
 	else begin
@@ -364,17 +368,24 @@ always @ (posedge clk) begin
 			IDLE: begin
 				out_byte				<= 	8'h0;
 				out_nibble_count		<=	4'h0;
+				oh_ready				<=	1'h1;
 				if (oh_en) begin
-					lout_data_count		<= out_data_count;
+//moved this outside because by the time it reaches this part, the out data_count is
+//changed
+					//lout_data_count		<= out_data_count;
 					lout_status			<= out_status;
 					lout_address		<= out_address;
 					lout_data			<= out_data;
 
 					out_byte			<= CHAR_S;	
 					out_state			<= WRITE_STATUS; 
+					oh_ready			<= 0;
 					uart_out_byte_en	<= 1;
 					uart_wait_for_tx	<= 1;
 				end 
+				else begin
+					lout_data_count		<= out_data_count;
+				end
 			end
 			WRITE_STATUS: begin
 				//shift the data into the output out_byte one at a time
@@ -419,32 +430,39 @@ always @ (posedge clk) begin
 
 			end
 			WRITE_DATA: begin
-				//shift the data into the output out_byte one at a time
-				if (lout_data[31:28] < 10)begin
-					//send character number
-					out_byte 	<= lout_data[31:28] + CHAR_0;
+				if (out_nibble_count <= 7) begin
+					//shift the data into the output out_byte one at a time
+					if (lout_data[31:28] < 10)begin
+						//send character number
+						out_byte 	<= lout_data[31:28] + CHAR_0;
+					end
+					else begin
+						//send  character hex value
+						out_byte 	<= lout_data[31:28] + CHAR_HEX_OFFSET;
+					end
+
+					lout_data 				<= (lout_data[28:0] << 4);
+					uart_out_byte_en		<= 1;
+					uart_wait_for_tx		<= 1;
+					out_nibble_count		<= out_nibble_count + 1;
 				end
+				//nibble count >= 7
 				else begin
-					//send  character hex value
-					out_byte 	<= lout_data[31:28] + CHAR_HEX_OFFSET;
-				end
-
-				lout_data 				<= (lout_data[28:0] << 4);
-				uart_out_byte_en		<= 1;
-				uart_wait_for_tx		<= 1;
-				out_nibble_count		<= out_nibble_count + 1;
-
-				if (out_nibble_count >= 7) begin
                     if (lout_data_count > 0) begin
-                        lout_data_count <= lout_data_count - 1;
+						oh_ready				<= 1;
+						if (oh_en) begin
+							oh_ready			<= 0;
+                        	lout_data_count 	<= lout_data_count - 1;
+							lout_data			<= out_data;
+							out_nibble_count	<= 4'h0;
+						end
                     end
                     else begin
 					    oh_finished		<= 1;
 					    out_state		<= IDLE;
+						out_nibble_count	<= 4'h0;
                     end
-					out_nibble_count	<= 4'h0;
 				end
-
 			end
 			default: begin
 					out_state	<=	IDLE;

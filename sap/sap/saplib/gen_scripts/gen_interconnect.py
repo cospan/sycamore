@@ -96,7 +96,7 @@ class GenInterconnect(Gen):
 		ack_block_buf = ack_block_buf + ") begin\n\tcase (slave_select)\n"
 		for i in range (0, num_slaves):
 			ack_block_buf = ack_block_buf + "\t\tADDR_" + str(i) + ": begin\n\t\t\tm_ack_o <= s" + str(i) + "_ack_i;\n\t\tend\n";
-		ack_block_buf = ack_block_buf + "\t\tdefault: begin\n\t\t\tm_ack_o <= 1\'hx;\n\t\tend\n\tendcase\nend\n\n"
+		ack_block_buf = ack_block_buf + "\t\tdefault: begin\n\t\t\tm_ack_o <= 1\'h0;\n\t\tend\n\tendcase\nend\n\n"
 
 
 		#int in block

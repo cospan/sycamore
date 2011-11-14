@@ -263,7 +263,7 @@ initial begin
 	in_address		<= 32'h0;
 	in_data			<= 32'h0;
 	in_data_count	<= 0;
-	out_ready		<= 32'h0;
+	out_ready		<= 0;
 	//clear wishbone signals
 	#20
 	rst				<= 0;

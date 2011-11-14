@@ -88,7 +88,7 @@ class GenTop(Gen):
 		#in the future utilize the constraints to generate the connections
 
 		#declare the wires
-		wr_buf = wr_buf + "\t//inupt handler signals\n"
+		wr_buf = wr_buf + "\t//input handler signals\n"
 		#wr_buf = wr_buf + "\tinput\t\tclk_in;\n"
 		wr_buf = wr_buf + "\tinput\t\t\tclk;\n"
 		#wr_buf = wr_buf + "\twire\t\tclk;\n"
@@ -159,8 +159,11 @@ class GenTop(Gen):
 		self.wires.append("mem_dat_o")
 		wr_buf = wr_buf + "\twire\t\t\tmem_ack_i;\n"
 		self.wires.append("mem_ack_i")
-		wr_buf = wr_buf + "\twire\t\t\tmem_int_i;\n\n"
+		wr_buf = wr_buf + "\twire\t\t\tmem_int_i;\n"
 		self.wires.append("mem_int_i")
+
+		wr_buf = wr_buf + "\twire\t[31:0]\twbm_debug_out;\n\n"
+		self.wires.append("wbm_debug_out");
 
 
 		#put the in clock on the global buffer
@@ -335,7 +338,8 @@ class GenTop(Gen):
 		wm_buf = wm_buf + "\t\t.in_ready(ih_ready),\n"
 		wm_buf = wm_buf + "\t\t.in_command(in_command),\n"
 		wm_buf = wm_buf + "\t\t.in_address(in_address),\n"
-		wm_buf = wm_buf + "\t\t.in_data(in_data),\n\n"
+		wm_buf = wm_buf + "\t\t.in_data(in_data),\n"
+		wm_buf = wm_buf + "\t\t.in_data_count(in_data_count),\n\n"
 
 		wm_buf = wm_buf + "\t\t//output handler signals\n"
 		wm_buf = wm_buf + "\t\t.out_ready(oh_ready),\n"
@@ -368,7 +372,9 @@ class GenTop(Gen):
 		wm_buf = wm_buf + "\t\t.mem_msk_o(mem_msk_o),\n"
 		wm_buf = wm_buf + "\t\t.mem_sel_o(mem_sel_o),\n"
 		wm_buf = wm_buf + "\t\t.mem_ack_i(mem_ack_i),\n"
-		wm_buf = wm_buf + "\t\t.mem_int_i(mem_int_i)\n\n"
+		wm_buf = wm_buf + "\t\t.mem_int_i(mem_int_i),\n\n"
+		
+		wm_buf = wm_buf + "\t\t.debug_out(wbm_debug_out)\n\n";
 		wm_buf = wm_buf + "\t);"
 
 		if debug:
@@ -504,40 +510,40 @@ class GenTop(Gen):
 					pre_name += "s" + str(index) + "_"
 
 		#generate all the wires
-		for io in io_types:
-			for port in module_tags["ports"][io].keys():
-				pdict = module_tags["ports"][io][port]
-				if ((len(name) > 0) and (index != -1)):
-					wire = ""
-					if (port == "clk" or port == "rst"):
-						wire = port
-					else:
-						if (self.is_wishbone_port(port)):
-							wire = pre_name + port
+		if (name != "io"):
+			for io in io_types:
+				for port in module_tags["ports"][io].keys():
+					pdict = module_tags["ports"][io][port]
+					if ((len(name) > 0) and (index != -1)):
+						wire = ""
+						if (port == "clk" or port == "rst"):
+							continue
 						else:
-							wire = name + "_" + port
-					if (wire in self.wires):
-						continue
-				self.wires.append(port)
-				out_buf = out_buf + "\twire"
-				#if the size is greater than one add it
-				if (pdict["size"] > 1):
-					out_buf = out_buf + "\t[" + str(pdict["max_val"]) + ":" + str(pdict["min_val"]) + "]\t\t"
-				else:
-					out_buf = out_buf + "\t\t\t\t"
-
-				#add name and index if required
-				if (len(name) > 0):
-					if (port == "clk" or port == "rst"):
-						out_buf += port
+							if (self.is_wishbone_port(port)):
+								wire = pre_name + port
+							else:
+								wire = name + "_" + port
+						if (wire in self.wires):
+							continue
+					self.wires.append(port)
+					out_buf = out_buf + "\twire"
+					#if the size is greater than one add it
+					if (pdict["size"] > 1):
+						out_buf = out_buf + "\t[" + str(pdict["max_val"]) + ":" + str(pdict["min_val"]) + "]\t\t"
 					else:
-						if (self.is_wishbone_port(port)):
-							out_buf += pre_name +  port
+						out_buf = out_buf + "\t\t\t\t"
+						#add name and index if required
+					if (len(name) > 0):
+						if (port == "clk" or port == "rst"):
+							out_buf += port
 						else:
-							out_buf += name + "_" + port
-				out_buf = out_buf + ";\n"
-
-		out_buf = out_buf + "\n\n"
+							if (self.is_wishbone_port(port)):
+								out_buf += pre_name +  port
+							else:
+								out_buf += name + "_" + port
+						out_buf = out_buf + ";\n"
+				out_buf = out_buf + "\n\n"
+			
 		#Finished Generating the Wires
 
 
