@@ -1,0 +1,39 @@
+{
+	
+	"BASE_DIR":"~/projects/sycamore_projects",
+	"PROJECT_NAME":"example_project",
+	"BUILD_TOOL":"xilinx",
+	"TEMPLATE":"wishbone_template.json",
+	"INTERFACE":"uart_io_handler.v",
+	"SLAVES":{
+		"gpio1":{
+			"filename":"wb_gpio.v"
+		}
+	},
+
+	"CONSTRAINTS":{
+		"constraint_files":[
+			"Avt_S6LX9_MicroBoard_UCF_110804.ucf"
+		],
+		"board":"lx9_microboard",
+		"device":"xc6slx92csg324c",
+		"bind": {
+			"phy_uart_in":{
+				"port":"USB_RS232_RXD",
+				"direction":"input"
+			},
+			"phy_uart_out":{
+				"port":"USB_RS232_TXD",
+				"direction":"output"
+			},
+			"gpio1_gpio_out[3:0]":{
+				"port":"GPIO_LED[4:1]",
+				"direction":"output"
+			},
+			"gpio1_gpio_in[3:0]":{
+				"port":"GPIO_DIP[3:0]",
+				"direction":"input"
+			}
+		}
+	}
+}

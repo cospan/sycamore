@@ -6,6 +6,9 @@ Sycamore: the main front interface to the Sycamore bus system on the FPGA
 
 """
 Changes:
+11/12/2011
+	-Changed read_data and read_mem_data to return a list of double words
+	read from sycamore
 11/07/2011
 	-Added the capability to detect interrupts and read find out if a slave was the one that
 		generated the interrupt
