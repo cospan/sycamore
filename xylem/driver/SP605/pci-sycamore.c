@@ -38,8 +38,8 @@
 
 #include "kint.h"
 
-#define PCI_SYCAMORE_DEVICE_ID 0x0001
-#define PCI_SYCAMORE_VENDOR_ID 0xC594
+#define PCI_SYCAMORE_DEVICE_ID 0x0007
+#define PCI_SYCAMORE_VENDOR_ID 0x10EE
 #define PCI_DRIVER_NAME "pci-sycamore"
 
 #define BRIDGE_MEM_MAPPED 0
@@ -173,6 +173,7 @@ static int __init sycamore_init(void){
 	 */
 	sycamore_devices = kmalloc(sizeof(struct sycamore_dev), GFP_KERNEL);
 	if (sycamore_devices == NULL){
+		printk("sycamore_init: no memory\n");
 		result = -ENOMEM;
 		goto fail;
 	}
@@ -209,7 +210,7 @@ static int __init sycamore_init(void){
 	dev->cdev.owner = THIS_MODULE;
 	dev->cdev.ops = &sycamore_fops;
 	dev->offset = 0;
-	//register the CDEV into the system
+	//add the cdev device to the device
 	result = cdev_add(&dev->cdev, devno, 1);
 
 	//configure the pci device
@@ -222,14 +223,14 @@ static int __init sycamore_init(void){
 			goto fail;
 	}
 	if (dev->pcidev == NULL){
-			printk(KERN_NOTICE "sycamore_init: PCI DEV is NULL, probe failed\n");
+			printk(KERN_NOTICE "PCI DEV is NULL, probe failed\n");
 			goto fail;
 	}
 
 	//get the physical base addresses of the PCI
 	base_address = pci_resource_start(dev->pcidev, 0);
 
-	printk("<1> Frist base address register found at %08X \n", pci_resource_start(dev->pcidev, 0));
+	printk("<1> First base address register found at %08X \n", pci_resource_start(dev->pcidev, 0));
 	num_of_bases = 0;
 
 	//why are bases less than 6?
