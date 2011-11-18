@@ -209,9 +209,10 @@ static int __init sycamore_init(void){
 	dev->cdev.owner = THIS_MODULE;
 	dev->cdev.ops = &sycamore_fops;
 	dev->offset = 0;
-	//add the cdev device to the device
+	//register the CDEV into the system
 	result = cdev_add(&dev->cdev, devno, 1);
 
+	//configure the pci device
 	if (result){
 			printk(KERN_NOTICE "Error %d adding %s device", result, PCI_DRIVER_NAME);
 			goto fail;
@@ -221,7 +222,7 @@ static int __init sycamore_init(void){
 			goto fail;
 	}
 	if (dev->pcidev == NULL){
-			printk(KERN_NOTICE "PCI DEV is NULL, probe failed\n");
+			printk(KERN_NOTICE "sycamore_init: PCI DEV is NULL, probe failed\n");
 			goto fail;
 	}
 
