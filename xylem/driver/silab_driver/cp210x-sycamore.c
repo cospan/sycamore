@@ -25,6 +25,7 @@
 #include <linux/usb/serial.h>
 
 #include <linux/platform_device.h>
+#include "sycamore_ioctl.h"
 
 /*
  * Version Information
@@ -34,9 +35,20 @@
 #define DRIVER_VERSION "v0.01"
 #define DRIVER_DESC "Sycamore CP210x Platform adaptor driver"
 
+
+//static struct usb_serial *serial_table [SERIAL_TTY_MINORS];
+
 /*
  * Function Prototypes
  */
+
+extern struct usb_serial *serial_table[SERIAL_TTY_MINORS];
+
+//Sycamore Functions
+static int sycamore_init(struct usb_serial *serial);
+
+
+//CP210x functions
 static int cp210x_open(struct tty_struct *tty, struct usb_serial_port *);
 static void cp210x_close(struct usb_serial_port *);
 static void cp210x_get_termios(struct tty_struct *,
@@ -54,6 +66,11 @@ static int cp210x_startup(struct usb_serial *);
 static void cp210x_dtr_rts(struct usb_serial_port *p, int on);
 
 static int debug;
+
+
+static int sycamore_ioctl ( struct tty_struct *tty, unsigned int cmd, unsigned long arg);
+
+typedef struct _sycamore_t sycamore_t;
 
 static const struct usb_device_id id_table[] = {
 	{ USB_DEVICE(0x10C4, 0x8762) }, /* Legit PID for sycamore */
@@ -78,24 +95,27 @@ static struct usb_serial_driver cp210x_device = {
 	.usb_driver		= &cp210x_driver,
 	.id_table		= id_table,
 	.num_ports		= 1,
-	.bulk_in_size		= 256,
-	.bulk_out_size		= 256,
+	.bulk_in_size	= 256,
+	.bulk_out_size	= 256,
 	.open			= cp210x_open,
 	.close			= cp210x_close,
 	.break_ctl		= cp210x_break_ctl,
-	.set_termios		= cp210x_set_termios,
+	.set_termios	= cp210x_set_termios,
 	.tiocmget 		= cp210x_tiocmget,
 	.tiocmset		= cp210x_tiocmset,
 	.attach			= cp210x_startup,
-	.dtr_rts		= cp210x_dtr_rts
+	.dtr_rts		= cp210x_dtr_rts,
+	.ioctl			= sycamore_ioctl
 };
 
 //sycamore_platfrom data
-struct sycamore_t {
+struct _sycamore_t {
 	struct platform_device *platform_device;
 	u32	size_of_drt;
 	char * drt;
 };
+
+
 
 /* Config request types */
 #define REQTYPE_HOST_TO_DEVICE	0x41
@@ -710,15 +730,18 @@ static void cp210x_break_ctl (struct tty_struct *tty, int break_state)
 
 static int cp210x_startup(struct usb_serial *serial)
 {
+	int retval = 0;
 	/* cp210x buffers behave strangely unless device is reset */
 	usb_reset_device(serial->dev);
-	return 0;
+
+	//call sycamore attach here
+	retval = sycamore_init(serial);
+	return retval;
 }
 
 static int __init cp210x_init(void)
 {
 	int retval;
-	struct sycamore_t *sycamore;
 
 	retval = usb_serial_register(&cp210x_device);
 	if (retval)
@@ -731,13 +754,6 @@ static int __init cp210x_init(void)
 		return retval;
 	}
 	
-	sycamore = kzalloc(sizeof(struct sycamore_t), GFP_KERNEL);	
-	if (!sycamore) {
-		usb_deregister(&cp210x_driver);
-		usb_serial_deregister(&cp210x_device);
-		return -ENOMEM;
-	}
-
 	/* Success */
 	printk(KERN_INFO KBUILD_MODNAME ": " DRIVER_VERSION ":"
 	       DRIVER_DESC "\n");
@@ -746,10 +762,41 @@ static int __init cp210x_init(void)
 
 static void __exit cp210x_exit(void)
 {
-//	kfree(sycamore);
 	usb_deregister(&cp210x_driver);
 	usb_serial_deregister(&cp210x_device);
 }
+
+
+static int sycamore_init(struct usb_serial *serial){
+	//generate the sycamore structure
+	sycamore_t *sycamore = NULL;
+	//this device only has one serial port at 0
+	struct usb_serial_port *port = serial->port[0];	
+
+	//make a tty device for sycamore
+	usb_set_serial_port_data(port, (void *) sycamore);
+
+	//we have to cut the normal usb-serial.c off
+	usb_set_intfdata(serial->interface, serial);
+	//open up the serial port
+	
+	return 1;
+}
+
+static int sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg){
+	struct usb_serial_port *port = tty->driver_data;
+
+	switch (cmd) {
+		case(PING_SYCAMORE): 
+			return 1;
+		case(READ_DRT):
+			return 2;
+		case(GET_DRT_SIZE):
+			return 3;
+	}
+	return 0;
+}
+
 
 module_init(cp210x_init);
 module_exit(cp210x_exit);
