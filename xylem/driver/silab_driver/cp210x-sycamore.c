@@ -45,7 +45,8 @@
 extern struct usb_serial *serial_table[SERIAL_TTY_MINORS];
 
 //Sycamore Functions
-static int sycamore_init(struct usb_serial *serial);
+static int sycamore_attach(struct usb_serial *serial);
+static void sycamore_disconnect(struct usb_serial *serial);
 
 
 //CP210x functions
@@ -104,6 +105,7 @@ static struct usb_serial_driver cp210x_device = {
 	.tiocmget 		= cp210x_tiocmget,
 	.tiocmset		= cp210x_tiocmset,
 	.attach			= cp210x_startup,
+	.disconnect		= sycamore_disconnect,
 	.dtr_rts		= cp210x_dtr_rts,
 	.ioctl			= sycamore_ioctl
 };
@@ -113,6 +115,7 @@ struct _sycamore_t {
 	struct platform_device *platform_device;
 	u32	size_of_drt;
 	char * drt;
+	int	port_lock;
 };
 
 
@@ -735,7 +738,7 @@ static int cp210x_startup(struct usb_serial *serial)
 	usb_reset_device(serial->dev);
 
 	//call sycamore attach here
-	retval = sycamore_init(serial);
+	retval = sycamore_attach(serial);
 	return retval;
 }
 
@@ -767,11 +770,20 @@ static void __exit cp210x_exit(void)
 }
 
 
-static int sycamore_init(struct usb_serial *serial){
+static int sycamore_attach(struct usb_serial *serial){
 	//generate the sycamore structure
 	sycamore_t *sycamore = NULL;
+	struct usb_serial_port *port = NULL;	
+
+	dbg("%s entered", __func__);
+	sycamore = kzalloc(sizeof(*sycamore), GFP_KERNEL);
+	//initialize the sycamore structure
+	sycamore->platform_device = NULL;
+	sycamore->port_lock = 0;
+	sycamore->size_of_drt = 0;
+	sycamore->drt	= NULL;
 	//this device only has one serial port at 0
-	struct usb_serial_port *port = serial->port[0];	
+	port = serial->port[0];
 
 	//make a tty device for sycamore
 	usb_set_serial_port_data(port, (void *) sycamore);
@@ -780,12 +792,40 @@ static int sycamore_init(struct usb_serial *serial){
 	usb_set_intfdata(serial->interface, serial);
 	//open up the serial port
 	
-	return 1;
+	return 0;
+}
+static void sycamore_disconnect(struct usb_serial *serial){
+	
+	sycamore_t * sycamore = NULL;	
+	struct usb_serial_port *port = NULL;
+
+
+	dbg("%s entered", __func__);
+	port = serial->port[0];
+
+	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
+	if (sycamore->size_of_drt > 0) {
+		//DRT has a string
+		kfree(sycamore->drt);
+		sycamore->size_of_drt = 0;
+	}
+
+	kfree(sycamore);
+	usb_set_serial_port_data(port, (void *) NULL);
 }
 
 static int sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg){
+	sycamore_t *sycamore = NULL;
 	struct usb_serial_port *port = tty->driver_data;
+	
+	dbg("%s entered", __func__);
+	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
 
+	if (sycamore->port_lock){
+		dbg("%s sycamore is locked by another device", __func__);
+	}
+
+	dbg("%s entered", __func__);
 	switch (cmd) {
 		case(PING_SYCAMORE): 
 			return 1;

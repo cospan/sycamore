@@ -16,7 +16,7 @@
 			"Avt_S6LX9_MicroBoard_UCF_110804.ucf"
 		],
 		"board":"lx9_microboard",
-		"device":"xc6slx92csg324c",
+		"device":"xc6slx9csg324c",
 		"bind": {
 			"phy_uart_in":{
 				"port":"USB_RS232_RXD",
