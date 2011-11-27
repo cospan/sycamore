@@ -26,6 +26,7 @@
 
 #include <linux/platform_device.h>
 #include "sycamore_ioctl.h"
+#include "sycamore_usb_serial.h"
 
 /*
  * Version Information
@@ -34,6 +35,13 @@
  */
 #define DRIVER_VERSION "v0.01"
 #define DRIVER_DESC "Sycamore CP210x Platform adaptor driver"
+
+
+//Sycamore Defines
+
+//XXX: This may require a number afterwards to indicate separate sycamore devices
+
+#define SYCAMORE_BUS_NAME "sycamore"
 
 
 //static struct usb_serial *serial_table [SERIAL_TTY_MINORS];
@@ -112,7 +120,9 @@ static struct usb_serial_driver cp210x_device = {
 
 //sycamore_platfrom data
 struct _sycamore_t {
+	//platform stuff
 	struct platform_device *platform_device;
+	struct attribute_group platform_attribute_group;
 	u32	size_of_drt;
 	char * drt;
 	int	port_lock;
@@ -768,10 +778,58 @@ static void __exit cp210x_exit(void)
 	usb_deregister(&cp210x_driver);
 	usb_serial_deregister(&cp210x_device);
 }
+/*
+static struct gpio_led gpio_leds[] = {
+	{
+		.name = "sycamore::led0",
+		.default_trigger = "sycamore_go",
+		.gpio = 150,
+	},
+};
+
+static struct gpio_led_platform_data gpio_led_info = {
+	.leds = gpio_leds,
+	.num_leds = ARRAY_SIZE(gpio_leds),
+};
+static struct platform_device leds_gpio = {
+	.name = "leds-gpio",
+	.id = -1,
+	.dev = {
+		.platform_data = &gpio_led_info,
+	},
+};
+
+*/
+static ssize_t show_test(struct device *dev,
+			  struct device_attribute *attr,
+			  char *buf){
+
+//	sycamore_t *sycamore = dev_get_drvdata(dev);
+	return sprintf (buf, "hi\r\n");
+
+}
+
+static struct device_attribute dev_attr_test = {
+	.attr = {
+		.name = "test_name",
+		.mode = 0444 },
+	.show = show_test 
+};
+
+static struct attribute *platform_attributes[] = {
+	&dev_attr_test.attr,
+	NULL
+};
+
+int generate_platform_devices(sycamore_t *sycamore){
+	sycamore->platform_attribute_group.attrs = platform_attributes;	
+	return 0;
+}
 
 
 static int sycamore_attach(struct usb_serial *serial){
 	//generate the sycamore structure
+	int result = 0;
 	sycamore_t *sycamore = NULL;
 	struct usb_serial_port *port = NULL;	
 
@@ -785,14 +843,49 @@ static int sycamore_attach(struct usb_serial *serial){
 	//this device only has one serial port at 0
 	port = serial->port[0];
 
+
+	//generate the platform bus
+//XXX: This may require a bus number afterwards to indicate multiple sycamore buses
+	sycamore->platform_device = platform_device_alloc(SYCAMORE_BUS_NAME, -1);
+	if (!sycamore->platform_device){
+		dbg("%s Error, couldn't allocate space for sycamore->platform_device", __func__);
+		return -ENOMEM;
+	}
+
+	//we got the space we needed
+	platform_set_drvdata(sycamore->platform_device, sycamore);
+	
+	//now we need to add the bus to system
+	result = platform_device_add(sycamore->platform_device);
+
+	if (result != 0){
+		goto fail_platform_device;
+	}
+
+	//create a all the sub items sysfs bus entry
+
+	generate_platform_devices(sycamore);
+	result = sysfs_create_group(&sycamore->platform_device->dev.kobj, &sycamore->platform_attribute_group);
+
+	if (result != 0){
+		goto fail_sysfs;
+	}
+
+
 	//make a tty device for sycamore
 	usb_set_serial_port_data(port, (void *) sycamore);
 
 	//we have to cut the normal usb-serial.c off
 	usb_set_intfdata(serial->interface, serial);
-	//open up the serial port
 	
+//XXX: with a return of zero usb-serial will initialize normally (ttyUSBX) in the future this should be replaced, and direct access to the sycamore platform should be removed
 	return 0;
+
+fail_sysfs:
+	platform_device_del(sycamore->platform_device);
+fail_platform_device:
+	platform_device_put(sycamore->platform_device);
+	return result;
 }
 static void sycamore_disconnect(struct usb_serial *serial){
 	
@@ -809,6 +902,9 @@ static void sycamore_disconnect(struct usb_serial *serial){
 		kfree(sycamore->drt);
 		sycamore->size_of_drt = 0;
 	}
+
+	//remove the group
+	platform_device_unregister(sycamore->platform_device);
 
 	kfree(sycamore);
 	usb_set_serial_port_data(port, (void *) NULL);
@@ -828,6 +924,7 @@ static int sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned lon
 	dbg("%s entered", __func__);
 	switch (cmd) {
 		case(PING_SYCAMORE): 
+			sycamore_test();
 			return 1;
 		case(READ_DRT):
 			return 2;

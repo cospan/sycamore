@@ -16,8 +16,9 @@ struct sycamore_t {
 	char * drt;
 };
 
-int sycamore_usb_serial_probe(struct usb_interface *interface, const struct usb_device_id *id);
-void sycamore_usb_serial_disconnect(struct usb_interface *iface);
+//int sycamore_usb_serial_probe(struct usb_interface *interface, const struct usb_device_id *id);
+//void sycamore_usb_serial_disconnect(struct usb_interface *iface);
+int sycamore_test(void);
 //	sycamore = kzalloc(sizeof(struct sycamore_t), GFP_KERNEL);	
 //	if (!sycamore) {
 //		usb_deregister(&cp210x_driver);

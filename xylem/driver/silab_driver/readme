@@ -42,5 +42,8 @@ there you will find yourself in a world without GUI's this is not an xterm so no
 	ALT + SYSRQ + # 
 
 	the number can be 1 - 9, (higher will be more verbose)
+
+3. to get debug messages in either dmesg or with the above kernel notifications you must set the paramter of the module debug to true
+	sudo insmod ./sycamore.ko debug=1
 	
 	

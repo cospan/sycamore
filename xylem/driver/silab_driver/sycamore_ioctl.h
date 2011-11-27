@@ -3,9 +3,9 @@
 #ifndef __SYCAMORE_IOCTL__
 #define __SYCAMORE_IOCTL__
 
-#define PING_SYCAMORE 	0
-#define READ_DRT		1
-#define GET_DRT_SIZE 	2
+#define PING_SYCAMORE 	0x40
+#define READ_DRT		0x41
+#define GET_DRT_SIZE 	0x42
 
 
 #endif //__SYCAMORE_IOCTL__

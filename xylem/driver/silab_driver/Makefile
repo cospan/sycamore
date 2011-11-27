@@ -1,9 +1,8 @@
-#obj-m += sycamore_usb_serial.o
+obj-m += sycamore.o
 
-obj-m += cp210x-sycamore.o
+sycamore-objs := sycamore_usb_serial.o cp210x-sycamore.o
 
-csrcs := sycamore_usb_serial.c
-cobjs := $(csrcs:%.c=%.o)
+.PHONY: all clean
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
