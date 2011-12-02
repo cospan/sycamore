@@ -4,6 +4,13 @@ import saputils
 from string import Template
 from string import atoi
 
+"""
+Changes:
+
+12/02/2011
+	-Changed the DRT size from 4 to 8
+"""
+
 
 class GenDRT(Gen):
 	"""Generate the DRT ROM"""
@@ -41,13 +48,19 @@ class GenDRT(Gen):
 		num_dev_string = "{0:0=8X}"
 		num_dev_string = num_dev_string.format(number_of_devices)
 
+		#header
 		out_buf = version_string + id_string + "\n"
-		out_buf = out_buf + num_dev_string + "\n" 
-		out_buf = out_buf + "00000000" + "\n"
-		out_buf = out_buf + "00000000" + "\n"
+		out_buf += num_dev_string + "\n" 
+		out_buf += "00000000" + "\n"
+		out_buf += "00000000" + "\n"
+		out_buf += "00000000" + "\n"
+		out_buf += "00000000" + "\n"
+		out_buf += "00000000" + "\n"
+		out_buf += "00000000" + "\n"
 
 
 
+		#peripheral slaves
 		for i in range (0, len(tags["SLAVES"])):
 			key = tags["SLAVES"].keys()[i]
 			name = tags["SLAVES"][key]["filename"]
@@ -70,12 +83,17 @@ class GenDRT(Gen):
 			drt_offset_buffer = drt_offset_buffer.format(offset)
 			drt_size_buffer = drt_size_buffer.format(atoi(slave_tags["keywords"]["DRT_SIZE"]))
 
-			out_buf = out_buf + drt_id_buffer + "\n"
-			out_buf = out_buf + drt_flags_buffer + "\n"
-			out_buf = out_buf + drt_offset_buffer + "\n"
-			out_buf = out_buf + drt_size_buffer + "\n"
+			out_buf += drt_id_buffer + "\n"
+			out_buf += drt_flags_buffer + "\n"
+			out_buf += drt_offset_buffer + "\n"
+			out_buf += drt_size_buffer + "\n"
+			out_buf += "00000000\n"
+			out_buf += "00000000\n"
+			out_buf += "00000000\n"
+			out_buf += "00000000\n"
 
 
+		#memory slaves
 		if ("MEMORY" in tags):
 			mem_offset = 0
 			for i in range (0, len(tags["MEMORY"])):
@@ -100,11 +118,14 @@ class GenDRT(Gen):
 				drt_size_buffer = drt_size_buffer.format(atoi(slave_tags["keywords"]["DRT_SIZE"]))
 				mem_offset += atoi(slave_tags["keywords"]["DRT_SIZE"]) 
 
-				out_buf = out_buf + drt_id_buffer + "\n"
-				out_buf = out_buf + drt_flags_buffer + "\n"
-				out_buf = out_buf + drt_offset_buffer + "\n"
-				out_buf = out_buf + drt_size_buffer + "\n"
-
+				out_buf += drt_id_buffer + "\n"
+				out_buf += drt_flags_buffer + "\n"
+				out_buf += drt_offset_buffer + "\n"
+				out_buf += drt_size_buffer + "\n"
+				out_buf += "00000000\n"
+				out_buf += "00000000\n"
+				out_buf += "00000000\n"
+				out_buf += "00000000\n"
 
 
 		return out_buf 

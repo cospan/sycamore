@@ -3,6 +3,7 @@ Version
 	9/11/2011:  0.00.2	Proposed String functionality
 	10/25/2011: 0.00.3	Added "mem flag" in the flags area to identify slaves on the memory bus
 						modified the FLAGS: now bits 32:16 are only settable by the SAP script
+	12/02/2011: 0.00.4	Changed the DRT size from 4 to 8 for the header and devices
 
 Device Rom Table (DRT)
 
@@ -20,18 +21,26 @@ Organization of the ROM 32 bit address location
 0x01							DRT_NUM_DEVICES (Number of devices attached)
 0x02							STRING_OFFSET: (String Table: Offset for all the strings, that accompany all the slave and memory devices)
 0x03							RFU
+0x04							RFU
+0x05							RFU
+0x06							RFU
+0x07							RFU
 
-0x04:DEV_OFFSET	beginning of device offset (DRT_DEV_OFFSET)
+0x08:DEV_OFFSET	beginning of device offset (DRT_DEV_OFFSET)
 
-DRT_DEV_OFFSET[x * 4] + 0:		Device ID (this is associated with the flags register bit 0 to indicate this is a standard device or not)
+DRT_DEV_OFFSET[x * 8] + 0:		Device ID (this is associated with the flags register bit 0 to indicate this is a standard device or not)
 	(Addr: 31-0	)	: device ID number (see below)
-DRT_DEV_OFFSET[x * 4] + 1:		FLAGS
+DRT_DEV_OFFSET[x * 8] + 1:		FLAGS
 	(Addr: 0 )		: standard device (can use generic drivers)
 		Note: bit 31:16 are set by saplib
 	(Addr: 16)		: memory device (access this device in the memory bus)
 							use commands with the flag MEMORY for read and write
-DRT_DEV_OFFSET[x * 4] + 2:		Offset from 0x00 	(NEED A NAME, not used yet)
-DRT_DEV_OFFSET[x * 4] + 3:		Size of address space for device (NEED A NAME)
+DRT_DEV_OFFSET[x * 8] + 2:		Offset from 0x00 	(NEED A NAME, not used yet)
+DRT_DEV_OFFSET[x * 8] + 3:		Size of address space for device (NEED A NAME)
+DRT_DEV_OFFSET[x * 8] + 4:		Size of address space for device (NEED A NAME)
+DRT_DEV_OFFSET[x * 8] + 5:		Size of address space for device (NEED A NAME)
+DRT_DEV_OFFSET[x * 8] + 6:		Size of address space for device (NEED A NAME)
+DRT_DEV_OFFSET[x * 8] + 7:		Size of address space for device (NEED A NAME)
 
 
 

@@ -62,7 +62,7 @@ class Sycamore:
 		return False
 
 	def get_address_from_dev_index(self, dev_index):	
-		return string.atoi(self.drt_lines[((dev_index + 1) * 4) + 2], 16)
+		return string.atoi(self.drt_lines[((dev_index + 1) * 8) + 2], 16)
 
 	def read_mem_data (self, dev_index, offset, data_count = 0):
 		response = []
@@ -150,7 +150,7 @@ class Sycamore:
 
 	def read_drt(self):
 		self.drt_string = ""
-		count = 4
+		count = 8
 		index = 0	
 		self.num_of_devices = 0
 		while (count > 0):
@@ -180,10 +180,10 @@ class Sycamore:
 		#print "number of devices: " + str(self.num_of_devices)
 		#print "id block: \n" + drt_string
 		count = 0
-		while (count < ((self.num_of_devices) * 4)):
+		while (count < ((self.num_of_devices) * 8)):
 			self.ser.write("0000")
 			cmd_string = "L000000000000002%0.8X00000000"
-			cmd_string = (cmd_string) % (count + 4)
+			cmd_string = (cmd_string) % (count + 8)
 			#print "cmd_string: " + cmd_string
 			#return
 			self.ser.write(cmd_string)
@@ -198,15 +198,15 @@ class Sycamore:
 		
 	def is_device_attached(self, device_id = 0):
 		for dev_index in range (0, self.num_of_devices):
-			dev_id = string.atoi(self.drt_lines[((dev_index + 1) * 4)], 16)
+			dev_id = string.atoi(self.drt_lines[((dev_index + 1) * 8)], 16)
 			if (dev_id == device_id):
 				return True
 		return False
 	
 	def get_device_index(self, device_id):
 		for dev_index in range(0, self.num_of_devices):
-			dev_id = string.atoi(self.drt_lines[((dev_index + 1) * 4)], 16)
-			address_offset = string.atoi(self.drt_lines[((dev_index + 1) * 4) + 2], 16)
+			dev_id = string.atoi(self.drt_lines[((dev_index + 1) * 8)], 16)
+			address_offset = string.atoi(self.drt_lines[((dev_index + 1) * 8) + 2], 16)
 			if (device_id == device_id):
 				return dev_index
 		return -1
@@ -234,10 +234,10 @@ class Sycamore:
 		print "Found " + str(self.num_of_devices) + " slave(s)"
 		print "Searching for standard devices..."
 		for dev_index in range (0, (self.num_of_devices)):
-			device_id = string.atoi(self.drt_lines[((dev_index + 1) * 4)], 16)
-			flags = string.atoi(self.drt_lines[((dev_index + 1) * 4) + 1], 16)
-			address_offset = string.atoi(self.drt_lines[((dev_index + 1) * 4) + 2], 16)
-			num_of_registers = string.atoi(self.drt_lines[((dev_index + 1) * 4) + 3], 16)
+			device_id = string.atoi(self.drt_lines[((dev_index + 1) * 8)], 16)
+			flags = string.atoi(self.drt_lines[((dev_index + 1) * 8) + 1], 16)
+			address_offset = string.atoi(self.drt_lines[((dev_index + 1) * 8) + 2], 16)
+			num_of_registers = string.atoi(self.drt_lines[((dev_index + 1) * 8) + 3], 16)
 			print "device ID: " + str(device_id)
 			data_list = list()
 			if (device_id == 1):

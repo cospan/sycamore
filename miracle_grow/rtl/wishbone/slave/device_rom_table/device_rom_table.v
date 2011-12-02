@@ -26,8 +26,8 @@ SOFTWARE.
 /*
 	META DATA
 
-	DRT_ID:00011EAF
-	version info 0.0.01
+	DRT_ID:00041EAF
+	version info 0.0.04
 	ID: 1EAF
 */
 
@@ -40,8 +40,8 @@ SOFTWARE.
 
 `include "project_defines.v"
 //`define DRT_NUM_OF_DEVICES 1
-`define DRT_SIZE_OF_HEADER 	4
-`define DRT_SIZE_OF_DEV		4
+`define DRT_SIZE_OF_HEADER 	8
+`define DRT_SIZE_OF_DEV		8
 
 
 module device_rom_table (
@@ -79,12 +79,21 @@ parameter DRT_ID_ADR		= 32'h00000000;
 parameter DRT_NUM_DEV_ADR	= 32'h00000001;
 parameter DRT_RFU_1_ADR		= 32'h00000002;
 parameter DRT_RFU_2_ADR		= 32'h00000003;
+parameter DRT_RFU_3_ADR		= 32'h00000004;
+parameter DRT_RFU_4_ADR		= 32'h00000005;
+parameter DRT_RFU_5_ADR		= 32'h00000006;
+parameter DRT_RFU_6_ADR		= 32'h00000007;
 
 //parameters that go into the ROM
 parameter DRT_ID			= 16'h0001;
 parameter DRT_VERSION		= 16'h0001;
 parameter DRT_RFU_1			= 32'h00000000;
 parameter DRT_RFU_2			= 32'h00000000;
+parameter DRT_RFU_3			= 32'h00000000;
+parameter DRT_RFU_4			= 32'h00000000;
+parameter DRT_RFU_5			= 32'h00000000;
+parameter DRT_RFU_6			= 32'h00000000;
+parameter DRT_RFU_7			= 32'h00000000;
 
 parameter DRT_DEV_OFF_ADR	= 32'h00000004;
 parameter DRT_DEV_SIZE		= 4'h4;
