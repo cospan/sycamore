@@ -6,9 +6,8 @@
 #include "serial.h"
 
 
-#define IOCTL_PING 0x40
-#define IOCTL_DRT 0x41
-#define IOCTL_DRT_SIZE 0x42
+#define IOCTL_PING 0
+#define IOCTL_DRT 1
 
 static void usage (void);
 
