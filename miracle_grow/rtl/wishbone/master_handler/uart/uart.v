@@ -21,6 +21,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 // 
+
+
+`include "project_defines.v"
+
+`define BAUD_RATE 9600
+
 module uart(
     clk, // The master clock for this module
     rst, // Synchronous reset.
@@ -47,7 +53,8 @@ output is_receiving;
 output is_transmitting;
 output recv_error;
 	
-parameter CLOCK_DIVIDE = 1302; // clock rate (50Mhz) / (baud rate (9600) * 4)
+//parameter CLOCK_DIVIDE = 1302; // clock rate (50Mhz) / (baud rate (9600) * 4)
+parameter CLOCK_DIVIDE = `CLOCK_RATE / (`BAUD_RATE * 4); 
 
 // States for the receiving state machine.
 // These are just constants, not parameters to override.
