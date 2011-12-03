@@ -147,7 +147,14 @@ class Test (unittest.TestCase):
 
 		self.assertEqual(True, True)
 
+	def test_read_clk_with_period(self):
+		import saputils
 
+		self.assertEqual(True, True)
+	def test_read_clk_with_timespec(self):
+		import saputils
+
+		self.assertEqual(True, True)
 
 
 if __name__ == "__main__":

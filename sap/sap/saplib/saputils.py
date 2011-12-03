@@ -265,3 +265,39 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 	return tags
 
 
+	
+def read_clock_rate(constraint_filename):
+	"""returns a string of the clock rate 50MHz = 50000000"""
+	base_location = os.getenv("SAPLIB_BASE")
+	base_location = base_location + "/hdl/boards"
+	filename = ""
+	buf = ""
+#	print "rtl dir: " + base_location
+	for root, dirs, names in os.walk(base_location):
+		if constraint_filename in names:
+#			print "Filename: " + filename
+			filename =  os.path.join(root, filename)
+			break
+
+	if (len(filename) == 0):
+		return ""
+
+	#open up the ucf file
+	try:
+		file_in = open(result)
+		buf = file_in.read() 
+		file_in.close()
+	except:
+		#fail
+		return ""
+
+
+	lines = buf.splitlines()
+	#first search for the TIMESPEC keyword
+	for line in lines:
+		#is this the timespec for the "clk" clock?
+		if (TIMESPEC in line):
+			#this is the "clk" clock, now read the clock value 
+
+	#if that didn't work search for the PERIOD keyword
+	return ""
