@@ -260,44 +260,102 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 					if (isinstance( value, int)):
 						value = str(value)
 					print "\t" + key + ":" + value
-
-
 	return tags
 
 
+
 	
-def read_clock_rate(constraint_filename):
+def read_clock_rate(constraint_filename, debug = False):
 	"""returns a string of the clock rate 50MHz = 50000000"""
 	base_location = os.getenv("SAPLIB_BASE")
 	base_location = base_location + "/hdl/boards"
 	filename = ""
 	buf = ""
+	clock_rate = ""
 #	print "rtl dir: " + base_location
+	if debug:
+		print "Looking for: " + constraint_filename
 	for root, dirs, names in os.walk(base_location):
+		if debug:
+			print "name: " + str(names)
+
 		if constraint_filename in names:
-#			print "Filename: " + filename
-			filename =  os.path.join(root, filename)
+			if debug:
+				print "found the file!"
+			filename =  os.path.join(root, constraint_filename)
 			break
 
 	if (len(filename) == 0):
+		if debug:
+			print "didn't find constraing file"
 		return ""
 
 	#open up the ucf file
 	try:
-		file_in = open(result)
+		file_in = open(filename)
 		buf = file_in.read() 
 		file_in.close()
 	except:
 		#fail
+		if debug:
+			print "failed to open file: " + filename
 		return ""
 
+	if debug:
+		print "Opened up the UCF file"
 
 	lines = buf.splitlines()
 	#first search for the TIMESPEC keyword
 	for line in lines:
-		#is this the timespec for the "clk" clock?
-		if (TIMESPEC in line):
-			#this is the "clk" clock, now read the clock value 
+		line = line.lower()
+		#get rid of comments
+		if ("#" in line):
+			line = line.partition("#")[0]
 
-	#if that didn't work search for the PERIOD keyword
-	return ""
+		#is this the timespec for the "clk" clock?
+		if ("timespec" in line) and ("ts_clk" in line):
+			#this is the "clk" clock, now read the clock value 
+			if debug:
+				print "found TIMESPEC"
+			line = line.partition("period")[2].strip()
+			if debug:
+				print "line: " + line
+			line = line.partition("clk")[2].strip()
+			line = line.strip(";")
+			if debug:
+				print "line: " + line
+
+			#now there is a time value and a multiplier
+			clock_lines = line.split(" ")
+			for line in clock_lines:
+				print "line: " + line
+				
+			if (clock_lines[1] == "mhz"):
+				clock_rate = clock_lines[0] + "000000"
+			if (clock_lines[1] == "khz"):
+				clock_rate = clock_lines[0] + "000"
+
+
+	#if that didn't work search for the PERIOD keyword, this is an older version
+	if (len(clock_rate) == 0):
+		if debug:
+			print "didn't find TIMESPEC, looking for period"
+		#we need to check period
+		for line in lines:
+			#get rid of comments
+			line = line.lower()
+			if ("#" in line):
+				line = line.partition("#")[0]
+			if ("period" in line) and  ("clk" in line):
+				print "found clock period"
+				line = line.partition("period")[2]
+				line = line.partition("=")[2].strip()
+				if " " in line:
+					line = line.partition(" ")[0].strip()
+				print "line: " + line
+				clock_rate = str(int(1/(string.atoi(line) * 1e-9)))
+				break;
+	
+	if debug:
+		print "Clock Rate: " + clock_rate
+	return clock_rate

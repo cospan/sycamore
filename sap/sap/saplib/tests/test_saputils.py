@@ -149,12 +149,15 @@ class Test (unittest.TestCase):
 
 	def test_read_clk_with_period(self):
 		import saputils
+		filename = "sycamore_serial.ucf" 
+		clock_rate = saputils.read_clock_rate(filename, debug = self.dbg)
+		self.assertEqual(len(clock_rate) > 0, True)
 
-		self.assertEqual(True, True)
 	def test_read_clk_with_timespec(self):
 		import saputils
-
-		self.assertEqual(True, True)
+		filename = "Avt_S6LX9_MicroBoard_UCF_110804.ucf" 
+		clock_rate = saputils.read_clock_rate(filename, debug = self.dbg)
+		self.assertEqual(len(clock_rate) > 0, True)
 
 
 if __name__ == "__main__":

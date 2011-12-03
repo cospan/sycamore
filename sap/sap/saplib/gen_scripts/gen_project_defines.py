@@ -40,7 +40,13 @@ class GenProjectDefines(Gen):
 			num_of_memories = len(tags["MEMORY"])	
 
 		num_of_entities = str(num_of_slaves + num_of_memories)
-		buf = template.substitute(PROJECT_NAME = tags["PROJECT_NAME"], NUMBER_OF_DEVICES=num_of_entities, VENDOR_FPGA=vendor_string)
+		buf = template.substitute(PROJECT_NAME = tags["PROJECT_NAME"], NUMBER_OF_DEVICES=num_of_entities, VENDOR_FPGA=vendor_string, CLOCK_RATE=tags["CLOCK_RATE"])
+
+		if debug:
+			print "generating clock rate"
+
+		
+
 		return buf
 
 

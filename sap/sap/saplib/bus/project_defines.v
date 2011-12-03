@@ -10,4 +10,6 @@
 
 `define $VENDOR_FPGA
 
+`define CLOCK_RATE $CLOCK_RATE
+
 `endif //__DEVICE_TABLE_DEFINES__

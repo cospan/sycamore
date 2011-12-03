@@ -125,6 +125,7 @@ class SapProject:
 			return False
 		
 		#extrapolate the bus template
+		self.project_tags["CLOCK_RATE"] = saputils.read_clock_rate(self.project_tags["CONSTRAINTS"]["constraint_files"][0])
 		result = self.read_template(self.project_tags["TEMPLATE"])
 		if (not result):
 			if (debug):
