@@ -112,7 +112,8 @@ import_files -fileset [get_filesets sources_1] -force -norecurse $verilogSources
 #import_files -norecurse $srcDir/rtl/bus/slave/device_rom_table.txt	
 	
 #set the library name, work is default, so this is really optional
-set_property library work [get_filesets sources_1]
+#set_property library work [get_filesets sources_1]
+set_property TOP_LIB work [get_filesets sources_1]
 
 #set the UCF constraint
 set ucfSources [findUCFFiles $srcDir/constraints]
@@ -120,6 +121,21 @@ import_files -fileset [get_filesets constrs_1] -force -norecurse $ucfSources
 
 #set the name of the top-level module or entity, so the synthesis engine knows what the top-level to synthesize is
 set_property top $topName [get_filesets sources_1]
+
+
+set flist [get_files -of_objects {sources_1} *.v]
+foreach item $flist {
+#	puts "checking: "
+#	puts $item
+	if {[regexp {project_defines.v} $item]} {
+#		puts "found Project Defines"
+		set_property is_global_include true $item
+	}
+	if {[regexp {mg_defines.v} $item]} {
+#		puts "found Project Defines"
+		set_property is_global_include true $item
+	}
+}
 
 
 #set different strategies... power optimization, speed etc..
