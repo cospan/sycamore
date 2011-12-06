@@ -13,25 +13,25 @@
 
 	"CONSTRAINTS":{
 		"constraint_files":[
-			"Avt_S6LX9_MicroBoard_UCF_110804.ucf"
+			"lx9.ucf"
 		],
 		"board":"lx9_microboard",
 		"device":"xc6slx9csg324-2",
 		"bind": {
 			"phy_uart_in":{
-				"port":"USB_RS232_RXD",
+				"port":"uart_rx",
 				"direction":"input"
 			},
 			"phy_uart_out":{
-				"port":"USB_RS232_TXD",
+				"port":"uart_tx",
 				"direction":"output"
 			},
 			"gpio1_gpio_out[3:0]":{
-				"port":"GPIO_LED[4:1]",
+				"port":"led[3:0]",
 				"direction":"output"
 			},
 			"gpio1_gpio_in[3:0]":{
-				"port":"GPIO_DIP[3:0]",
+				"port":"gpio[3:0]",
 				"direction":"input"
 			}
 		}

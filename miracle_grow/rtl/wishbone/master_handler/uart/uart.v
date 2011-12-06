@@ -27,6 +27,15 @@
 
 `define BAUD_RATE 9600
 
+/*
+	12/06/2011
+		-Modified the core to read the clock rate from the project defines
+		to support different clock rates
+		-now the baud rate is set with a macro to take advantange of the
+		different clock rate settigns
+		-Modified the stop bit from two bits to one bit
+*/
+
 module uart(
     clk, // The master clock for this module
     rst, // Synchronous reset.
@@ -72,8 +81,8 @@ parameter TX_IDLE = 0;
 parameter TX_SENDING = 1;
 parameter TX_DELAY_RESTART = 2;
 
-reg [10:0] rx_clk_divider = CLOCK_DIVIDE;
-reg [10:0] tx_clk_divider = CLOCK_DIVIDE;
+reg [12:0] rx_clk_divider = CLOCK_DIVIDE;
+reg [12:0] tx_clk_divider = CLOCK_DIVIDE;
 
 reg [2:0] recv_state = RX_IDLE;
 reg [5:0] rx_countdown;
@@ -215,7 +224,7 @@ always @(posedge clk) begin
 				end else begin
 					// Set delay to send out 2 stop bits.
 					tx_out = 1;
-					tx_countdown = 8;
+					tx_countdown = 4;
 					tx_state = TX_DELAY_RESTART;
 				end
 			end

@@ -56,7 +56,7 @@ class Sycamore:
 	def ping(self):
 		self.ser.write("L0000000000000000000000000000000")
 		ping_string = self.ser.read(25)
-#		print "read: " + ping_string
+		print "read: " + ping_string
 		if (len(ping_string) > 0):
 			return True
 		return False
@@ -171,7 +171,7 @@ class Sycamore:
 		
 			if (index == 1):
 				size_string = temp_string.__getslice__(17, 25)
-				#print "size_string: " + size_string
+				print "size_string: " + size_string
 				#print "number of device: " + str(string.atoi(size_string, 16))
 				self.num_of_devices = string.atoi(size_string, 10)
 			index = index + 1
