@@ -5,6 +5,15 @@ import sappreproc
 
 """utilites that don't really belong in any of the sap classes"""
 
+"""
+Changes:
+12/06/2011
+	-Modified the clock_read function so that the ucf file can have
+	quotation marks
+
+"""
+
+
 def create_dir(filename, debug=False):
 	"""Generate a directory with the specified location"""
 	
@@ -314,16 +323,19 @@ def read_clock_rate(constraint_filename, debug = False):
 
 		#is this the timespec for the "clk" clock?
 		if ("timespec" in line) and ("ts_clk" in line):
+			print "found timespec"
 			#this is the "clk" clock, now read the clock value 
 			if debug:
 				print "found TIMESPEC"
 			line = line.partition("period")[2].strip()
-			if debug:
-				print "line: " + line
+			#if debug:
+			print "line: " + line
 			line = line.partition("clk")[2].strip()
+			line = line.strip("\"");
+			line = line.strip();
 			line = line.strip(";")
-			if debug:
-				print "line: " + line
+			#if debug:
+			print "line: " + line
 
 			#now there is a time value and a multiplier
 			clock_lines = line.split(" ")
