@@ -281,7 +281,7 @@ always @ (posedge clk) begin
 			$display("enable a host write! of %h", local_data);
 			fb_stb_o <= 1;
 			fb_cyc_o <= 1;
-			fb_stb_o <= 1;
+			fb_sel_o <= 4'b1111;
 			fb_we_o	<= 1;
 			fb_adr_o <= 0;
 			fb_dat_o <= 32'h0000000F;  
