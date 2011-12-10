@@ -3,6 +3,7 @@
 #ifndef __SYCAMORE_PLATFORM_H__
 #define __SYCAMORE_PLATFORM_H__
 
+#include <linux/tty.h>
 #define SYCAMORE_BUS_NAME "sycamore"
 
 typedef struct _sycamore_t sycamore_t;
@@ -16,11 +17,14 @@ struct _sycamore_t {
 	char * drt;
 	int	port_lock;
 	struct platform_device *pdev;
+	int  (*ioctl)(struct tty_struct *tty,
+		      unsigned int cmd, unsigned long arg);
+
 };
 
 
 
-int sycamore_ioctl(sycamore_t *sycamore, unsigned int cmd, unsigned long arg);
+int sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg);
 int sycamore_attach(sycamore_t *sycamore);
 void sycamore_disconnect(sycamore_t *sycamore);
 

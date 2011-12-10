@@ -7,7 +7,6 @@
 
 
 
-
 //static struct platform_device sycamore_tty ={
 //	.name = "sycamore_tty",
 //	.id = -1,
@@ -61,8 +60,13 @@ int generate_platform_devices(sycamore_t *sycamore){
 }
 
 
-int sycamore_ioctl(sycamore_t *sycamore, unsigned int cmd, unsigned long arg){
+int sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg){
 
+	printk ("Entered ioctl");
+/*
+	sycamore_t *sycamore = NULL;
+	struct usb_serial_port *port = tty->driver_data;
+	sycamore = (sycamore_t *) dev_get_drvdata(&port->data);
 	
 //	dbg("%s entered", __func__);
 
@@ -79,6 +83,7 @@ int sycamore_ioctl(sycamore_t *sycamore, unsigned int cmd, unsigned long arg){
 		case(GET_DRT_SIZE):
 			return 3;
 	}
+*/
 	return 0;
 }
 int sycamore_attach(sycamore_t *sycamore){
@@ -91,6 +96,7 @@ int sycamore_attach(sycamore_t *sycamore){
 	sycamore->size_of_drt = 0;
 	sycamore->drt	= NULL;
 	sycamore->pdev = NULL;
+	sycamore->ioctl = sycamore_ioctl;
 
 	//generate the platform bus
 	sycamore->platform_device = platform_device_alloc(SYCAMORE_BUS_NAME, -1);
@@ -125,7 +131,6 @@ int sycamore_attach(sycamore_t *sycamore){
 	sycamore->pdev = platform_device_register_simple("sycamore_tty", -1, NULL, 0);
 
 	//end create platform device
-
 	return 0;
 
 fail_sysfs:
