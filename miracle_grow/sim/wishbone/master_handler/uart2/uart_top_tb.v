@@ -70,6 +70,30 @@ module uart_top_tb;
 		.rx_error(rx_error)
 	);
 
+	wire	tx2;
+	wire	received2;
+	wire [7:0]	rx_byte2;
+	wire 		is_receiving2;
+	wire 		is_transmitting2;
+	wire 		rx_error2;
+
+
+
+	uart_back urt_bk(
+		.clk(clk),
+		.rst(rst),
+		.rx(rx),
+		.tx(tx2),
+		.transmit(transmit),
+		.tx_byte(tx_byte),
+		.received(received),
+		.rx_byte(rx_byte2),
+		.is_receiving(is_receiving2),
+		.is_transmitting(is_transmitting2),
+		.recv_error(rx_error2)
+
+	);
+
 	integer fd_in;
 	integer fd_out;
 	reg [7:0] ch = 0;
@@ -112,7 +136,7 @@ initial begin
 
 			$display("Start bit goes low");
 //			ch = $fgetc(fd_in);				
-			ch = 8'hAA;
+			ch = 8'hF0;
 			bit_index <= 0;
 			//set the rx line low
 			rx <= 0;
@@ -207,7 +231,7 @@ initial begin
 
 			//test a transmit
 
-			tx_byte 	<= 8'hAA;
+			tx_byte 	<= 8'h01;
 			transmit	<= 1;
 
 			fp_delay	<= 1;

@@ -1,0 +1,40 @@
+{
+	
+	"BASE_DIR":"~/projects/sycamore_projects",
+	"PROJECT_NAME":"example_project",
+	"BUILD_TOOL":"xilinx",
+	"TEMPLATE":"wishbone_template.json",
+	"INTERFACE":"uart_io_handler.v",
+	"SLAVES":{
+		"fsmc":{
+			"filename":"wb_fsmc.v",
+			"BUS":{
+				"fb":"mem1"	
+			}
+		}
+	},
+
+	"MEMORY":{
+		"mem1":{
+			"filename":"wb_bram.v"
+		}
+	},
+
+	"CONSTRAINTS":{
+		"constraint_files":[
+			"sycamore_serial.ucf"
+		],
+		"board":"xilinx-s3esk",
+		"device":"xc3s500efg320",
+		"bind": {
+			"phy_uart_in":{
+				"port":"RX",
+				"direction":"input"
+			},
+			"phy_uart_out":{
+				"port":"TX",
+				"direction":"output"
+			}
+		}
+	}
+}
