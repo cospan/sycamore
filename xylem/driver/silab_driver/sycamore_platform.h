@@ -17,14 +17,14 @@ struct _sycamore_t {
 	char * drt;
 	int	port_lock;
 	struct platform_device *pdev;
-	int  (*ioctl)(struct tty_struct *tty,
-		      unsigned int cmd, unsigned long arg);
+//	int  (*ioctl)(struct tty_struct *tty,
+	//	      unsigned int cmd, unsigned long arg);
 
 };
 
 
 
-int sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg);
+int sycamore_ioctl(sycamore_t *sycamore, struct tty_struct *tty, unsigned int cmd, unsigned long arg);
 int sycamore_attach(sycamore_t *sycamore);
 void sycamore_disconnect(sycamore_t *sycamore);
 

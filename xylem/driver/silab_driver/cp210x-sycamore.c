@@ -75,7 +75,7 @@ static void cp210x_dtr_rts(struct usb_serial_port *p, int on);
 static int debug;
 
 
-//static int cp210x_sycamore_ioctl ( struct tty_struct *tty, unsigned int cmd, unsigned long arg);
+static int cp210x_sycamore_ioctl ( struct tty_struct *tty, unsigned int cmd, unsigned long arg);
 
 
 static const struct usb_device_id id_table[] = {
@@ -112,7 +112,7 @@ static struct usb_serial_driver cp210x_device = {
 	.attach			= cp210x_startup,
 	.dtr_rts		= cp210x_dtr_rts,
 	.disconnect		= cp210x_sycamore_disconnect,
-//	.ioctl			= cp210x_sycamore_ioctl
+	.ioctl			= cp210x_sycamore_ioctl
 };
 
 
@@ -804,17 +804,17 @@ static void cp210x_sycamore_disconnect(struct usb_serial *serial){
 	usb_set_serial_port_data(port, (void *) NULL);
 }
 
-/*
+
 static int cp210x_sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg){
 	sycamore_t *sycamore = NULL;
 	struct usb_serial_port *port = tty->driver_data;
 	
 	dbg("%s entered", __func__);
 	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
-	return sycamore_ioctl(sycamore, cmd, arg);
+	return sycamore_ioctl(sycamore, tty, cmd, arg);
 }
 
-*/
+
 
 module_init(cp210x_init);
 module_exit(cp210x_exit);

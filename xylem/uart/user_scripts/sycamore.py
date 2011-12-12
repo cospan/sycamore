@@ -56,7 +56,7 @@ class Sycamore:
 	def ping(self):
 		self.ser.write("L0000000000000000000000000000000")
 		ping_string = self.ser.read(25)
-		print "read: " + ping_string
+#		print "read: " + ping_string
 		if (len(ping_string) > 0):
 			return True
 		return False
@@ -75,8 +75,8 @@ class Sycamore:
 		read_cmd = (read_cmd) % (data_count, address + offset)
 		self.ser.write(read_cmd)
 		read_resp = self.ser.read(25 + (data_count * 8))
-		print "read command: " + read_cmd
-		print "response: " + read_resp
+#		print "read command: " + read_cmd
+#		print "response: " + read_resp
 
 		if (len(read_resp) > 0):
 			for i in range (0, data_count + 1):
@@ -94,8 +94,8 @@ class Sycamore:
 		read_cmd = (read_cmd) % (data_count, address + offset)
 		self.ser.write(read_cmd)
 		read_resp = self.ser.read(25 + (data_count * 8))
-		print "read command: " + read_cmd
-		print "response: " + read_resp
+#		print "read command: " + read_cmd
+#		print "response: " + read_resp
 
 		if (len(read_resp) > 0):
 			for i in range (0, data_count + 1):
@@ -117,7 +117,7 @@ class Sycamore:
 			data_string = ("%0.8X") % data[i]
 			write_cmd += data_string;
 
-		print "out string: " + write_cmd
+#		print "out string: " + write_cmd
 		self.ser.flushInput()
 		self.ser.write(write_cmd)
 		write_resp = self.ser.read(25)
@@ -139,7 +139,7 @@ class Sycamore:
 			data_string = ("%0.8X") % data[i]
 			write_cmd += data_string;
 
-		print "out string: " + write_cmd
+#		print "out string: " + write_cmd
 		self.ser.flushInput()
 		self.ser.write(write_cmd)
 		write_resp = self.ser.read(25)
@@ -171,7 +171,7 @@ class Sycamore:
 		
 			if (index == 1):
 				size_string = temp_string.__getslice__(17, 25)
-				print "size_string: " + size_string
+#				print "size_string: " + size_string
 				#print "number of device: " + str(string.atoi(size_string, 16))
 				self.num_of_devices = string.atoi(size_string, 10)
 			index = index + 1
@@ -219,7 +219,7 @@ class Sycamore:
 		self.ser.timeout = temp_timeout
 		if(len(temp_string) == 0):
 			return False
-		print "interrupt string: " + temp_string
+#		print "interrupt string: " + temp_string
 		self.interrupt_address = string.atoi(temp_string[9:16], 16)
 		self.interrupts = string.atoi(temp_string[17:25], 16)
 		return True

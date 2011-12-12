@@ -6,8 +6,8 @@
 #include "serial.h"
 
 
-#define IOCTL_PING 0
-#define IOCTL_DRT 1
+#define IOCTL_PING 0x40
+#define IOCTL_DRT 0x41
 
 static void usage (void);
 
@@ -29,10 +29,11 @@ struct _sycamore_command_t {
 };
 //command_functions
 static int cmd_ping (state_t *state, const char *cmd, int argc, char **argv) {
-	printf ("ping sycamore device");
+	printf ("ping sycamore device\n");
+	ioctl(state->serial_fd, IOCTL_PING, NULL);
 }
 static int cmd_drt (state_t *state, const char *cmd, int argc, char **argv){
-	printf ("get the DRT");
+	printf ("get the DRT\n");
 }
  
 
@@ -69,8 +70,7 @@ static void usage (void){
 			printf ("\n");
 		}
 	}
-	printf ("\n"
-			"Example: ./silab-cmd --baud 9600 -devicename /dev/ttyUSB0\n"
+	printf ("\n" "Example: ./silab-cmd --baud 9600 -devicename /dev/ttyUSB0\n"
 			"\n");
 
 }

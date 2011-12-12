@@ -60,30 +60,25 @@ int generate_platform_devices(sycamore_t *sycamore){
 }
 
 
-int sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg){
+int sycamore_ioctl(sycamore_t *sycamore, struct tty_struct *tty, unsigned int cmd, unsigned long arg){
 
-	printk ("Entered ioctl");
-/*
-	sycamore_t *sycamore = NULL;
-	struct usb_serial_port *port = tty->driver_data;
-	sycamore = (sycamore_t *) dev_get_drvdata(&port->data);
-	
-//	dbg("%s entered", __func__);
+	printk ("%s Entered function, with CMD: 0x%X", __func__, cmd);
 
 	if (sycamore->port_lock){
-//		dbg("%s sycamore is locked by another device", __func__);
+		printk("%s sycamore is locked by another device", __func__);
 	}
 
-//	dbg("%s entered", __func__);
 	switch (cmd) {
 		case(PING_SYCAMORE): 
-			return 1;
+			printk ("%s Ping Function Called", __func__);
+			tty->ops->write(tty, "L0000000000000000000000000000000", 32);
+			return 0;
 		case(READ_DRT):
-			return 2;
+			return 0;
 		case(GET_DRT_SIZE):
-			return 3;
+			return 0;
 	}
-*/
+	//return success
 	return 0;
 }
 int sycamore_attach(sycamore_t *sycamore){
@@ -96,7 +91,7 @@ int sycamore_attach(sycamore_t *sycamore){
 	sycamore->size_of_drt = 0;
 	sycamore->drt	= NULL;
 	sycamore->pdev = NULL;
-	sycamore->ioctl = sycamore_ioctl;
+	//sycamore->ioctl = sycamore_ioctl;
 
 	//generate the platform bus
 	sycamore->platform_device = platform_device_alloc(SYCAMORE_BUS_NAME, -1);
