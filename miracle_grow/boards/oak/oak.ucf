@@ -1,0 +1,100 @@
+# ==== Clock inputs (CLK) ====
+NET "clk" LOC = "P178" | IOSTANDARD = LVCMOS33 ;
+NET "clk" PERIOD = 20 HIGH 50%;   # 50 MHZ
+
+# ==== Active high reset input (RST) ====
+NET "rst"   LOC = "P161" | IOSTANDARD = LVCMOS33 | PULLDOWN ;
+
+# ==== LED output (LED) ====
+NET "led" LOC = "P90" | IOSTANDARD = LVCMOS33 | SLEW = SLOW ;
+
+# ==== SDR SDRAM (SDR_) ====   
+NET "sdr_clk"         LOC = "P31"  | IOSTANDARD = LVTTL ;
+NET "sdr_a<0>"        LOC = "P200" | IOSTANDARD = LVTTL ;
+NET "sdr_a<1>"        LOC = "P202" | IOSTANDARD = LVTTL ;
+NET "sdr_a<2>"        LOC = "P203" | IOSTANDARD = LVTTL ;
+NET "sdr_a<3>"        LOC = "P205" | IOSTANDARD = LVTTL ;
+NET "sdr_a<4>"        LOC = "P55"  | IOSTANDARD = LVTTL ;
+NET "sdr_a<5>"        LOC = "P60"  | IOSTANDARD = LVTTL ;
+NET "sdr_a<6>"        LOC = "P50"  | IOSTANDARD = LVTTL ;
+NET "sdr_a<7>"        LOC = "P49"  | IOSTANDARD = LVTTL ;
+NET "sdr_a<8>"        LOC = "P48"  | IOSTANDARD = LVTTL ;
+NET "sdr_a<9>"        LOC = "P47"  | IOSTANDARD = LVTTL ;
+NET "sdr_a<10>"       LOC = "P2"   | IOSTANDARD = LVTTL ;
+NET "sdr_a<11>"       LOC = "P28"  | IOSTANDARD = LVTTL ;
+NET "sdr_a<12>"       LOC = "P29"  | IOSTANDARD = LVTTL ;
+NET "sdr_ba<0>"       LOC = "P4"   | IOSTANDARD = LVTTL ;
+NET "sdr_ba<1>"       LOC = "P3"   | IOSTANDARD = LVTTL ;
+NET "sdr_dq<0>"       LOC = "P5"   | IOSTANDARD = LVTTL ;
+NET "sdr_dq<1>"       LOC = "P8"   | IOSTANDARD = LVTTL ;
+NET "sdr_dq<2>"       LOC = "P9"   | IOSTANDARD = LVTTL ;
+NET "sdr_dq<3>"       LOC = "P11"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<4>"       LOC = "P12"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<5>"       LOC = "P15"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<6>"       LOC = "P16"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<7>"       LOC = "P18"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<8>"       LOC = "P34"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<9>"       LOC = "P35"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<10>"      LOC = "P36"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<11>"      LOC = "P39"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<12>"      LOC = "P40"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<13>"      LOC = "P41"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<14>"      LOC = "P42"  | IOSTANDARD = LVTTL ;
+NET "sdr_dq<15>"      LOC = "P45"  | IOSTANDARD = LVTTL ;
+NET "sdr_dm<0>"       LOC = "P19"  | IOSTANDARD = LVTTL ;
+NET "sdr_dm<1>"       LOC = "P33"  | IOSTANDARD = LVTTL ;
+NET "sdr_cs_n"        LOC = "P25"  | IOSTANDARD = LVTTL ;
+NET "sdr_cke"         LOC = "P30"  | IOSTANDARD = LVTTL ;
+NET "sdr_ras_n"       LOC = "P24"  | IOSTANDARD = LVTTL ;
+NET "sdr_cas_n"       LOC = "P23"  | IOSTANDARD = LVTTL ;
+NET "sdr_we_n"        LOC = "P22"  | IOSTANDARD = LVTTL ;
+
+# ==== FSMC bus (FSMC_) ==== 
+NET "fsmc_a<0>"       LOC = "P148" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<1>"       LOC = "P124" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<2>"       LOC = "P130" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<3>"       LOC = "P110" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<4>"       LOC = "P118" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<5>"       LOC = "P154" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<6>"       LOC = "P147" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<7>"       LOC = "P146" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<8>"       LOC = "P145" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<9>"       LOC = "P144" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<10>"      LOC = "P142" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<11>"      LOC = "P140" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<12>"      LOC = "P123" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<13>"      LOC = "P122" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<14>"      LOC = "P120" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_a<15>"      LOC = "P119" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<0>"       LOC = "P126" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<1>"       LOC = "P109" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<2>"       LOC = "P113" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<3>"       LOC = "P115" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<4>"       LOC = "P139" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<5>"       LOC = "P138" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<6>"       LOC = "P137" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<7>"       LOC = "P136" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<8>"       LOC = "P135" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<9>"       LOC = "P134" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<10>"      LOC = "P133" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<11>"      LOC = "P132" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<12>"      LOC = "P150" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<13>"      LOC = "P129" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<14>"      LOC = "P128" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_d<15>"      LOC = "P127" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_noe"	      LOC = "P116" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_nbl0"	      LOC = "P152" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_nbl1"	      LOC = "P153" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_ne1"	      LOC = "P112" | IOSTANDARD = LVCMOS33 ;
+NET "fsmc_nwe"	      LOC = "P151" | IOSTANDARD = LVCMOS33 ;
+
+# ==== GPIOs (GPIO) ==== 
+NET "gpio_rx"	      LOC = "P102" | IOSTANDARD = LVCMOS33 ;
+NET "gpio_tx"	      LOC = "P100" | IOSTANDARD = LVCMOS33 ;
+NET "gpio<58>"	      LOC = "P99"  | IOSTANDARD = LVCMOS33 ;
+NET "gpio<59>"	      LOC = "P98"  | IOSTANDARD = LVCMOS33 ;
+NET "gpio<60>"	      LOC = "P97"  | IOSTANDARD = LVCMOS33 ;
+NET "gpio<61>"	      LOC = "P96"  | IOSTANDARD = LVCMOS33 ;
+NET "gpio<62>"	      LOC = "P94"  | IOSTANDARD = LVCMOS33 ;
+NET "gpio<63>"	      LOC = "P93"  | IOSTANDARD = LVCMOS33 ;
+

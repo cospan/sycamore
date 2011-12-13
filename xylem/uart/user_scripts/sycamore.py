@@ -57,7 +57,7 @@ class Sycamore:
 		self.ser.flushInput()
 		self.ser.write("L0000000000000000000000000000000")
 		ping_string = self.ser.read(32)
-		print "read: " + ping_string
+#		print "read: " + ping_string
 		if (len(ping_string) > 0):
 			return True
 		return False
