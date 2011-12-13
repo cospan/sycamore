@@ -77,6 +77,8 @@ static int debug;
 
 static int cp210x_sycamore_ioctl ( struct tty_struct *tty, unsigned int cmd, unsigned long arg);
 
+void cp210x_sycamore_read_bulk_callback(struct urb *urb);
+void cp210x_sycamore_process_read_urb(struct urb *urb);
 
 static const struct usb_device_id id_table[] = {
 	{ USB_DEVICE(0x10C4, 0x8762) }, /* Legit PID for sycamore */
@@ -112,7 +114,9 @@ static struct usb_serial_driver cp210x_device = {
 	.attach			= cp210x_startup,
 	.dtr_rts		= cp210x_dtr_rts,
 	.disconnect		= cp210x_sycamore_disconnect,
-	.ioctl			= cp210x_sycamore_ioctl
+	.ioctl			= cp210x_sycamore_ioctl,
+	//.read_bulk_callback = cp210x_sycamore_read_bulk_callback
+	//.process_read_urb = cp210x_sycamore_process_read_urb
 };
 
 
@@ -815,6 +819,67 @@ static int cp210x_sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsig
 }
 
 
+
+
+
+void cp210x_sycamore_read_bulk_callback(struct urb *urb)
+{
+	struct usb_serial_port *port = urb->context;
+	unsigned char *data = urb->transfer_buffer;
+	int status = urb->status;
+	unsigned long flags;
+
+	dbg("%s - port %d", __func__, port->number);
+
+	if (unlikely(status != 0)) {
+		dbg("%s - nonzero read bulk status received: %d",
+		    __func__, status);
+		return;
+	}
+
+	usb_serial_debug_data(debug, &port->dev, __func__,
+						urb->actual_length, data);
+	port->serial->type->process_read_urb(urb);
+
+	/* Throttle the device if requested by tty */
+	spin_lock_irqsave(&port->lock, flags);
+	port->throttled = port->throttle_req;
+	if (!port->throttled) {
+		spin_unlock_irqrestore(&port->lock, flags);
+		usb_serial_generic_submit_read_urb(port, GFP_ATOMIC);
+	} else
+		spin_unlock_irqrestore(&port->lock, flags);
+}
+
+void cp210x_sycamore_process_read_urb(struct urb *urb)
+{
+	struct usb_serial_port *port = urb->context;
+	struct tty_struct *tty;
+	char *ch = (char *)urb->transfer_buffer;
+	int i;
+
+	dbg("%s entered", __func__);
+	if (!urb->actual_length)
+		return;
+
+	tty = tty_port_tty_get(&port->port);
+	if (!tty)
+		return;
+
+	/* The per character mucking around with sysrq path it too slow for
+	   stuff like 3G modems, so shortcircuit it in the 99.9999999% of cases
+	   where the USB serial is not a console anyway */
+	if (!port->port.console || !port->sysrq)
+		tty_insert_flip_string(tty, ch, urb->actual_length);
+	else {
+		for (i = 0; i < urb->actual_length; i++, ch++) {
+			if (!usb_serial_handle_sysrq_char(port, *ch))
+				tty_insert_flip_char(tty, *ch, TTY_NORMAL);
+		}
+	}
+	tty_flip_buffer_push(tty);
+	tty_kref_put(tty);
+}
 
 module_init(cp210x_init);
 module_exit(cp210x_exit);

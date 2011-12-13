@@ -67,11 +67,16 @@ int sycamore_ioctl(sycamore_t *sycamore, struct tty_struct *tty, unsigned int cm
 	if (sycamore->port_lock){
 		printk("%s sycamore is locked by another device", __func__);
 	}
+//	char buffer[32];
 
 	switch (cmd) {
 		case(PING_SYCAMORE): 
 			printk ("%s Ping Function Called", __func__);
 			tty->ops->write(tty, "L0000000000000000000000000000000", 32);
+			if (tty->ldisc != NULL){
+				printk("ldisc is not NULL");
+			}
+//			tty->ops->read(tty, &buffer[0], 25);
 			return 0;
 		case(READ_DRT):
 			return 0;
@@ -91,7 +96,8 @@ int sycamore_attach(sycamore_t *sycamore){
 	sycamore->size_of_drt = 0;
 	sycamore->drt	= NULL;
 	sycamore->pdev = NULL;
-	//sycamore->ioctl = sycamore_ioctl;
+
+
 
 	//generate the platform bus
 	sycamore->platform_device = platform_device_alloc(SYCAMORE_BUS_NAME, -1);
