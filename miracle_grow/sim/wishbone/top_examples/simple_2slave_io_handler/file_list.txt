@@ -1,4 +1,5 @@
 ../../../../rtl/mg_defines.v
+project_defines.v
 ../../../../rtl/wishbone/master_handler/uart/uart.v
 ../../../../rtl/wishbone/master_handler/uart/uart_io_handler.v
 ../../interconnect/example_2port_interconnect/wishbone_interconnect.v

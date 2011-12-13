@@ -59,26 +59,42 @@ int generate_platform_devices(sycamore_t *sycamore){
 	return 0;
 }
 
+void read_data(sycamore_t *sycamore, char * buffer, int length){
+	int i = 0;
+	printk ("%s entered\n", __func__);
+	printk ("read %d bytes: %s\n", length, buffer);
+	for(i = 0; i < length; ++i){
+		if (sycamore->buf_pos >= BUFFER_SIZE){
+			printk("%s: buffer full!", __func__);
+			sycamore->buf_pos = 0;
+		}
+		sycamore->in_buffer[sycamore->buf_pos] = buffer[i];
+		sycamore->buf_pos++;
+		
+	}
+}
 
 int sycamore_ioctl(sycamore_t *sycamore, struct tty_struct *tty, unsigned int cmd, unsigned long arg){
+	int count = 0;
 
-	printk ("%s Entered function, with CMD: 0x%X", __func__, cmd);
+	printk ("%s Entered function, with CMD: 0x%X\n", __func__, cmd);
 
 	if (sycamore->port_lock){
-		printk("%s sycamore is locked by another device", __func__);
+		printk("%s sycamore is locked by another device\n", __func__);
 	}
-//	char buffer[32];
+
 
 	switch (cmd) {
 		case(PING_SYCAMORE): 
-			printk ("%s Ping Function Called", __func__);
+			printk ("%s Ping Function Called\n", __func__);
 			tty->ops->write(tty, "L0000000000000000000000000000000", 32);
-			if (tty->ldisc != NULL){
-				printk("ldisc is not NULL");
-			}
+			count = tty_chars_in_buffer(tty);
+			printk ("outgoing count: %d\n", count);
+			tty_wait_until_sent(tty, 500);
 //			tty->ops->read(tty, &buffer[0], 25);
 			return 0;
 		case(READ_DRT):
+			printk("buffer: %s", &sycamore->in_buffer[0]);
 			return 0;
 		case(GET_DRT_SIZE):
 			return 0;
@@ -96,6 +112,7 @@ int sycamore_attach(sycamore_t *sycamore){
 	sycamore->size_of_drt = 0;
 	sycamore->drt	= NULL;
 	sycamore->pdev = NULL;
+	sycamore->buf_pos = 0;
 
 
 

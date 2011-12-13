@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <stdbool.h>
 #include <malloc.h>
+#include <time.h>
 #include "serial.h"
 
 
@@ -31,6 +32,8 @@ struct _sycamore_command_t {
 static int cmd_ping (state_t *state, const char *cmd, int argc, char **argv) {
 	printf ("ping sycamore device\n");
 	ioctl(state->serial_fd, IOCTL_PING, NULL);
+	sleep(1);
+	ioctl(state->serial_fd, IOCTL_DRT, NULL);
 }
 static int cmd_drt (state_t *state, const char *cmd, int argc, char **argv){
 	printf ("get the DRT\n");

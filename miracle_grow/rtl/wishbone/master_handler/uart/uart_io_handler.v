@@ -96,6 +96,7 @@ reg					oh_finished;
 reg					uart_wait_for_tx;
 
 reg [27:0]			lout_data_count;
+reg [27:0]			lout_data_count_buf;
 reg [31:0]			lout_data;
 reg [31:0]			lout_status;
 reg [31:0]			lout_address;
@@ -110,9 +111,10 @@ parameter READ_CONTROL     		= 8'h3;
 parameter READ_ADDRESS   	 	= 8'h4;
 parameter READ_DATA        		= 8'h5;
 
-parameter WRITE_STATUS			= 8'h1;
-parameter WRITE_ADDRESS			= 8'h2;
-parameter WRITE_DATA			= 8'h3;
+parameter WRITE_DATA_COUNT		= 8'h1;
+parameter WRITE_STATUS			= 8'h2;
+parameter WRITE_ADDRESS			= 8'h3;
+parameter WRITE_DATA			= 8'h4;
 
 
 
@@ -247,11 +249,13 @@ always @ (posedge clk) begin
 							//0-9 value
 							in_command 		<= (in_command[31:0] << 4) + (in_byte - CHAR_0);
 						end
-						in_nibble_count 	<= in_nibble_count + 1;	
 
 						if (in_nibble_count >= 7) begin
 							in_state			<= READ_ADDRESS;
 							in_nibble_count 	<= 4'h0;
+						end
+						else begin
+							in_nibble_count 	<= in_nibble_count + 1;	
 						end
 	
                     end
@@ -280,11 +284,13 @@ always @ (posedge clk) begin
 							in_address 		<= (in_address[31:0] << 4) + (in_byte - CHAR_0);
 						end
 				
-						in_nibble_count 	<= in_nibble_count + 1;
 					
 						if (in_nibble_count >= 7) begin
 							in_state			<= READ_DATA;
 							in_nibble_count 	<= 4'h0;
+						end
+						else begin
+							in_nibble_count 	<= in_nibble_count + 1;
 						end
                     end                
                 end
@@ -354,6 +360,7 @@ always @ (posedge clk) begin
 		out_nibble_count		<=	4'h0;
 		out_byte				<= 	8'h0;
         lout_data_count 		<= 27'h0;
+		lout_data_count_buf		<= 27'h0;
 		lout_data				<= 32'h0;
 		lout_status				<= 32'h0;
 		lout_address			<= 32'h0;
@@ -378,13 +385,34 @@ always @ (posedge clk) begin
 					lout_data			<= out_data;
 
 					out_byte			<= CHAR_S;	
-					out_state			<= WRITE_STATUS; 
+					out_state			<= WRITE_DATA_COUNT; 
 					oh_ready			<= 0;
 					uart_out_byte_en	<= 1;
 					uart_wait_for_tx	<= 1;
 				end 
 				else begin
 					lout_data_count		<= out_data_count;
+					lout_data_count_buf	<= out_data_count;
+				end
+			end
+			WRITE_DATA_COUNT: begin
+				if (lout_data_count_buf[27:24] < 10)begin
+					//send character number
+					out_byte 			<= lout_data_count_buf[27:23] + CHAR_0;
+				end
+				else begin
+					//send  character hex value
+					out_byte 			<= lout_data_count_buf[27:23] + CHAR_HEX_OFFSET;
+				end
+				lout_data_count_buf		<= lout_data_count_buf[27:0] << 4;
+				uart_out_byte_en		<= 1;
+				uart_wait_for_tx		<= 1;
+				if (out_nibble_count >= 6) begin
+					out_state			<= WRITE_STATUS;
+					out_nibble_count	<= 4'h0;
+				end
+				else begin
+					out_nibble_count		<= out_nibble_count + 1;
 				end
 			end
 			WRITE_STATUS: begin
@@ -400,10 +428,12 @@ always @ (posedge clk) begin
 				lout_status 			<= (lout_status[31:0] << 4);
 				uart_out_byte_en		<= 1;
 				uart_wait_for_tx		<= 1;
-				out_nibble_count		<= out_nibble_count + 1;
 				if (out_nibble_count >= 7) begin
 					out_state			<= WRITE_ADDRESS;
 					out_nibble_count	<= 4'h0;
+				end
+				else begin
+					out_nibble_count		<= out_nibble_count + 1;
 				end
 
 			end
@@ -421,11 +451,13 @@ always @ (posedge clk) begin
 				lout_address 			<= (lout_address[31:0] << 4);
 				uart_out_byte_en		<= 1;
 				uart_wait_for_tx		<= 1;
-				out_nibble_count		<= out_nibble_count + 1;
 
 	    		if (out_nibble_count >= 7) begin
 					out_state			<= WRITE_DATA;
 					out_nibble_count	<= 4'h0;
+				end
+				else begin
+					out_nibble_count		<= out_nibble_count + 1;
 				end
 
 			end

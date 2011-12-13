@@ -54,9 +54,10 @@ class Sycamore:
 			self.ser.close()
 
 	def ping(self):
+		self.ser.flushInput()
 		self.ser.write("L0000000000000000000000000000000")
-		ping_string = self.ser.read(25)
-#		print "read: " + ping_string
+		ping_string = self.ser.read(32)
+		print "read: " + ping_string
 		if (len(ping_string) > 0):
 			return True
 		return False
@@ -74,13 +75,13 @@ class Sycamore:
 		read_cmd = "L%0.7X00010002%0.8X00000000"
 		read_cmd = (read_cmd) % (data_count, address + offset)
 		self.ser.write(read_cmd)
-		read_resp = self.ser.read(25 + (data_count * 8))
+		read_resp = self.ser.read(32 + (data_count * 8))
 #		print "read command: " + read_cmd
 #		print "response: " + read_resp
 
 		if (len(read_resp) > 0):
 			for i in range (0, data_count + 1):
-				response.append(string.atoi(read_resp[(17 + (i * 8)):(25 + (i * 8))], 16))
+				response.append(string.atoi(read_resp[(24 + (i * 8)):(32 + (i * 8))], 16))
 		return response
 		
 	def read_data(self, dev_index, offset, data_count = 0):
@@ -93,13 +94,13 @@ class Sycamore:
 		read_cmd = "L%0.7X00000002%0.8X00000000"
 		read_cmd = (read_cmd) % (data_count, address + offset)
 		self.ser.write(read_cmd)
-		read_resp = self.ser.read(25 + (data_count * 8))
+		read_resp = self.ser.read(32 + (data_count * 8))
 #		print "read command: " + read_cmd
-#		print "response: " + read_resp
+		print "response: " + read_resp
 
 		if (len(read_resp) > 0):
 			for i in range (0, data_count + 1):
-				response.append(string.atoi(read_resp[(17 + (i * 8)):(25 + (i * 8))], 16))
+				response.append(string.atoi(read_resp[(24 + (i * 8)):(32 + (i * 8))], 16))
 
 		return response
 		
@@ -120,7 +121,7 @@ class Sycamore:
 #		print "out string: " + write_cmd
 		self.ser.flushInput()
 		self.ser.write(write_cmd)
-		write_resp = self.ser.read(25)
+		write_resp = self.ser.read(32)
 		if (len(write_resp) == 0):
 			return False
 		return True
@@ -142,7 +143,7 @@ class Sycamore:
 #		print "out string: " + write_cmd
 		self.ser.flushInput()
 		self.ser.write(write_cmd)
-		write_resp = self.ser.read(25)
+		write_resp = self.ser.read(32)
 		if (len(write_resp) == 0):
 			return False
 		return True
@@ -156,21 +157,22 @@ class Sycamore:
 		while (count > 0):
 
 			#clear things out
-			self.ser.write("00000")
+		#	self.ser.flushInput()
+		#	self.ser.write("00000")
 			cmd_string = "L000000000000002%0.8X00000000"
 			cmd_string = (cmd_string) % index
 			#print "cmd_string: " + cmd_string
 			#return
 			self.ser.write(cmd_string)
-			temp_string = self.ser.read(25)
-			#print "temp string: " + temp_string
+			temp_string = self.ser.read(32)
+#			print "temp string: " + temp_string
 			if (len(temp_string) == 0):
 				return False
 			else:
-				self.drt_string = self.drt_string + temp_string.__getslice__(17, 25) + "\n"
+				self.drt_string = self.drt_string + temp_string.__getslice__(24, 32) + "\n"
 		
 			if (index == 1):
-				size_string = temp_string.__getslice__(17, 25)
+				size_string = temp_string.__getslice__(24, 32)
 #				print "size_string: " + size_string
 				#print "number of device: " + str(string.atoi(size_string, 16))
 				self.num_of_devices = string.atoi(size_string, 10)
@@ -187,11 +189,11 @@ class Sycamore:
 			#print "cmd_string: " + cmd_string
 			#return
 			self.ser.write(cmd_string)
-			temp_string = self.ser.read(25)
+			temp_string = self.ser.read(32)
 			if (len(temp_string) == 0):
 				return False
 			else:
-				self.drt_string = self.drt_string + temp_string.__getslice__(17, 25) + "\n"
+				self.drt_string = self.drt_string + temp_string.__getslice__(24, 32) + "\n"
 			count = count + 1
 		#got through it all
 		return True
@@ -214,14 +216,14 @@ class Sycamore:
 	def wait_for_interrupts(self, wait_time = 1):
 		temp_timeout = self.ser.timeout
 		self.ser.timeout = wait_time
-		temp_string = self.ser.read(25)
+		temp_string = self.ser.read(32)
 		#put the old timeout back
 		self.ser.timeout = temp_timeout
 		if(len(temp_string) == 0):
 			return False
 #		print "interrupt string: " + temp_string
-		self.interrupt_address = string.atoi(temp_string[9:16], 16)
-		self.interrupts = string.atoi(temp_string[17:25], 16)
+		self.interrupt_address = string.atoi(temp_string[16:24], 16)
+		self.interrupts = string.atoi(temp_string[24:32], 16)
 		return True
 
 	def is_interrupt_for_slave(self, device_id = 0):
@@ -351,7 +353,7 @@ class Sycamore:
 #		self.ser.port = dev_name
 #		self.ser.baudrate = baudrate
 #		self.ser.open()
-		self.ser.timeout = 1
+		self.ser.timeout = 2
 		self.ser.flushInput()
 		if (self.ser == None):
 			print ("Error openeing serial port :(")
@@ -372,9 +374,4 @@ if __name__ == '__main__':
 		syc.slave_unit_test()
 
 	
-
-	
-
-
-
 

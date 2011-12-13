@@ -7,6 +7,8 @@ from string import atoi
 """
 Changes:
 
+12/13/2011
+	-Changed the response from 25 characters to 32
 12/02/2011
 	-Changed the DRT size from 4 to 8
 """
@@ -24,7 +26,7 @@ class GenDRT(Gen):
 		out_buf = ""
 
 		#Get the DRT version from the DRT info
-		version = 0x0003
+		version = 0x0004
 		version_string = "{0:0=4X}"
 		version_string = version_string.format(version)
 		id	= 0x1EAF
