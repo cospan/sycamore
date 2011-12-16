@@ -31,9 +31,15 @@ struct _sycamore_command_t {
 //command_functions
 static int cmd_ping (state_t *state, const char *cmd, int argc, char **argv) {
 	printf ("ping sycamore device\n");
-	ioctl(state->serial_fd, IOCTL_PING, NULL);
-	sleep(1);
-	ioctl(state->serial_fd, IOCTL_DRT, NULL);
+	int retval = 0;
+	retval = ioctl(state->serial_fd, (unsigned int) IOCTL_PING, NULL);
+	if (retval != 0){
+		printf ("retval = %d\n", retval);
+	}
+	//ioctl(state->serial_fd, 0x040, NULL);
+//	sleep(1);
+//	ioctl(state->serial_fd, (unsigned int) IOCTL_DRT, NULL);
+//	ioctl(state->serial_fd, 0x041, NULL);
 }
 static int cmd_drt (state_t *state, const char *cmd, int argc, char **argv){
 	printf ("get the DRT\n");

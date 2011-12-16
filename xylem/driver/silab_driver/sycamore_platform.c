@@ -2,10 +2,18 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/platform_device.h>
+#include <linux/string.h>
 #include "sycamore_platform.h"
 #include "sycamore_ioctl.h"
+#include "sycamore_commands.h"
 
 
+
+//parse the data
+
+void parse_data(sycamore_t *syacmore){
+	
+}
 
 //static struct platform_device sycamore_tty ={
 //	.name = "sycamore_tty",
@@ -59,25 +67,248 @@ int generate_platform_devices(sycamore_t *sycamore){
 	return 0;
 }
 
-void read_data(sycamore_t *sycamore, char * buffer, int length){
+/*
+	read data as it comes in, it's more than likely that data
+	will come in one byte at a time, so this state machine can assemble the
+	information a peice at a time
+*/
+void read_data(sycamore_t *s, char * buffer, int length){
 	int i = 0;
-	printk ("%s entered\n", __func__);
-	printk ("read %d bytes: %s\n", length, buffer);
+	char ch = 0;
+//	printk ("%s entered\n", __func__);
+	//printk ("read %d bytes: %s\n", length, buffer);
 	for(i = 0; i < length; ++i){
-		if (sycamore->buf_pos >= BUFFER_SIZE){
+		ch = buffer[i];
+//		printk ("%c", ch);
+		//process each character as it comes in
+/*
+		if (s->read_pos >= BUFFER_SIZE){
 			printk("%s: buffer full!", __func__);
-			sycamore->buf_pos = 0;
+			s->read_pos = 0;
 		}
-		sycamore->in_buffer[sycamore->buf_pos] = buffer[i];
-		sycamore->buf_pos++;
+		s->in_buffer[s->read_pos] = buffer[i];
+		s->read_pos++;
+*/
+		if (ch == 'S'){
+
+			printk("\nFound S\n");
+		/*
+			if the current byte is is 'S' we are starting to read a new packet
+
+			in this case there might be a chance that data didn't get all the way
+			through so I might have to tell the current virtual device I'm
+			writing to (from the device's point of view reading) that the
+			rest of the data transfer was cancelled
+		*/
+			//reset all variables
+			s->read_command 		= 0;
+			s->read_size 			= 0;
+			s->read_data			= 0;
+			s->read_data_count		= 0;
+			s->read_data_pos		= 0;
+			s->read_address 		= 0;
+			s->read_device_address	= 0;
+			s->read_pos				= 0;
+			s->read_state			= READ_SIZE;
+			continue;
+		}
 		
+		switch (s->read_state){
+			case (READ_IDLE):
+				//nothing to see here, move along
+				continue;
+				break;
+			case (READ_SIZE):
+				
+				/*
+				   the next seven bytes is the number
+				   of bytes to read (not including
+				   the first 32 bit word
+				 */
+				if (ch >= 'A'){
+					//take care of the hex values greater than 9
+					ch -= ('A' - 10); //compiler optimize this please
+				}
+				else {
+					ch -= '0';
+				}
+				s->read_pos++;
+				s->read_size += ch;
+
+				//transition condition
+				if (s->read_pos == 7){
+					
+					//setup the read data count to at least read the first
+					//32 bit word
+					s->read_data_count = s->read_size + 1;
+					s->read_state = READ_COMMAND;
+					s->read_pos = 0;
+					printk ("%s: read size = %d\n", __func__, s->read_size);
+				}
+				else {
+					//shift the data up by four
+					s->read_size = s->read_size << 4;
+				}
+				break;
+			case (READ_COMMAND):
+				if (ch >= 'A'){
+					//take care of the hex values greater than 9
+					ch -= ('A' - 10); //compiler optimize this please
+				}
+				else {
+					ch -= '0';
+				}
+				s->read_command += ch;	
+				s->read_pos++;
+				//transition condition
+				if (s->read_pos == 8){
+					/*
+					   the next eight bytes is the command
+					   inverted from the write
+					 */ 
+//					 printk("%s: Received command: %8X\n", __func__, s->read_command);
+					 s->read_command = ~(s->read_command);
+					 switch (s->read_command){
+					 	case (SYCAMORE_PING): 
+							printk("%s: Received a ping response\n", __func__);
+							break;
+						case (SYCAMORE_WRITE):
+							printk("%s: Received a write ack\n", __func__);
+							break;
+						case (SYCAMORE_READ):
+							printk("%s: Received a read response\n", __func__);
+							break;
+						case (~SYCAMORE_INTERRUPTS):
+							//this is the only command that isn't inverted
+							printk("%s: Received an interrupt\n", __func__);
+							s->read_command = ~(s->read_command);
+							//respond to interrupts
+							break;
+						default:
+							printk("%s: Received an illegal command!, resetting state machine: %8X\n", __func__, s->read_command);
+							s->read_state = READ_IDLE;
+							continue;
+							break;
+					 }
+					/*
+					   if the command was read we will need
+					   to read all the data back
+					 */
+
+					s->read_pos	=	0;
+					s->read_state = READ_ADDRESS;
+				}
+				else {
+					s->read_command = s->read_command << 4;
+				}
+				break;
+			case (READ_ADDRESS):
+				if (ch >= 'A'){
+					//take care of the hex values greater than 9
+					ch -= ('A' - 10); //compiler optimize this please
+				}
+				else {
+					ch -= '0';
+				}
+				s->read_address += ch;	
+				s->read_pos++;
+
+				/*
+				   the next eight bytes is the address
+				 */
+				/*
+				   if the address top two bytes == 0
+				   then this is a control packet
+				   if the address top two bytes == FF
+				   then this is a interrupt
+				 */
+
+				//transition condition
+				if (s->read_pos == 8) {
+					s->read_device_address = (s->read_address & 0xFF000000) >> 24;
+					s->read_address = (s->read_address & 0x00FFFFFF);
+					s->read_state = READ_DATA;
+					s->read_pos = 0;
+					s->read_data = 0;
+				}
+				else {
+					s->read_address = s->read_address << 4;
+				}
+				break;
+			case (READ_DATA):
+				if (ch >= 'A'){
+					//take care of the hex values greater than 9
+					ch -= ('A' - 10); //compiler optimize this please
+				}
+				else {
+					ch -= '0';
+				}
+				s->read_data += ch;	
+				s->read_pos++;
+
+
+				/*
+				   if the command was a read then we 
+				   need to possibly count the data in
+				   the first 8 bytes are always there
+				 */
+				if (s->read_pos == 8){
+					//process the data out
+//XXX need to write to the associated driver
+					if (s->devices[s->read_device_address] != NULL){
+//XXX: call the devices read function
+						/*
+							send the address
+							send the total data size
+							send the data position
+						*/
+/* sycamore_device_read(
+			s, 
+			s->read_address, 
+			s->read_size + 1, 
+			s->read_data_pos, 
+			s->read_data); 
+*/
+					}
+
+					s->read_data_count--;
+					//see if we are done
+					if (s->read_data_count == 0){
+						s->read_state = READ_IDLE;
+						printk("%s: parsed data\n", __func__);
+						printk("c:%8X\n", s->read_command);
+						printk("a:%8X : %6X\n", s->read_device_address, s->read_address);
+						printk("s:%8d\n", s->read_size + 1);
+						printk("d:%.8X\n\n", s->read_data);
+					}
+					else {
+						s->read_pos = 0;
+						s->read_data = 0;
+						s->read_data_pos++;
+					}
+				}
+				else {
+					s->read_data = s->read_data << 4;
+				}
+				break;
+			default:
+				/*
+				   how did we get here?
+				   something went wrong
+				 */
+				s->read_state = READ_IDLE;
+				printk("%s: Entered Illegal state in read state machine", __func__);
+				break;
+		}
 	}
+	
+
 }
 
 int sycamore_ioctl(sycamore_t *sycamore, struct tty_struct *tty, unsigned int cmd, unsigned long arg){
 	int count = 0;
 
-	printk ("%s Entered function, with CMD: 0x%X\n", __func__, cmd);
+	printk ("%s Entered function, with CMD: 0x%.4X\n", __func__, cmd);
 
 	if (sycamore->port_lock){
 		printk("%s sycamore is locked by another device\n", __func__);
@@ -94,7 +325,8 @@ int sycamore_ioctl(sycamore_t *sycamore, struct tty_struct *tty, unsigned int cm
 //			tty->ops->read(tty, &buffer[0], 25);
 			return 0;
 		case(READ_DRT):
-			printk("buffer: %s", &sycamore->in_buffer[0]);
+//printk("buffer: %s", &sycamore->in_buffer[0]);
+		
 			return 0;
 		case(GET_DRT_SIZE):
 			return 0;
@@ -106,14 +338,21 @@ int sycamore_attach(sycamore_t *sycamore){
 
 	//initialize the sycamore structure
 	int result = 0;
+	int i = 0;
+
 	//sycamore = (sycamore_t *) kzalloc(sizeof(sycamore_t), GFP_KERNEL);
 	sycamore->platform_device = NULL;
-	sycamore->port_lock = 0;
-	sycamore->size_of_drt = 0;
-	sycamore->drt	= NULL;
-	sycamore->pdev = NULL;
-	sycamore->buf_pos = 0;
+	sycamore->port_lock 	=	0;
+	sycamore->size_of_drt 	=	0;
+	sycamore->drt			=	NULL;
+	sycamore->pdev			=	NULL;
+	sycamore->read_pos		=	0;
+	sycamore->read_state	=	READ_IDLE;
 
+	for (i = 0; i < MAX_NUM_OF_DEVICES; i++){
+		//a NUL here will tell the read function that there is no device
+		sycamore->devices[i] = NULL;
+	}
 
 
 	//generate the platform bus

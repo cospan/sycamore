@@ -10,6 +10,15 @@
 
 typedef struct _sycamore_t sycamore_t;
 
+
+#define READ_IDLE 		0
+#define READ_SIZE 		1
+#define READ_COMMAND 	2
+#define READ_ADDRESS 	3
+#define READ_DATA 		4
+
+#define MAX_NUM_OF_DEVICES 256
+
 //sycamore_platfrom data
 struct _sycamore_t {
 	//platform stuff
@@ -20,11 +29,20 @@ struct _sycamore_t {
 	int	port_lock;
 	struct platform_device *pdev;
 
-	int buf_pos;
-	char in_buffer[BUFFER_SIZE];
-//	int  (*ioctl)(struct tty_struct *tty,
-	//	      unsigned int cmd, unsigned long arg);
+	int read_pos;
+//	char in_buffer[BUFFER_SIZE];
 
+	//read state machine variables
+	int read_state;
+	u32 read_command;
+	u32	read_data;
+	u32 read_size;
+	u32 read_data_count;
+	u32 read_data_pos;
+	u32 read_address;
+	u32 read_device_address;
+
+	struct platform_deve * devices[MAX_NUM_OF_DEVICES];
 };
 
 

@@ -822,9 +822,11 @@ void cp210x_sycamore_process_read_urb(struct urb *urb)
 	struct usb_serial_port *port = urb->context;
 	struct tty_struct *tty;
 	sycamore_t *sycamore = NULL;
-	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
-	char *ch = (char *)urb->transfer_buffer;
+	char *ch = NULL;
 	int i;
+	
+	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
+	ch = (char *)urb->transfer_buffer;
 
 	if (!urb->actual_length)
 		return;
