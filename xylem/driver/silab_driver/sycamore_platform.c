@@ -11,9 +11,6 @@
 
 //parse the data
 
-void parse_data(sycamore_t *syacmore){
-	
-}
 
 //static struct platform_device sycamore_tty ={
 //	.name = "sycamore_tty",
@@ -75,20 +72,10 @@ int generate_platform_devices(sycamore_t *sycamore){
 void read_data(sycamore_t *s, char * buffer, int length){
 	int i = 0;
 	char ch = 0;
-//	printk ("%s entered\n", __func__);
-	//printk ("read %d bytes: %s\n", length, buffer);
 	for(i = 0; i < length; ++i){
 		ch = buffer[i];
 //		printk ("%c", ch);
 		//process each character as it comes in
-/*
-		if (s->read_pos >= BUFFER_SIZE){
-			printk("%s: buffer full!", __func__);
-			s->read_pos = 0;
-		}
-		s->in_buffer[s->read_pos] = buffer[i];
-		s->read_pos++;
-*/
 		if (ch == 'S'){
 
 			printk("\nFound S\n");

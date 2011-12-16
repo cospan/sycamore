@@ -22,6 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+	12/16/2011
+		-fixed a bug in the data output count where it was sending
+		5 bits instead of 4
+*/
 
 //generalize the uart handler
 `include "mg_defines.v"
@@ -379,7 +384,6 @@ always @ (posedge clk) begin
 				if (oh_en) begin
 //moved this outside because by the time it reaches this part, the out data_count is
 //changed
-					//lout_data_count		<= out_data_count;
 					lout_status			<= out_status;
 					lout_address		<= out_address;
 					lout_data			<= out_data;
@@ -398,11 +402,11 @@ always @ (posedge clk) begin
 			WRITE_DATA_COUNT: begin
 				if (lout_data_count_buf[27:24] < 10)begin
 					//send character number
-					out_byte 			<= lout_data_count_buf[27:23] + CHAR_0;
+					out_byte 			<= lout_data_count_buf[27:24] + CHAR_0;
 				end
 				else begin
 					//send  character hex value
-					out_byte 			<= lout_data_count_buf[27:23] + CHAR_HEX_OFFSET;
+					out_byte 			<= lout_data_count_buf[27:24] + CHAR_HEX_OFFSET;
 				end
 				lout_data_count_buf		<= lout_data_count_buf[27:0] << 4;
 				uart_out_byte_en		<= 1;

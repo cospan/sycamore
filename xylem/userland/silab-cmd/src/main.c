@@ -5,10 +5,12 @@
 #include <malloc.h>
 #include <time.h>
 #include "serial.h"
+#include <linux/ioctl.h>
 
 
-#define IOCTL_PING 0x40
-#define IOCTL_DRT 0x41
+#define IOCTL_PING _IO('a', 0)
+#define IOCTL_DRT _IO('a', 1)
+#define IOCTL_DRT _IO('a', 2)
 
 static void usage (void);
 
@@ -37,7 +39,7 @@ static int cmd_ping (state_t *state, const char *cmd, int argc, char **argv) {
 		printf ("retval = %d\n", retval);
 	}
 	//ioctl(state->serial_fd, 0x040, NULL);
-//	sleep(1);
+	sleep(1);
 //	ioctl(state->serial_fd, (unsigned int) IOCTL_DRT, NULL);
 //	ioctl(state->serial_fd, 0x041, NULL);
 }
