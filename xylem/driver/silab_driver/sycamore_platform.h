@@ -4,6 +4,7 @@
 #define __SYCAMORE_PLATFORM_H__
 
 #include <linux/tty.h>
+#include <linux/workqueue.h>
 #define SYCAMORE_BUS_NAME "sycamore"
 
 #define BUFFER_SIZE 512
@@ -18,6 +19,11 @@ typedef struct _sycamore_t sycamore_t;
 #define READ_DATA 		4
 
 #define MAX_NUM_OF_DEVICES 256
+
+#define SYCAMORE_WQ_NAME "sycamore work queue"
+
+//1 second timeout
+#define DEFAULT_PING_TIMEOUT 1000
 
 //sycamore_platfrom data
 struct _sycamore_t {
@@ -43,6 +49,15 @@ struct _sycamore_t {
 	u32 read_device_address;
 
 	struct platform_deve * devices[MAX_NUM_OF_DEVICES];
+
+
+	//workqueue for ping
+	struct workqueue_struct *wq;
+	struct delayed_work delayed;
+	struct work_struct work;
+
+	bool do_ping;
+	u32 ping_timeout;
 };
 
 

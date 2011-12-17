@@ -64,6 +64,11 @@ int generate_platform_devices(sycamore_t *sycamore){
 	return 0;
 }
 
+
+void periodic_function(void *data){
+	sycamore_t *sycamore = (sycamore_t *) data;
+}
+
 /*
 	read data as it comes in, it's more than likely that data
 	will come in one byte at a time, so this state machine can assemble the
@@ -335,6 +340,14 @@ int sycamore_attach(sycamore_t *sycamore){
 	sycamore->pdev			=	NULL;
 	sycamore->read_pos		=	0;
 	sycamore->read_state	=	READ_IDLE;
+
+//workqueue setup
+
+//	sycamore->wq			=	create_workqueue(SYCAMORE_WQ_NAME);	
+//	sycamore->work			=	INIT_WORK(&sycamore->task, periodic_function, sycamore);	
+//	sycamore->do_ping		=	true;
+//	sycamore->ping_timeout	=	DEFAULT_PING_TIMEOUT;	
+	
 
 	for (i = 0; i < MAX_NUM_OF_DEVICES; i++){
 		//a NUL here will tell the read function that there is no device
