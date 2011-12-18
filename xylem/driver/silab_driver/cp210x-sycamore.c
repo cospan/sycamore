@@ -772,12 +772,14 @@ static int cp210x_sycamore_attach(struct usb_serial *serial){
 	//generate the sycamore structure
 	sycamore_t *sycamore = NULL;
 	struct usb_serial_port *port = NULL;	
+	struct tty_struct *tty = NULL;
 	int retval = 0;
 
 	dbg("%s entered", __func__);
 	sycamore = (sycamore_t *) kzalloc(sizeof(sycamore_t), GFP_KERNEL);
 	//this device only has one serial port at 0
 	port = serial->port[0];
+	tty = port->port.tty;
 
 	//make a tty device for sycamore
 	usb_set_serial_port_data(port, (void *) sycamore);
@@ -787,7 +789,7 @@ static int cp210x_sycamore_attach(struct usb_serial *serial){
 	
 //XXX: with a return of zero usb-serial will initialize normally (ttyUSBX) in the future this should be replaced, and direct access to the sycamore platform should be removed
 		
-	retval = sycamore_attach(sycamore);
+	retval = sycamore_attach(sycamore, tty);
 	dbg("%s returning value %d", __func__, retval);
 	return retval;
 
@@ -813,7 +815,7 @@ static int cp210x_sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsig
 	
 	dbg("%s entered", __func__);
 	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
-	return sycamore_ioctl(sycamore, tty, cmd, arg);
+	return sycamore_ioctl(sycamore, cmd, arg);
 }
 
 
@@ -835,7 +837,7 @@ void cp210x_sycamore_process_read_urb(struct urb *urb)
 	if (!tty)
 		return;
 
-	read_data(sycamore, ch, urb->actual_length);
+	sycamore_read_data(sycamore, ch, urb->actual_length);
 	/* The per character mucking around with sysrq path it too slow for
 	   stuff like 3G modems, so shortcircuit it in the 99.9999999% of cases
 	   where the USB serial is not a console anyway */

@@ -20,7 +20,7 @@ typedef struct _sycamore_t sycamore_t;
 
 #define MAX_NUM_OF_DEVICES 256
 
-#define SYCAMORE_WQ_NAME "sycamore work queue"
+#define SYCAMORE_WQ_NAME "sycamore_wq"
 
 //1 second timeout
 #define DEFAULT_PING_TIMEOUT 1000
@@ -34,6 +34,7 @@ struct _sycamore_t {
 	char * drt;
 	int	port_lock;
 	struct platform_device *pdev;
+	struct tty_struct *tty;
 
 	int read_pos;
 //	char in_buffer[BUFFER_SIZE];
@@ -48,13 +49,11 @@ struct _sycamore_t {
 	u32 read_address;
 	u32 read_device_address;
 
-	struct platform_deve * devices[MAX_NUM_OF_DEVICES];
+	struct platform_device * devices[MAX_NUM_OF_DEVICES];
 
 
 	//workqueue for ping
-	struct workqueue_struct *wq;
-	struct delayed_work delayed;
-	struct work_struct work;
+	struct delayed_work work;
 
 	bool do_ping;
 	u32 ping_timeout;
@@ -62,9 +61,10 @@ struct _sycamore_t {
 
 
 
-void read_data(sycamore_t *sycamore, char * buffer, int lenth);
-int sycamore_ioctl(sycamore_t *sycamore, struct tty_struct *tty, unsigned int cmd, unsigned long arg);
-int sycamore_attach(sycamore_t *sycamore);
+void sycamore_periodic(struct work_struct *work);
+void sycamore_read_data(sycamore_t *sycamore, char * buffer, int lenth);
+int sycamore_ioctl(sycamore_t *sycamore, unsigned int cmd, unsigned long arg);
+int sycamore_attach(sycamore_t *sycamore, struct tty_struct * tty);
 void sycamore_disconnect(sycamore_t *sycamore);
 
 

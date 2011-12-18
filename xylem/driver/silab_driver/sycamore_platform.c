@@ -65,8 +65,22 @@ int generate_platform_devices(sycamore_t *sycamore){
 }
 
 
-void periodic_function(void *data){
-	sycamore_t *sycamore = (sycamore_t *) data;
+void sycamore_periodic(struct work_struct *work){
+	//get a pointer to sycamore
+	sycamore_t *sycamore = NULL;
+	struct tty_struct * tty = NULL;
+	
+	sycamore = container_of(work, sycamore_t, work.work);	
+	tty = sycamore->tty;
+
+	printk ("%s: entered function", __func__);
+	if (sycamore->do_ping){
+		tty->ops->write(tty, "L0000000000000000000000000000000", 32);
+	}
+	sycamore->do_ping = true;
+
+	//schedule the next sycamore_periodic
+	schedule_delayed_work(&sycamore->work, sycamore->ping_timeout);
 }
 
 /*
@@ -74,9 +88,11 @@ void periodic_function(void *data){
 	will come in one byte at a time, so this state machine can assemble the
 	information a peice at a time
 */
-void read_data(sycamore_t *s, char * buffer, int length){
+void sycamore_read_data(sycamore_t *s, char * buffer, int length){
 	int i = 0;
 	char ch = 0;
+	//since we are talking to the device, we can put off a ping
+	s->do_ping = false;
 	for(i = 0; i < length; ++i){
 		ch = buffer[i];
 //		printk ("%c", ch);
@@ -297,14 +313,17 @@ void read_data(sycamore_t *s, char * buffer, int length){
 
 }
 
-int sycamore_ioctl(sycamore_t *sycamore, struct tty_struct *tty, unsigned int cmd, unsigned long arg){
+int sycamore_ioctl(sycamore_t *sycamore, unsigned int cmd, unsigned long arg){
 	int count = 0;
+	struct tty_struct *tty = NULL;
 
 	printk ("%s Entered function, with CMD: 0x%.4X\n", __func__, cmd);
 
 	if (sycamore->port_lock){
 		printk("%s sycamore is locked by another device\n", __func__);
 	}
+
+	tty = sycamore->tty;
 
 
 	switch (cmd) {
@@ -326,13 +345,14 @@ int sycamore_ioctl(sycamore_t *sycamore, struct tty_struct *tty, unsigned int cm
 	//return success
 	return 0;
 }
-int sycamore_attach(sycamore_t *sycamore){
+int sycamore_attach(sycamore_t *sycamore, struct tty_struct *tty){
 
 	//initialize the sycamore structure
 	int result = 0;
 	int i = 0;
 
 	//sycamore = (sycamore_t *) kzalloc(sizeof(sycamore_t), GFP_KERNEL);
+	sycamore->tty			=	tty;
 	sycamore->platform_device = NULL;
 	sycamore->port_lock 	=	0;
 	sycamore->size_of_drt 	=	0;
@@ -343,10 +363,11 @@ int sycamore_attach(sycamore_t *sycamore){
 
 //workqueue setup
 
-//	sycamore->wq			=	create_workqueue(SYCAMORE_WQ_NAME);	
-//	sycamore->work			=	INIT_WORK(&sycamore->task, periodic_function, sycamore);	
-//	sycamore->do_ping		=	true;
-//	sycamore->ping_timeout	=	DEFAULT_PING_TIMEOUT;	
+	sycamore->ping_timeout	=	DEFAULT_PING_TIMEOUT;	
+	sycamore->do_ping		=	true;
+
+	INIT_DELAYED_WORK(&sycamore->work, sycamore_periodic); 
+
 	
 
 	for (i = 0; i < MAX_NUM_OF_DEVICES; i++){
@@ -388,6 +409,7 @@ int sycamore_attach(sycamore_t *sycamore){
 	sycamore->pdev = platform_device_register_simple("sycamore_tty", -1, NULL, 0);
 
 	//end create platform device
+	schedule_delayed_work(&sycamore->work, sycamore->ping_timeout);
 	return 0;
 
 fail_sysfs:
@@ -415,6 +437,9 @@ void sycamore_disconnect(sycamore_t *sycamore){
 	//end remove the platform device
 	platform_device_del(sycamore->platform_device);
 	platform_device_put(sycamore->platform_device);
+
+	cancel_delayed_work_sync(&sycamore->work);
+
 }
 
 
