@@ -3,6 +3,10 @@
 #include <linux/slab.h>
 #include <linux/platform_device.h>
 #include <linux/string.h>
+#include <linux/tty.h>
+#include <linux/tty_driver.h>
+#include <linux/tty_flip.h>
+#include <linux/serial.h>
 #include "sycamore_platform.h"
 #include "sycamore_ioctl.h"
 #include "sycamore_commands.h"
@@ -69,14 +73,26 @@ void sycamore_periodic(struct work_struct *work){
 	//get a pointer to sycamore
 	sycamore_t *sycamore = NULL;
 	struct tty_struct * tty = NULL;
+	int retval = 0;
 	
 	sycamore = container_of(work, sycamore_t, work.work);	
 	tty = sycamore->tty;
 
-	printk ("%s: entered function", __func__);
-	if (sycamore->do_ping){
-		tty->ops->write(tty, "L0000000000000000000000000000000", 32);
+//	printk ("%s: entered function\n", __func__);
+//	printk ("%s: &tty == %p\n", __func__, tty);
+	if (tty != NULL){
+		printk ("%s: tty is not equal to NULL!\n", __func__);
 	}
+
+
+	if (sycamore->do_ping){
+		
+		if (sycamore->write_func != NULL){
+			retval = sycamore->write_func (sycamore->write_data,  "L0000000000000000000000000000000", 32);
+			printk ("%s: sent data, retval == %d", __func__, retval);
+		}
+	}
+
 	sycamore->do_ping = true;
 
 	//schedule the next sycamore_periodic
@@ -329,6 +345,7 @@ int sycamore_ioctl(sycamore_t *sycamore, unsigned int cmd, unsigned long arg){
 	switch (cmd) {
 		case(PING_SYCAMORE): 
 			printk ("%s Ping Function Called\n", __func__);
+
 			tty->ops->write(tty, "L0000000000000000000000000000000", 32);
 			count = tty_chars_in_buffer(tty);
 			printk ("outgoing count: %d\n", count);
@@ -345,6 +362,50 @@ int sycamore_ioctl(sycamore_t *sycamore, unsigned int cmd, unsigned long arg){
 	//return success
 	return 0;
 }
+
+//XXX: the following is an attempt to open the device with a tty port
+/*
+int sycamore_open_tty_port(struct tty_port * port, struct tty_struct *tty){
+	//this is basically a copy of the tty_port_open from tt_port.c
+
+	spin_lock_irq(&port->lock);
+	spin_unlock_irq(&port->lock);
+	tty_port_tty_set(port, tty);
+
+	mutex_lock(&port->mutex);
+
+	if (!test_bit(ASYNCB_INITIALIZED, &port->flags)) {
+		clear_bit(TTY_IO_ERROR, &tty->flags);
+		if (port->ops->activate) {
+			int retval = port->ops->activate(port, tty);
+			if (retval) {
+				mutex_unlock(&port->mutex);
+				return retval;
+			}
+		}
+		set_bit(ASYNCB_INITIALIZED, &port->flags);
+	}
+	mutex_unlock(&port->mutex);
+
+	return 0;
+}
+
+void sycamore_close_tty_port(struct tty_port *port, struct tty_struct *tty){
+	port->ops->shutdown(port);
+	//tty_port_shutdown(port);
+	set_bit(TTY_IO_ERROR, &tty->flags);
+	tty_port_close_end(port, tty);
+	tty_port_tty_set(port, NULL);
+}
+*/
+
+
+void sycamore_set_write_func(sycamore_t *sycamore, write_func_t write_func, void * data){
+	printk("%s: setting the write function to %p\n", __func__, write_func);
+	sycamore->write_func = write_func;
+	sycamore->write_data = data;
+	
+}
 int sycamore_attach(sycamore_t *sycamore, struct tty_struct *tty){
 
 	//initialize the sycamore structure
@@ -360,6 +421,8 @@ int sycamore_attach(sycamore_t *sycamore, struct tty_struct *tty){
 	sycamore->pdev			=	NULL;
 	sycamore->read_pos		=	0;
 	sycamore->read_state	=	READ_IDLE;
+	sycamore->write_func	=	NULL;
+	sycamore->write_data	=	NULL;
 
 //workqueue setup
 
@@ -402,25 +465,34 @@ int sycamore_attach(sycamore_t *sycamore, struct tty_struct *tty){
 		goto fail_sysfs;
 	}
 
-
-
 	//create a platform device
 	//platform_device_register(&sycamore_tty);
 	sycamore->pdev = platform_device_register_simple("sycamore_tty", -1, NULL, 0);
 
+	//attempt to open the serial port
+
+//how to include this???
+//cp210x_open(tty, port);
+
 	//end create platform device
 	schedule_delayed_work(&sycamore->work, sycamore->ping_timeout);
-	return 0;
+	//return 1 cause we dont want a device file in the /dev directory right now
+	return 1;
 
 fail_sysfs:
 	platform_device_del(sycamore->platform_device);
 fail_platform_device:
 	platform_device_put(sycamore->platform_device);
 	return result;
-
 }
+
 void sycamore_disconnect(sycamore_t *sycamore){
 	
+	//make sure things are not null
+	if (sycamore == NULL){
+		printk ("Sycmoare == NULL");
+		return;
+	}
 	if (sycamore->size_of_drt > 0) {
 		//DRT has a string
 		kfree(sycamore->drt);

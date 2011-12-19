@@ -5,12 +5,15 @@
 
 #include <linux/tty.h>
 #include <linux/workqueue.h>
+
 #define SYCAMORE_BUS_NAME "sycamore"
 
 #define BUFFER_SIZE 512
 
 typedef struct _sycamore_t sycamore_t;
 
+
+typedef int (*write_func_t) (const void * data, const unsigned char * buf, int count);
 
 #define READ_IDLE 		0
 #define READ_SIZE 		1
@@ -49,8 +52,11 @@ struct _sycamore_t {
 	u32 read_address;
 	u32 read_device_address;
 
+
 	struct platform_device * devices[MAX_NUM_OF_DEVICES];
 
+	write_func_t write_func;
+	void * write_data;
 
 	//workqueue for ping
 	struct delayed_work work;
@@ -61,11 +67,14 @@ struct _sycamore_t {
 
 
 
+void sycamore_set_write_func(sycamore_t *sycamore, write_func_t write_func, void * data);
 void sycamore_periodic(struct work_struct *work);
 void sycamore_read_data(sycamore_t *sycamore, char * buffer, int lenth);
 int sycamore_ioctl(sycamore_t *sycamore, unsigned int cmd, unsigned long arg);
 int sycamore_attach(sycamore_t *sycamore, struct tty_struct * tty);
 void sycamore_disconnect(sycamore_t *sycamore);
 
+//int sycamore_open_tty_port(struct tty_port * port, struct tty_struct *tty);
+//void sycamore_close_tty_port(struct tty_port *port, struct tty_struct *tty);
 
 #endif //__SYCAMORE_PLATFORM_H__

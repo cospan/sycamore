@@ -54,6 +54,7 @@ extern struct usb_serial *serial_table[SERIAL_TTY_MINORS];
 static int cp210x_sycamore_attach(struct usb_serial *serial);
 static void cp210x_sycamore_disconnect(struct usb_serial *serial);
 
+int cp210x_sycamore_write_data(const void *data, const unsigned char * buf, int count);
 
 //CP210x functions
 static int cp210x_open(struct tty_struct *tty, struct usb_serial_port *);
@@ -788,8 +789,18 @@ static int cp210x_sycamore_attach(struct usb_serial *serial){
 	usb_set_intfdata(serial->interface, serial);
 	
 //XXX: with a return of zero usb-serial will initialize normally (ttyUSBX) in the future this should be replaced, and direct access to the sycamore platform should be removed
+
+//XXX:DON'T OPEN A INODE!
+	retval = 1;
 		
+		
+//	usb_serial_generic_open(tty, port);
+	cp210x_open(tty, port);
+
+	dbg("%s tty == %p", __func__, tty);
 	retval = sycamore_attach(sycamore, tty);
+	
+	sycamore_set_write_func(sycamore, cp210x_sycamore_write_data, (void *)port);
 	dbg("%s returning value %d", __func__, retval);
 	return retval;
 
@@ -801,11 +812,16 @@ static void cp210x_sycamore_disconnect(struct usb_serial *serial){
 
 	dbg("%s entered", __func__);
 	port = serial->port[0];
+	cp210x_close(port);
+
 
 	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
 	sycamore_disconnect(sycamore);
 	kfree(sycamore);
+//	usb_serial_generic_close(port);
+//	sycamore_close_tty_port(&port->port, NULL);
 	usb_set_serial_port_data(port, (void *) NULL);
+
 }
 
 
@@ -818,6 +834,10 @@ static int cp210x_sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsig
 	return sycamore_ioctl(sycamore, cmd, arg);
 }
 
+int cp210x_sycamore_write_data(const void *data, const unsigned char * buf, int count){
+	struct usb_serial_port *port = (struct usb_serial_port *) data;
+	return usb_serial_generic_write(NULL, port, buf, count);	
+}
 
 void cp210x_sycamore_process_read_urb(struct urb *urb)
 {
@@ -832,12 +852,14 @@ void cp210x_sycamore_process_read_urb(struct urb *urb)
 
 	if (!urb->actual_length)
 		return;
+	
+	//write to sycamore before we check if the tty is there
+	sycamore_read_data(sycamore, ch, urb->actual_length);
 
 	tty = tty_port_tty_get(&port->port);
 	if (!tty)
 		return;
 
-	sycamore_read_data(sycamore, ch, urb->actual_length);
 	/* The per character mucking around with sysrq path it too slow for
 	   stuff like 3G modems, so shortcircuit it in the 99.9999999% of cases
 	   where the USB serial is not a console anyway */

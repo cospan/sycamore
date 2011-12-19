@@ -10,6 +10,7 @@ clean:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
 
 install:
+	modprobe usbserial
 	insmod ./sycamore.ko debug=1
 
 remove:
