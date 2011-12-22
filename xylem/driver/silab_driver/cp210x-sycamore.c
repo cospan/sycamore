@@ -25,7 +25,7 @@
 #include <linux/usb/serial.h>
 
 #include <linux/platform_device.h>
-#include "sycamore_platform.h"
+#include "../sycamore/sycamore_platform.h"
 
 /*
  * Version Information
@@ -55,6 +55,9 @@ static int cp210x_sycamore_attach(struct usb_serial *serial);
 static void cp210x_sycamore_disconnect(struct usb_serial *serial);
 
 int cp210x_sycamore_write_data(const void *data, const unsigned char * buf, int count);
+int cp210x_sycamore_write_room(struct usb_serial_port *port);
+int cp210x_sycamore_chars_in_buffer(struct usb_serial_port *port);
+void cp210x_sycamore_write_bulk_callback(struct urb *urb);
 
 //CP210x functions
 static int cp210x_open(struct tty_struct *tty, struct usb_serial_port *);
@@ -115,7 +118,8 @@ static struct usb_serial_driver cp210x_device = {
 	.dtr_rts		= cp210x_dtr_rts,
 	.disconnect		= cp210x_sycamore_disconnect,
 	.ioctl			= cp210x_sycamore_ioctl,
-	.process_read_urb = cp210x_sycamore_process_read_urb
+	.process_read_urb = cp210x_sycamore_process_read_urb,
+	.write_bulk_callback = cp210x_sycamore_write_bulk_callback
 };
 
 
@@ -797,8 +801,8 @@ static int cp210x_sycamore_attach(struct usb_serial *serial){
 //	usb_serial_generic_open(tty, port);
 	cp210x_open(tty, port);
 
-	dbg("%s tty == %p", __func__, tty);
-	retval = sycamore_attach(sycamore, tty);
+//	dbg("%s tty == %p", __func__, tty);
+	retval = sycamore_attach(sycamore);
 	
 	sycamore_set_write_func(sycamore, cp210x_sycamore_write_data, (void *)port);
 	dbg("%s returning value %d", __func__, retval);
@@ -831,12 +835,142 @@ static int cp210x_sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsig
 	
 	dbg("%s entered", __func__);
 	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
-	return sycamore_ioctl(sycamore, cmd, arg);
+//	return sycamore_ioctl(sycamore, cmd, arg);
+	return 0;
 }
 
 int cp210x_sycamore_write_data(const void *data, const unsigned char * buf, int count){
-	struct usb_serial_port *port = (struct usb_serial_port *) data;
+	dbg("%s: sending: %s", __func__, buf);
+	struct usb_serial_port *port;
+	port = (struct usb_serial_port *) data;
 	return usb_serial_generic_write(NULL, port, buf, count);	
+}
+
+int cp210x_sycamore_write_room(struct usb_serial_port *port){
+	unsigned long flags;
+	int room;
+
+	dbg("%s - port %d", __func__, port->number);
+
+	if (!port->bulk_out_size)
+		return 0;
+
+	spin_lock_irqsave(&port->lock, flags);
+	room = kfifo_avail(&port->write_fifo);
+	spin_unlock_irqrestore(&port->lock, flags);
+
+	dbg("%s - returns %d", __func__, room);
+	return room;
+
+}
+
+int cp210x_sycamore_chars_in_buffer(struct usb_serial_port *port){
+	unsigned long flags;
+	int chars;
+
+	dbg("%s - port %d", __func__, port->number);
+
+	if (!port->bulk_out_size)
+		return 0;
+
+	spin_lock_irqsave(&port->lock, flags);
+	chars = kfifo_len(&port->write_fifo) + port->tx_bytes;
+	spin_unlock_irqrestore(&port->lock, flags);
+
+	dbg("%s - returns %d", __func__, chars);
+	return chars;
+
+}
+
+static int cp210x_sycamore_write_start(struct usb_serial_port *port)
+{
+	struct urb *urb;
+	int count, result;
+	unsigned long flags;
+	int i;
+
+	if (test_and_set_bit_lock(USB_SERIAL_WRITE_BUSY, &port->flags))
+		return 0;
+retry:
+	spin_lock_irqsave(&port->lock, flags);
+	if (!port->write_urbs_free || !kfifo_len(&port->write_fifo)) {
+		clear_bit_unlock(USB_SERIAL_WRITE_BUSY, &port->flags);
+		spin_unlock_irqrestore(&port->lock, flags);
+		return 0;
+	}
+	i = (int)find_first_bit(&port->write_urbs_free,
+						ARRAY_SIZE(port->write_urbs));
+	spin_unlock_irqrestore(&port->lock, flags);
+
+	urb = port->write_urbs[i];
+	count = port->serial->type->prepare_write_buffer(port,
+						urb->transfer_buffer,
+						port->bulk_out_size);
+	urb->transfer_buffer_length = count;
+	usb_serial_debug_data(debug, &port->dev, __func__, count,
+						urb->transfer_buffer);
+	spin_lock_irqsave(&port->lock, flags);
+	port->tx_bytes += count;
+	spin_unlock_irqrestore(&port->lock, flags);
+
+	clear_bit(i, &port->write_urbs_free);
+	result = usb_submit_urb(urb, GFP_ATOMIC);
+	if (result) {
+		dev_err(&port->dev, "%s - error submitting urb: %d\n",
+						__func__, result);
+		set_bit(i, &port->write_urbs_free);
+		spin_lock_irqsave(&port->lock, flags);
+		port->tx_bytes -= count;
+		spin_unlock_irqrestore(&port->lock, flags);
+
+		clear_bit_unlock(USB_SERIAL_WRITE_BUSY, &port->flags);
+		return result;
+	}
+
+	/* Try sending off another urb, unless in irq context (in which case
+	 * there will be no free urb). */
+	if (!in_irq())
+		goto retry;
+
+	clear_bit_unlock(USB_SERIAL_WRITE_BUSY, &port->flags);
+
+	return 0;
+}
+
+void cp210x_sycamore_write_bulk_callback(struct urb *urb){
+	unsigned long flags;
+	struct usb_serial_port *port = urb->context;
+	int status = urb->status;
+	int i;
+	sycamore_t *sycamore = NULL;
+
+	dbg("%s - port %d", __func__, port->number);
+
+	for (i = 0; i < ARRAY_SIZE(port->write_urbs); ++i)
+		if (port->write_urbs[i] == urb)
+			break;
+
+	spin_lock_irqsave(&port->lock, flags);
+	port->tx_bytes -= urb->transfer_buffer_length;
+	set_bit(i, &port->write_urbs_free);
+	spin_unlock_irqrestore(&port->lock, flags);
+
+	if (status) {
+		dbg("%s - non-zero urb status: %d", __func__, status);
+
+		spin_lock_irqsave(&port->lock, flags);
+		kfifo_reset_out(&port->write_fifo);
+		spin_unlock_irqrestore(&port->lock, flags);
+	} else {
+		cp210x_sycamore_write_start(port);
+	}
+
+//XXX: NEED THIS CALLBACK
+	dbg("%s: got to callback!\n");
+
+//	usb_serial_port_softint(port);
+	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
+	sycamore_write_callback(sycamore);
 }
 
 void cp210x_sycamore_process_read_urb(struct urb *urb)
