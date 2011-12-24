@@ -840,7 +840,7 @@ static int cp210x_sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsig
 }
 
 int cp210x_sycamore_write_data(const void *data, const unsigned char * buf, int count){
-	dbg("%s: sending: %s", __func__, buf);
+//	dbg("%s: sending: %s", __func__, buf);
 	struct usb_serial_port *port;
 	port = (struct usb_serial_port *) data;
 	return usb_serial_generic_write(NULL, port, buf, count);	
@@ -966,7 +966,7 @@ void cp210x_sycamore_write_bulk_callback(struct urb *urb){
 	}
 
 //XXX: NEED THIS CALLBACK
-	dbg("%s: got to callback!\n");
+	dbg("%s: got to callback!\n", __func__);
 
 //	usb_serial_port_softint(port);
 	sycamore = (sycamore_t *) usb_get_serial_port_data(port);

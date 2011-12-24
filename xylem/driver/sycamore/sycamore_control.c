@@ -37,17 +37,28 @@ bool is_drt_read(sycamore_t *sycamore){
 
 //see if this is a device response
 bool is_control_response(sycamore_t *s){
-	if (s->read_command == READ_COMMAND && 
+	if (s->read_command == SYCAMORE_READ && 
 			(
 				(s->read_device_address == 0x00) || (s->read_device_address == 0xFF)
 			)
 		){
 		return true;
 	}
+	if (s->read_command == SYCAMORE_PING){
+		return true;
+	}
+	return false;
+}
+
+bool is_ping_response(sycamore_t *s){
+	if (s->read_command == SYCAMORE_PING){
+		return true;
+	}
 	return false;
 }
 
 void process_control_response(sycamore_t *s){
+
 
 	//s->read_size + 1 = size of the entire read
 	//s->read_data_pos = position within the read_size + 1
@@ -59,95 +70,110 @@ void process_control_response(sycamore_t *s){
 
 	u32 addr = s->read_address + s->read_data_pos;
 
-	//check to see if the response is for the DRT
-	if (s->read_command == SYCAMORE_READ){
-		if (s->read_device_address == 0x00){
-			//processing DRT data	
-			if (s->drt == NULL){
-					if (addr == 0x00){
-						s->drt_version = s->read_data >> 16;
-					}
-					if (addr == 0x01){
-						s->number_of_devices = s->read_data;
-						s->size_of_drt = ((s->number_of_devices + 1) * 8 * 4);
-					}
-//still in the header
-//XXX: put code here to process future data within the DRT first 8 bytes
-					//when we've reached address 0x07 were done reading the initial
-					//DRT so now we can read all of it
-					if (addr == 0x07){
-						//now we need to allocate space for the DRT
-						s->drt = kmalloc( s->size_of_drt, GFP_KERNEL);
-						//send a request to receive all of the data
-						sycamore_write(	s, 
-										SYCAMORE_READ,
-										0x00,
-										0x00,
-										NULL,
-										(u32) (s->number_of_devices + 1) * 8); 
-									
-					}
-	
-				}
-				else {
-					if (addr + 3 < s->size_of_drt){
-						s->drt[addr] 		= (u8) (s->read_data & 0x000F);
-						s->drt[addr + 1] 	= (u8) (s->read_data & 0x00F0 >> 8);
-						s->drt[addr + 2]	= (u8) (s->read_data & 0x0F00 >> 16);
-						s->drt[addr + 3]	= (u8) (s->read_data & 0xF000 >> 24);
 
+	//check if this is a DRT response
+	switch (s->read_command) {
+		case (SYCAMORE_PING):
+			if (s->drt_state == DRT_READ_INIT){
+				//initialize a DRT read
+				s->drt_state = DRT_READ_START;
+			}
+			break;
+		case (SYCAMORE_READ):
+		
+			if (s->read_device_address == 0x00){
+				//reading from the DRT
+				switch (s->drt_state){
+					//need to read a total of 8 data items
+					case (DRT_READ_START):
+						if (s->drt_waiting) {
+							s->drt_state = DRT_READ_START_WAIT;
+						}
+						break;
+					case (DRT_READ_START_WAIT):
+						if (s->drt_waiting) {
+							//position
+							switch (addr) {
+								case (0x00):
+									s->drt_version = s->read_data >> 16;
+									break;
+								case (0x01):
+									s->number_of_devices = s->read_data;
+									s->size_of_drt = ((s->number_of_devices + 1) * 8 * 4);
+									break;
+								case (0x02):
+//XXX: RFU DRT Implementation
+									break;
+								case (0x03):
+//XXX: RFU DRT Implementation
+									break;
+								case (0x04):
+//XXX: RFU DRT Implementation
+									break;
+								case (0x05):
+//XXX: RFU DRT Implementation
+									break;
+								case (0x06):
+//XXX: RFU DRT Implementation
+									break;
+								case (0x07):
+//XXX: RFU DRT Implementation
+									s->drt_state = DRT_READ_ALL;
+								break;
+								default:
+									//processing the rest of the data
+									//something wrong here
+									s->drt_state = DRT_READ_INIT;
+									break;
+
+							}
+						}
+
+						break;
+					case (DRT_READ_ALL):
+						if (s->drt_waiting){
+							s->drt_state = DRT_READ_ALL_WAIT;
+						}
+						break;
+					case (DRT_READ_ALL_WAIT):
+						//reading the entire DRT right now
+						if (addr + 3 < s->size_of_drt){
+							s->drt[addr] 		= (u8) (s->read_data & 0x000F);
+							s->drt[addr + 1] 	= (u8) (s->read_data & 0x00F0 >> 8);
+							s->drt[addr + 2]	= (u8) (s->read_data & 0x0F00 >> 16);
+							s->drt[addr + 3]	= (u8) (s->read_data & 0xF000 >> 24);
+
+							//if addr + 3 == s->size_of_drt then we've read everything
+						}
+						if (addr + 3 == s->size_of_drt){
+							s->drt_state = DRT_READ_SUCCESS;
+						}
+
+						break;
+					default:
+						s->drt_state = DRT_READ_INIT;
+						break;
 						//if addr + 3 == s->size_of_drt then we've read everything
 					}
 				}
-			}
-			//check if this is a response to the wishbone_master control
-			else if (s->read_device_address == 0xFF){
-			//response to a wishbone master control
+				//check if this is a response to the wishbone_master control
+				else if (s->read_device_address == 0xFF){
+				//response to a wishbone master control
 //XXX: process info from the wishbone master
-			}
-		}
-	//check to see if this is a response for the interrupts
-	if (s->read_command == SYCAMORE_INTERRUPTS){
+					//things to process:
+						//state machine behavior
+						//sycamore main paramters
+				}
+
+			break;
+		case (SYCAMORE_INTERRUPTS):
+
 //XXX: process interrupts
-	}
-}
-
-int drt_state_machine(sycamore_t * s){
-	//make the call to read the DRT
-	switch (s->drt_state){
-		case (DRT_READ_INIT):
-			//if there is anything within the drt buffer free it
-			//send a request to read the first 8 32 bits of data from the DRT
-			if (s->drt != NULL){
-				kfree(s->drt);
-				s->size_of_drt = 0;
-			}
-			printk("%s: reading first 8 32 bits of data from DRT\n", __func__);
-			//send a write request to get the sycamore DRT
-			sycamore_write(s,
-							SYCAMORE_READ,
-							0, //device address 0 (Device ROM Table)
-							0, //first location
-							NULL, //no data to send
-							8); //length of data to read == 8 (first 8 32 bits)
-
-			//setup the state to wait for the resposne from sycamore
-			s->drt_state = DRT_READ_START;
-
-			break;
-		case (DRT_READ_START):
-			break;
-		case (DRT_READ_ALL):
-			break;
-		case (DRT_READ_SUCCESS):
-			break;
-		case (DRT_READ_FAIL):
+			
 			break;
 		default:
-			s->drt_state = DRT_READ_INIT;
 			break;
 	}
-	return 0;
 }
 
 
@@ -326,9 +352,11 @@ int sycamore_control_process_read_data(sycamore_t * s, char * buffer, int length
 				   the first 8 bytes are always there
 				 */
 				if (s->read_pos == 8){
+
 					//process the data out
 					if (is_control_response(s)){
-						//check if this is a DRT response
+						process_control_response(s);
+												
 					}
 //XXX need to write to the associated driver
 					else if (s->devices[s->read_device_address] != NULL){
@@ -387,34 +415,96 @@ int sycamore_control_process_read_data(sycamore_t * s, char * buffer, int length
 */
 void sycamore_control_periodic (sycamore_t * sycamore){
 	int retval = 0;
-	if (sycamore->do_ping){
-		
-		
-/*
-		if (sycamore->write_func != NULL){
-			retval = sycamore->write_func (
-						sycamore->write_data,  
-						"L0000000000000000000000000000000", 
-						32);
-			printk ("%s: sent data, retval == %d", 
-					__func__, 
-					retval);
-		}
-*/
-		retval = sycamore_write (sycamore,
+	printk("%s: DRT STATE: %d\n", __func__, sycamore->drt_state);
+	if (atomic_read(&sycamore->port_lock) == 0){
+		switch (sycamore->drt_state){
+			case DRT_READ_START:
+				sycamore->drt_waiting = true;
+				atomic_set(&sycamore->port_lock , 1);
+				retval = sycamore_write(sycamore, 
+						SYCAMORE_READ, 
+							0x00, 
+							0x00, 
+							NULL, 
+							8); 	
+				//hopefully get a response in 200 milliseconds
+				schedule_delayed_work(&sycamore->work, 200);
+				return;
+				break;
+			case (DRT_READ_START_WAIT):
+				sycamore->drt_waiting = false;
+				return;
+				break;
+			case DRT_READ_ALL:
+				sycamore->drt_waiting = true;
+				if (sycamore->drt == NULL){
+					sycamore->drt_waiting = true;
+					sycamore->drt = kmalloc( sycamore->size_of_drt, GFP_KERNEL);
+					//send a request to receive all of the data
+					sycamore_write(	sycamore, 
+							SYCAMORE_READ,
+							0x00,
+							0x00,
+							NULL,
+							(u32) (sycamore->number_of_devices + 1) * 8); 
+				}
+				//hopefully get a response in 200 milliseconds
+				schedule_delayed_work(&sycamore->work, 200);
+				return;
+				break;
+			case DRT_READ_ALL_WAIT:
+				sycamore->drt_waiting = false;
+				return;
+				break;
+			default:
+				if (sycamore->do_ping){
+					atomic_set(&sycamore->port_lock , 1);
+				}
+
+				retval = sycamore_write (sycamore,
 								SYCAMORE_PING,
 								0,
 								0,
 								NULL,
 								0);
-		printk ("%s: send data, retval == %d\n", __func__, retval);
+	
+				break;
+		}
 	}
-
-	sycamore->do_ping = true;
-
 	//schedule the next sycamore_periodic
 	schedule_delayed_work(&sycamore->work, sycamore->ping_timeout);
+}
+void sycamore_write_work(struct work_struct *work){
+	//int retval = 0;
+	sycamore_t *s = NULL;
+	s = container_of(work, sycamore_t, work.work);	
 
+	//this is called from the write callback to handle non critical write functions
+	//this is a response to a write request from a s virtual device
+
+	//unlock the port if we don't have anything else to write to the FPGA
+	if (s->write_out_count < s->write_out_size){
+		//got more data to send out
+		printk("sending the rest of the data (%d more bytes)\n", s->write_out_size - s->write_out_count);	
+		s->write_out_count += s->write_func(
+						s->write_data, 
+						&s->write_buffer[s->write_out_count], 
+						s->write_out_size - s->write_out_count);
+		if (s->write_out_count != s->write_out_size){
+		printk("%s: Didn't send all the data out! length of write == %d, length written = %d\n", 
+						__func__, 
+						s->write_out_size, 
+						s->write_out_count);
+		}
+		else {
+			printk("%s: Sent all the rest of the data\n", __func__);
+		}
+	
+	}
+	else {
+		//finished sending data to the FPGA
+		atomic_set(&s->port_lock, 0);
+	}
 }
 
 int sycamore_write (sycamore_t * sycamore, 
@@ -424,27 +514,70 @@ int sycamore_write (sycamore_t * sycamore,
 					char * buffer, 
 					u32 length){
 
-	char write_buf[24];
-	int retval = 0;
-	u32 out_length = 0;
+	u32 true_data_size = 0;
+	sycamore->write_out_count = 0;
 	//create the constant size string
 	if (length > 0){
-		out_length = length - 1;	
+		true_data_size = length - 1;	
 	}
-	if (sycamore->write_func != NULL){
-		retval = sycamore->write_func(sycamore->write_data, "L0000000000000000000000000000000", 32);
-		return retval;
-	}
-/*
-	snprintf (&write_buf[0], 24, "L%07X%08X%02X%06X", 
-						length, 
-						command, 
-						device_address, 
-						offset);
-	printk ("Writing the constant size string first: %s", &write_buf[0]);
 	
+	//horribly slow, but until I find a way around this I'll just copy over everything
+	
+	//for reading commands and the case where the data doesn't matter
+	if ((length == 0) || ((0xFFFF & command) == READ_COMMAND)){
+		sycamore->write_out_size = snprintf (&sycamore->write_buffer[0], WRITE_BUF_SIZE, "L%07X%08X%02X%06X%s", 
+							true_data_size, 
+							command, 
+							device_address, 
+							offset,
+							"00000000");
+
+
+	}
+	else {
+		sycamore->write_out_size = snprintf (&sycamore->write_buffer[0], WRITE_BUF_SIZE, "L%07X%08X%02X%06X%s", 
+							true_data_size, 
+							command, 
+							device_address, 
+							offset,
+							buffer);
+	}
+
+
+	sycamore->write_buffer[sycamore->write_out_size] = 0;
+	printk ("%s: length = %d, sending: %s\n", __func__, sycamore->write_out_size, &sycamore->write_buffer[0]);
+
 	if (sycamore->write_func != NULL){
-		retval += sycamore->write_func(sycamore->write_data, &write_buf[0], 24);	
+		sycamore->write_out_count = sycamore->write_func(sycamore->write_data, &sycamore->write_buffer[0], sycamore->write_out_size);
+		if (sycamore->write_out_count != sycamore->write_out_size){
+			printk("%s: Didn't send all the data out! length of write == %d, length written = %d\n", 
+				__func__, 
+				sycamore->write_out_size, 
+				sycamore->write_out_count);
+		}
+		else {
+			printk("%s: Sent all data at once!\n", __func__);
+		}
+
+
+
+		return sycamore->write_out_size;
+	}
+
+/*	
+//GOOD FOR DEBUGGIN MULTIPLE SENDS
+
+
+	out_length = snprintf (&sycamore->write_buffer[0], WRITE_BUF_SIZE, "L%07X%08X%02X%06X", 
+							length, 
+							command, 
+							device_address, 
+							offset);
+
+
+	printk ("Writing the constant size string first: %s", &sycamore->write_buffer[0]);
+	if (sycamore->write_func != NULL){
+		retval += sycamore->write_func(sycamore->write_data, &sycamore->write_buffer[0], 24);	
 	}
 	//command that doesn't have data, just send 0's in place of the data
 	//mask out the flags for the commands

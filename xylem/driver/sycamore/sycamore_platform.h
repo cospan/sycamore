@@ -25,8 +25,6 @@
 
 #define SYCAMORE_BUS_NAME "sycamore"
 
-#define BUFFER_SIZE 512
-
 #define SYCAMORE_WQ_NAME "sycamore_wq"
 
 
@@ -37,6 +35,7 @@ void sycamore_read_data(sycamore_t *sycamore, char * buffer, int lenth);
 int sycamore_attach(sycamore_t *sycamore);
 void sycamore_disconnect(sycamore_t *sycamore);
 void sycamore_write_callback(sycamore_t *sycamore);
+
 
 
 #endif //__SYCAMORE_PLATFORM_H__

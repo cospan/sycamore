@@ -9,6 +9,7 @@ all:
 clean:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
 	rm ../sycamore/*.o
+	rm ../sycamore/.*.o.cmd
 
 install:
 	modprobe usbserial

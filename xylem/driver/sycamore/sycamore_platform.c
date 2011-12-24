@@ -96,7 +96,7 @@ int sycamore_attach(sycamore_t *sycamore){
 
 	//sycamore = (sycamore_t *) kzalloc(sizeof(sycamore_t), GFP_KERNEL);
 	sycamore->platform_device = NULL;
-	sycamore->port_lock 	=	0;
+	atomic_set(&sycamore->port_lock, 0);
 	sycamore->size_of_drt 	=	0;
 	sycamore->drt			=	NULL;
 	sycamore->drt_state		=	DRT_READ_INIT;	
@@ -105,6 +105,9 @@ int sycamore_attach(sycamore_t *sycamore){
 	sycamore->read_state	=	READ_IDLE;
 	sycamore->write_func	=	NULL;
 	sycamore->write_data	=	NULL;
+	sycamore->drt_waiting	=	false;
+
+	memset (&sycamore->write_buffer[0], 0, WRITE_BUF_SIZE);
 
 //workqueue setup
 
@@ -113,7 +116,9 @@ int sycamore_attach(sycamore_t *sycamore){
 	sycamore->sycamore_found =	false;
 
 	INIT_DELAYED_WORK(&sycamore->work, sycamore_periodic); 
+	INIT_WORK(&sycamore->write_work, sycamore_write_work);
 
+	init_waitqueue_head(&sycamore->comm_queue);
 	
 
 	for (i = 0; i < MAX_NUM_OF_DEVICES; i++){
@@ -171,6 +176,7 @@ void sycamore_disconnect(sycamore_t *sycamore){
 		printk ("Sycmoare == NULL");
 		return;
 	}
+	cancel_work_sync(&sycamore->write_work);
 	if (sycamore->size_of_drt > 0) {
 		//DRT has a string
 		kfree(sycamore->drt);
@@ -194,6 +200,26 @@ void sycamore_disconnect(sycamore_t *sycamore){
 
 
 void sycamore_write_callback(sycamore_t *sycamore){
-	printk("%s: entered\n", __func__);
+	printk("%s: scheduling a work response\n", __func__);
+	schedule_work(&sycamore->write_work);
 }
 
+
+int sycamore_bus_write(sycamore_dev_t *dev, const char *buffer, int count){
+	sycamore_t *s = NULL;
+
+	s = dev->sycamore;
+	//check if the port is locked
+	return 0;
+}
+
+int sycamore_bus_read(sycamore_dev_t *dev, const char *buffer, int max_count){
+	sycamore_t *s = NULL;
+
+	s = dev->sycamore;
+	//check if the port is locked
+
+
+	//wait for the response
+	return 0;
+}
