@@ -40,9 +40,19 @@ typedef int (*hardware_write_func_t) (const void * data, const unsigned char * b
 
 struct _sycamore_dev_t {
 	sycamore_dev_read_t read;
-	int device_address;
+	u8 device_address;
+
+	//the size must be set so that the read callback won't overrun this buffer
+	u8 *read_buffer;
+	u32 read_buffer_size;
+	u32 read_address;
+	u32 read_count;
+	//we don't need a mutex because the read function should already be asleep
+	atomic_t read_data_ready;
 	
 	sycamore_t *sycamore;
+
+	bool blocking;
 };
 
 
@@ -98,8 +108,10 @@ struct _sycamore_t {
 	u32 number_of_devices;
 	bool drt_waiting;
 
-	//writes must be put in a wait queue
+	//writes must be put in an exclusive wait queue
 	wait_queue_head_t	write_queue;
+	//reads must continuously be put into a non-exclusive wait queue
+	wait_queue_head_t	read_queue;
 	atomic_t			port_lock;
 
 
@@ -114,8 +126,8 @@ void sycamore_dev_destroy(sycamore_dev_t *dev);
 
 
 //write to the sycamore bus
-int sycamore_bus_write(sycamore_dev_t *dev, const char *buffer, int count);
-int sycamore_bus_read(sycamore_dev_t *dev, const char *buffer, int max_count);
+int sycamore_bus_write(sycamore_dev_t *dev, u32 command, u32 addr, const char *buffer, u32 count);
+int sycamore_bus_read(sycamore_dev_t *dev);
 
 void sycamore_write_work(struct work_struct *work);
 

@@ -3,6 +3,9 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/serial.h>
+#include <linux/sched.h>
+#include "sycamore_commands.h"
+#include "sycamore_control.h"
 #include "sycamore_platform.h"
 #include "sycamore_control.h"
 
@@ -119,6 +122,7 @@ int sycamore_attach(sycamore_t *sycamore){
 	INIT_WORK(&sycamore->write_work, sycamore_write_work);
 
 	init_waitqueue_head(&sycamore->write_queue);
+	init_waitqueue_head(&sycamore->read_queue);
 	
 
 	for (i = 0; i < MAX_NUM_OF_DEVICES; i++){
@@ -205,21 +209,48 @@ void sycamore_write_callback(sycamore_t *sycamore){
 }
 
 
-int sycamore_bus_write(sycamore_dev_t *dev, const char *buffer, int count){
+int sycamore_bus_write(sycamore_dev_t *dev, u32 command, u32 addr, const char *buffer, u32 count){
 	sycamore_t *s = NULL;
 
 	s = dev->sycamore;
 	//check if the port is locked
-	return 0;
+	if (atomic_read(&s->port_lock) == 0){
+		//if not blocking return imediately
+		if (!dev->blocking){
+			return -EAGAIN;
+		}
+		
+		//blocking
+		if (wait_event_interruptible_exclusive(s->write_queue, (atomic_read(&s->port_lock) == 0))){
+			//interrupt happened check for siganl
+//XXX: what signal should I check for?
+			return -ERESTARTSYS;
+		}
+	}
+
+
+	//alright everything is good to go right now
+	return sycamore_write(s,
+					command,				//either a read or write
+					dev->device_address,	
+					addr,
+					(char *)buffer,
+					count);
+
 }
 
-int sycamore_bus_read(sycamore_dev_t *dev, const char *buffer, int max_count){
+int sycamore_bus_read(sycamore_dev_t *dev){
 	sycamore_t *s = NULL;
 
 	s = dev->sycamore;
 	//check if the port is locked
 
+	//even though this is a read, we still need to write the request down to sycamore on a common bus
+	if (wait_event_interruptible(s->read_queue, (atomic_read(&dev->read_data_ready) == 1))){
+		//interrupt happened check for siganl
+//XXX: what signal should I check for?
+		return -ERESTARTSYS;
+	}
+	return dev->read_count;
 
-	//wait for the response
-	return 0;
 }

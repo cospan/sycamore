@@ -362,6 +362,7 @@ int sycamore_control_process_read_data(sycamore_t * s, char * buffer, int length
 				 */
 				if (s->read_pos == 8){
 
+					s->read_data_count--;
 					//process the data out
 					if (is_control_response(s)){
 						process_control_response(s);
@@ -369,22 +370,27 @@ int sycamore_control_process_read_data(sycamore_t * s, char * buffer, int length
 					}
 //XXX need to write to the associated driver
 					else if (s->devices[s->read_device_address] != NULL){
+						sycamore_dev_t *dev = (sycamore_dev_t *) platform_get_drvdata(s->devices[s->read_device_address]); 	
 //XXX: call the devices read function
 						/*
 							send the address
 							send the total data size
 							send the data position
 						*/
-/* sycamore_device_read(
-			s, 
-			s->read_address, 
-			s->read_size + 1, 
-			s->read_data_pos, 
-			s->read_data); 
-*/
+						//the position is defined in terms of 4 * 8 = 32, and were copying it into a byte array
+						int read_buffer_pos = s->read_data_pos << 2;
+
+						if (read_buffer_pos < dev->read_buffer_size){
+							//we are not going to do an overrun
+							memcpy(&dev->read_buffer[read_buffer_pos], &s->read_data, 4);
+						}
+						if (s->read_data_count == 0){
+							dev->read_address = s->read_address;
+							dev->read_address = s->read_size + 1;
+							atomic_set(&dev->read_data_ready, 1);
+						}
 					}
 
-					s->read_data_count--;
 					//see if we are done
 					if (s->read_data_count == 0){
 						s->read_state = READ_IDLE;
@@ -518,7 +524,7 @@ void sycamore_write_work(struct work_struct *work){
 
 int sycamore_write (sycamore_t * sycamore, 
 					u32 command, 
-					u32 device_address,
+					u8 device_address,
 					u32 offset,
 					char * buffer, 
 					u32 length){

@@ -18,7 +18,7 @@
 
 int sycamore_write(sycamore_t * sycamore, 
 					u32 command,
-					u32 device_address,
+					u8 device_address,
 					u32 offset,
 					char *buffer, u32 length);
 
