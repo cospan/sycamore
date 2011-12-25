@@ -99,7 +99,7 @@ struct _sycamore_t {
 	bool drt_waiting;
 
 	//writes must be put in a wait queue
-	wait_queue_head_t	comm_queue;
+	wait_queue_head_t	write_queue;
 	atomic_t			port_lock;
 
 

@@ -80,10 +80,16 @@ void process_control_response(sycamore_t *s){
 			}
 			break;
 		case (SYCAMORE_READ):
-		
 			if (s->read_device_address == 0x00){
 				//reading from the DRT
 				switch (s->drt_state){
+					case (DRT_READ_INIT):
+						if (s->drt){
+							//erase the current DRT string
+							kfree(s->drt);
+							s->drt = NULL;
+						}
+						break;
 					//need to read a total of 8 data items
 					case (DRT_READ_START):
 						if (s->drt_waiting) {
@@ -149,6 +155,9 @@ void process_control_response(sycamore_t *s){
 							s->drt_state = DRT_READ_SUCCESS;
 						}
 
+						break;
+					case (DRT_READ_SUCCESS):
+						//don't do anything
 						break;
 					default:
 						s->drt_state = DRT_READ_INIT;

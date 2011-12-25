@@ -118,7 +118,7 @@ int sycamore_attach(sycamore_t *sycamore){
 	INIT_DELAYED_WORK(&sycamore->work, sycamore_periodic); 
 	INIT_WORK(&sycamore->write_work, sycamore_write_work);
 
-	init_waitqueue_head(&sycamore->comm_queue);
+	init_waitqueue_head(&sycamore->write_queue);
 	
 
 	for (i = 0; i < MAX_NUM_OF_DEVICES; i++){
