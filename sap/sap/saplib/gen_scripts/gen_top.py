@@ -7,7 +7,7 @@ class GenTop(Gen):
 	"""Generate the top module for a project"""
 
 	def __init__(self):
-		print "in GenTop"
+		#print "in GenTop"
 		self.wires=[]
 		self.tags = {}
 		return
@@ -42,8 +42,8 @@ class GenTop(Gen):
 #			if debug:
 #				print "Found a memory bus"
 			if (len(tags["MEMORY"]) > 0):
-#				if debug:
-				print "found " + str(len(tags["MEMORY"])) + " memory devices"
+				if debug:
+					print "found " + str(len(tags["MEMORY"])) + " memory devices"
 				en_mem_bus = True
 
 		num_slaves = len(slave_list) + 1
@@ -284,7 +284,8 @@ class GenTop(Gen):
 
 		#memory interconnect
 		if en_mem_bus:
-			print "make the membus"
+			if debug:
+				print "make the membus"
 			wmi_buf = "\twishbone_mem_interconnect wmi (\n"
 
 			wmi_buf = wmi_buf + "\t\t.clk(clk),\n"
@@ -413,8 +414,8 @@ class GenTop(Gen):
 			for i in range (0, len(tags["MEMORY"])):
 				mem_name = tags["MEMORY"].keys()[i]
 				filename = tags["MEMORY"][mem_name]["filename"]
-#				if debug:
-				print "Mem device: " + mem_name + ", mem file: " + filename
+				if debug:
+					print "Mem device: " + mem_name + ", mem file: " + filename
 				absfilename = saputils.find_rtl_file_location(filename)
 				mem_tags = saputils.get_module_tags(filename = absfilename, bus="wishbone")
 				mem_buf = self.generate_buffer(name = mem_name, index = i, module_tags = mem_tags, mem_slave = True)
@@ -851,6 +852,45 @@ class GenTop(Gen):
 
 		
 		return result
+
+
+	def generate_parameters (self, name, module_tags, debug = False):
+		buffer = ""
+
+
+		if (not (name in self.tags["SLAVES"].keys())):
+			print "didn't find slave name"
+			return ""
+
+		#check to see if the project tags contain a paramter specification
+		print "checking to see if " + name + " contains parameters in the configuration file... " 
+
+		if (not ("PARAMETERS" in self.tags["SLAVES"][name])):
+			print "no"
+			return ""
+
+		print "yes"
+
+		print "checking to see if the module contains any paramters... "
+		if (len(module_tags["parameters"].keys()) == 0):
+			print"no"
+			return ""
+
+		print "yes"
+
+		print "checking if the paramters do exists within the module... " 
+		#check to see if the paramter exists within the module's tags
+#		for param in self.tags["SLAVES"][name]["parameters"].keys():
+
+		#okay we need some paramters
+		buffer = "#(\n"
+
+
+		#finish off the buffer
+		buffer += ")\n"
+
+		return buffer
+
 
 	def get_name (self):
 		print "generate top!"

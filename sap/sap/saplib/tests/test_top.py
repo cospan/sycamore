@@ -206,10 +206,28 @@ class Test (unittest.TestCase):
 		
 		self.gen.tags = tags
 		arb_buf = self.gen.generate_arbitrator_buffer(debug = self.dbg)
-		print "arbitrator buffer: \n" + arb_buf
+		if self.dbg:
+			print "arbitrator buffer: \n" + arb_buf
 		self.assertEqual(len(arb_buf) > 0, True)
 
+	def test_generate_with_paramters(self):
+		"""test the capability to set paramters within the top.v file"""
+		buf = ""
+		tags = {}
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/lx9_parameter_example.json"
+			filein = open(filename)
+	
+			filestr = filein.read()
+			tags = json.loads(filestr)
 
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+		
+		self.gen.tags = tags
+	
+		self.assertEqual(True, True)
 
 #	def test_generate_arbitrator_buffer_difficult(self):
 #		"""test if the generate arbitrator buffer will successfully generate a complex arbitrator entry buffer"""

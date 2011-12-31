@@ -1,0 +1,43 @@
+{
+	
+	"BASE_DIR":"~/projects/sycamore_projects",
+	"PROJECT_NAME":"example_project",
+	"BUILD_TOOL":"xilinx",
+	"TEMPLATE":"wishbone_template.json",
+	"INTERFACE":"uart_io_handler.v",
+	"SLAVES":{
+		"gpio1":{
+			"filename":"wb_gpio.v",
+			"PARAMETERS":{
+				"INTERRUPT_MASK":"1",
+				"INTERRUPT_EDGE":"2"
+			}
+		}
+	},
+
+	"CONSTRAINTS":{
+		"constraint_files":[
+			"lx9.ucf"
+		],
+		"board":"lx9_microboard",
+		"device":"xc6slx9csg324-2",
+		"bind": {
+			"phy_uart_in":{
+				"port":"uart_rx",
+				"direction":"input"
+			},
+			"phy_uart_out":{
+				"port":"uart_tx",
+				"direction":"output"
+			},
+			"gpio1_gpio_out[3:0]":{
+				"port":"led[3:0]",
+				"direction":"output"
+			},
+			"gpio1_gpio_in[3:0]":{
+				"port":"gpio[3:0]",
+				"direction":"input"
+			}
+		}
+	}
+}

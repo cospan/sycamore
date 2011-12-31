@@ -82,6 +82,9 @@ module wb_gpio (
 	gpio_out
 );
 
+parameter INTERRUPT_MASK = 0;
+parameter INTERRUPT_EDGE = 0;
+
 input 				clk;
 input 				rst;
 
@@ -133,8 +136,8 @@ always @ (posedge clk) begin
 
 
 		//reset interrupts
-		interrupt_mask		<= 32'h00000000;
-		interrupt_edge		<= 32'h00000000;
+		interrupt_mask		<= INTERRUPT_MASK;
+		interrupt_edge		<= INTERRUPT_EDGE;
 	end
 
 	else begin

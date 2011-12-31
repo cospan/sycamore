@@ -85,7 +85,7 @@ def remove_comments(buf="", debug=False):
 		post_comment = ""
 
 	if debug:
-		print "bufy:\n" + bufy
+		print "buf:\n" + bufy
 
 	return bufy
 
@@ -105,6 +105,7 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 	tags["keywords"] = {}
 	tags["ports"] = {}
 	tags["module"] = ""
+	tags["parameters"] = {}
 		
 	#need a more robust way of openning the slave
 
@@ -190,8 +191,10 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 		print "Failed to open test filename"
 		return
 
-	define_dict = sappreproc.generate_define_table(filestring, True)	
+	ldebug = debug
+	define_dict = sappreproc.generate_define_table(filestring, ldebug)	
 
+	#find all the IO's
 	for io in ports:
 		tags["ports"][io] = {}
 		substrings = buf.splitlines()	
@@ -249,6 +252,24 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 				tags["ports"][io][substring]["size"] = 1
 			
 			#print io + ": " + substring
+
+	#find all the parameters
+	substrings = buf.splitlines()
+	for substring in substrings:
+		substring = substring.strip()	
+		if ("parameter" in substring):
+			if debug:
+				print "found parameter!"
+			substring = substring.partition("parameter")[2].strip()
+			parameter_name = substring.partition("=")[0].strip()
+			parameter_value = substring.partition("=")[2].strip()
+			parameter_value = parameter_value.partition(";")[0].strip()
+			if debug:
+				print "parameter name: " + parameter_name
+				print "parameter value: " + parameter_value
+			tags["parameters"][parameter_name] = parameter_value
+
+
 
 
 	if debug:
@@ -328,19 +349,20 @@ def read_clock_rate(constraint_filename, debug = False):
 			if debug:
 				print "found TIMESPEC"
 			line = line.partition("period")[2].strip()
-			#if debug:
-			print "line: " + line
+			if debug:
+				print "line: " + line
 			line = line.partition("clk")[2].strip()
 			line = line.strip("\"");
 			line = line.strip();
 			line = line.strip(";")
-			#if debug:
-			print "line: " + line
+			if debug:
+				print "line: " + line
 
 			#now there is a time value and a multiplier
 			clock_lines = line.split(" ")
-			for line in clock_lines:
-				print "line: " + line
+			if debug:
+				for line in clock_lines:
+					print "line: " + line
 				
 			if (clock_lines[1] == "mhz"):
 				clock_rate = clock_lines[0] + "000000"
@@ -359,12 +381,14 @@ def read_clock_rate(constraint_filename, debug = False):
 			if ("#" in line):
 				line = line.partition("#")[0]
 			if ("period" in line) and  ("clk" in line):
-				print "found clock period"
+				if debug:
+					print "found clock period"
 				line = line.partition("period")[2]
 				line = line.partition("=")[2].strip()
 				if " " in line:
 					line = line.partition(" ")[0].strip()
-				print "line: " + line
+				if debug:
+					print "line: " + line
 				clock_rate = str(int(1/(string.atoi(line) * 1e-9)))
 				break;
 	
