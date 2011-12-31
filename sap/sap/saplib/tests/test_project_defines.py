@@ -47,6 +47,7 @@ class Test (unittest.TestCase):
 		except IOError as err:
 			print "File Error: " + str(err)
 
+		self.tags["CLOCK_RATE"] = "50000000"
 		result = self.gen.gen_script(tags = self.tags, buf=ioh_buf, debug = self.dbg)
 		print "out_buf: \n" + result
 		self.assertEqual(len(result) > 0, True)

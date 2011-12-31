@@ -116,7 +116,7 @@ class Test (unittest.TestCase):
 			"DRT_FLAGS",
 			"DRT_SIZE"
 		]
-		tags = saputils.get_module_tags(filename = absfilepath, bus="wishbone", keywords = slave_keywords) 
+		mtags = saputils.get_module_tags(filename = absfilepath, bus="wishbone", keywords = slave_keywords) 
 
 			
 
@@ -124,7 +124,20 @@ class Test (unittest.TestCase):
 			"clk",
 			"rst"
 		]
-		result = self.gen.generate_buffer(name="wbs", index=0, module_tags = tags) 
+		tags = {}
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/mem_example.json"
+			filein = open(filename)
+			filestr = filein.read()
+			tags = json.loads(filestr)
+
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+
+		self.gen.tags = tags
+
+		result = self.gen.generate_buffer(name="wbs", index=0, module_tags = mtags) 
 
 		buf = result
 		#print "out:\n" + buf
@@ -166,7 +179,7 @@ class Test (unittest.TestCase):
 			"rst"
 		]
 
-		result = self.gen.generate_buffer(name = "uio", module_tags = tags) 
+		result = self.gen.generate_buffer(name = "uio", module_tags = tags, io_module = True) 
 		
 		buf = result
 		#print "out:\n" + buf
@@ -214,6 +227,8 @@ class Test (unittest.TestCase):
 		"""test the capability to set paramters within the top.v file"""
 		buf = ""
 		tags = {}
+
+		#load the configuration tags from the json file
 		try:
 			filename = os.getenv("SAPLIB_BASE") + "/example_project/lx9_parameter_example.json"
 			filein = open(filename)
@@ -224,10 +239,38 @@ class Test (unittest.TestCase):
 		except IOError as err:
 			print "File Error: " + str(err)
 			self.assertEqual(False, True)
-		
+
+		#project tags
 		self.gen.tags = tags
+
+		#module tags		
+		slave_keywords = [
+			"DRT_ID",
+			"DRT_FLAGS",
+			"DRT_SIZE"
+		]
+
+		#get the name of the first slave from the configuration file
+		slave_name = tags["SLAVES"].keys()[0]
+
+		
+		#get the module tags from the slave
+		absfilepath = saputils.find_rtl_file_location(tags["SLAVES"][slave_name]["filename"])
+		module_tags = saputils.get_module_tags(filename = absfilepath, bus="wishbone", keywords = slave_keywords) 
+
+		#now we have all the data from the 
+		buf = self.gen.generate_parameters(slave_name, module_tags, debug = self.dbg)
+
+#		print buf
 	
-		self.assertEqual(True, True)
+		self.assertEqual(len(buf) > 0, True)
+
+		result = self.gen.generate_buffer(slave_name, index = 0, module_tags = module_tags)
+
+		print result
+
+		#there are parameters, generate a slave
+		self.assertEqual(len(result) > 0, True)
 
 #	def test_generate_arbitrator_buffer_difficult(self):
 #		"""test if the generate arbitrator buffer will successfully generate a complex arbitrator entry buffer"""

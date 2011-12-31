@@ -91,6 +91,8 @@ class Test (unittest.TestCase):
 		result = self.project.read_template(self.project.project_tags["TEMPLATE"])
 		self.assertEqual(result, True)
 		self.project.filegen.set_tags(self.project.project_tags)
+		#get the clock rate from the constraint file
+		self.project.project_tags["CLOCK_RATE"] = saputils.read_clock_rate(self.project.project_tags["CONSTRAINTS"]["constraint_files"][0])
 		#generate the project directories and files
 		self.project.project_tags["BASE_DIR"] = "~/sandbox/test_syc"
 		saputils.create_dir(self.project.project_tags["BASE_DIR"])		
@@ -116,6 +118,8 @@ class Test (unittest.TestCase):
 		result = self.project.read_template(self.project.project_tags["TEMPLATE"])
 		self.assertEqual(result, True)
 		self.project.filegen.set_tags(self.project.project_tags)
+		#get the clock rate from the constraint file
+		self.project.project_tags["CLOCK_RATE"] = saputils.read_clock_rate(self.project.project_tags["CONSTRAINTS"]["constraint_files"][0])
 		#generate the project directories and files
 		self.project.project_tags["BASE_DIR"] = "~/sandbox/test_syc"
 		saputils.create_dir(self.project.project_tags["BASE_DIR"])		

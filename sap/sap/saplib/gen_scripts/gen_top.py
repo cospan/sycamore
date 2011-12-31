@@ -477,6 +477,11 @@ class GenTop(Gen):
 	def generate_buffer(self, name="", index=-1, module_tags={}, mem_slave = False, io_module = False, debug = False):
 		"""Generate a buffer that attaches wishbone signals and 
 		return a buffer that can be used to generate the top module"""
+		slave_name = name
+
+		parameter_buffer = ""
+		if (io_module == False):
+			parameter_buffer = self.generate_parameters(name, module_tags, debug)
 
 		out_buf = ""
 
@@ -550,7 +555,11 @@ class GenTop(Gen):
 
 
 		#Generate the instantiation
-		out_buf = out_buf + "\t" + module_tags["module"] + " " + name
+		out_buf = out_buf + "\t" + module_tags["module"] + " " 
+
+		#check if there are parameters to be added
+		out_buf += parameter_buffer
+		out_buf += "\t" + name
 #		if (index != -1):
 #			out_buf = out_buf + str(index)
 
@@ -854,40 +863,67 @@ class GenTop(Gen):
 		return result
 
 
-	def generate_parameters (self, name, module_tags, debug = False):
+	def generate_parameters (self, name = "", module_tags = {}, debug = False):
 		buffer = ""
 
 
 		if (not (name in self.tags["SLAVES"].keys())):
-			print "didn't find slave name"
+			if debug:
+				print "didn't find slave name"
 			return ""
 
 		#check to see if the project tags contain a paramter specification
-		print "checking to see if " + name + " contains parameters in the configuration file... " 
+		if debug:
+			print "checking to see if " + name + " contains parameters in the configuration file... ", 
 
 		if (not ("PARAMETERS" in self.tags["SLAVES"][name])):
-			print "no"
+			if debug:
+				print "no"
 			return ""
 
-		print "yes"
+		if debug:
+			print "yes"
 
-		print "checking to see if the module contains any paramters... "
+		if debug:
+			print "checking to see if the module contains any paramters... ",
 		if (len(module_tags["parameters"].keys()) == 0):
-			print"no"
+			if debug:
+				print"no"
 			return ""
+			
+		if debug:
+			print "yes"
 
-		print "yes"
+		module_parameters = module_tags["parameters"]
 
-		print "checking if the paramters do exists within the module... " 
-		#check to see if the paramter exists within the module's tags
-#		for param in self.tags["SLAVES"][name]["parameters"].keys():
+#XXX: Unfortunately the parameter finder doesn't discriminate against all parameters within the modules
+#so all the parameters will be exposed here :(
+#
+#		for param in module_parameters.keys():
+#
+#			print param + " : " + module_parameters[param]
 
-		#okay we need some paramters
+
 		buffer = "#(\n"
+		#check to see if the paramter exists within the module's tags
 
+		project_parameters = self.tags["SLAVES"][name]["PARAMETERS"]
+
+		#need a variable for the first one so that we don't inadvertently add a comma
+
+		first_item = True
+		for project_param in project_parameters.keys():
+			if project_param in module_parameters.keys():
+				if (first_item == False):
+					buffer += ",\n"
+
+				first_item = False
+				if debug:
+					print "found that " + project_param + " is a match"
+				buffer += "\t\t." + project_param + "(" + project_parameters[project_param] + ")"
 
 		#finish off the buffer
-		buffer += ")\n"
+		buffer += "\n\t)\n"
 
 		return buffer
 
