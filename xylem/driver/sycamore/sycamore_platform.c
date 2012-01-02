@@ -117,6 +117,7 @@ int sycamore_attach(sycamore_t *sycamore){
 	sycamore->enable_periodic	= false;
 	sycamore->sycamore_found =	false;
 
+//	sycamore->wq = create_single_thread_workqueue("sycamore workqueue");
 	INIT_DELAYED_WORK(&sycamore->periodic_work, sycamore_periodic); 
 	INIT_WORK(&sycamore->write_work, sycamore_write_work);
 	INIT_WORK(&sycamore->control_work, sycamore_control_work);	
@@ -181,6 +182,7 @@ void sycamore_disconnect(sycamore_t *sycamore){
 		printk ("Sycmoare == NULL");
 		return;
 	}
+	sycamore->enable_periodic = false;
 	cancel_delayed_work_sync(&sycamore->periodic_work);
 	cancel_work_sync(&sycamore->control_work);
 	cancel_work_sync(&sycamore->write_work);
@@ -207,6 +209,7 @@ void sycamore_disconnect(sycamore_t *sycamore){
 
 void sycamore_write_callback(sycamore_t *sycamore){
 	printk("%s: scheduling a work response\n", __func__);
+	
 	schedule_work(&sycamore->write_work);
 }
 

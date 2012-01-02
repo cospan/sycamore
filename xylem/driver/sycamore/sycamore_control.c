@@ -119,7 +119,7 @@ int sycamore_control_process_read_data(sycamore_t * s, char * buffer, int length
 	int i = 0;
 	char ch = 0;
 	//since we are talking to the device, we can put off a ping
-	s->do_ping = false;
+//	s->do_ping = false;
 	for(i = 0; i < length; ++i){
 		ch = buffer[i];
 //		printk ("%c", ch);
@@ -334,12 +334,6 @@ int sycamore_control_process_read_data(sycamore_t * s, char * buffer, int length
 							if (!is_drt_read(s) || !is_ping_response(s)){
 								schedule_work(&s->control_work);
 							}
-/*
-							else if (!s->enable_periodic){
-								s->enable_periodic = true;
-								schedule_delayed_work(&s->work, s->ping_timeout);
-							}
-*/
 						}
 					}
 					else {
@@ -393,12 +387,15 @@ void sycamore_control_periodic (sycamore_t * s){
 		}
 	}
 	//schedule the next sycamore_periodic
-	schedule_delayed_work(&s->periodic_work, s->ping_timeout);
+	if (s->enable_periodic){
+		schedule_delayed_work(&s->periodic_work, s->ping_timeout);
+	}
 }
 void sycamore_write_work(struct work_struct *work){
 	//int retval = 0;
 	sycamore_t *s = NULL;
 	s = container_of(work, sycamore_t, write_work);	
+	printk("%s: entered\n", __func__);
 
 	//this is called from the write callback to handle non critical write functions
 	//this is a response to a write request from a s virtual device

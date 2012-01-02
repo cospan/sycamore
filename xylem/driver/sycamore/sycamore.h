@@ -76,6 +76,9 @@ struct _sycamore_t {
 	char write_buffer[WRITE_BUF_SIZE];
 
 
+	//workqueue for all things sycamore
+	struct workqueue_struct *wq;
+
 	//workqueue for ping
 	struct delayed_work periodic_work;
 
