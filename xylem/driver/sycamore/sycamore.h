@@ -16,13 +16,13 @@
 #define READ_DATA 			4
 
 
-#define DRT_READ_INIT 		0
-#define DRT_READ_START		1
-#define DRT_READ_START_WAIT	2
-#define DRT_READ_ALL		3
-#define DRT_READ_ALL_WAIT	4
-#define DRT_READ_SUCCESS 	5
-#define DRT_READ_FAIL		6
+#define DRT_READ_IDLE 			0
+#define DRT_READ_START			1
+#define DRT_READ_START_RESPONSE	2
+#define DRT_READ_ALL			3
+#define DRT_READ_ALL_RESPONSE	4
+#define DRT_READ_SUCCESS 		5
+#define DRT_READ_FAIL			6
 
 //1 second timeout
 #define DEFAULT_PING_TIMEOUT 1000
@@ -77,10 +77,14 @@ struct _sycamore_t {
 
 
 	//workqueue for ping
-	struct delayed_work work;
+	struct delayed_work periodic_work;
 
-	//workqueue for bottom half reading
+	//workqueue for writes
 	struct work_struct write_work;
+
+	//workqueue for commands
+	struct work_struct control_work;
+
 
 
 //control
@@ -97,6 +101,7 @@ struct _sycamore_t {
 
 
 	bool do_ping;
+	bool enable_periodic;
 	//if we got a ping, set this to true
 	bool sycamore_found;
 	u32 ping_timeout;
@@ -106,7 +111,7 @@ struct _sycamore_t {
 	char * drt;
 	u16	drt_version;
 	u32 number_of_devices;
-	bool drt_waiting;
+//	bool drt_waiting;
 
 	//writes must be put in an exclusive wait queue
 	wait_queue_head_t	write_queue;
@@ -130,5 +135,6 @@ int sycamore_bus_write(sycamore_dev_t *dev, u32 command, u32 addr, const char *b
 int sycamore_bus_read(sycamore_dev_t *dev);
 
 void sycamore_write_work(struct work_struct *work);
+void sycamore_control_work(struct work_struct *work);
 
 #endif

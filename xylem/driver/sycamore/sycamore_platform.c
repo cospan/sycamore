@@ -70,7 +70,7 @@ int generate_platform_devices(sycamore_t *sycamore){
 void sycamore_periodic(struct work_struct *work){
 	//get a pointer to sycamore
 	sycamore_t *sycamore = NULL;
-	sycamore = container_of(work, sycamore_t, work.work);	
+	sycamore = container_of(work, sycamore_t, periodic_work);	
 	sycamore_control_periodic(sycamore);
 }
 
@@ -102,24 +102,24 @@ int sycamore_attach(sycamore_t *sycamore){
 	atomic_set(&sycamore->port_lock, 0);
 	sycamore->size_of_drt 	=	0;
 	sycamore->drt			=	NULL;
-	sycamore->drt_state		=	DRT_READ_INIT;	
+	sycamore->drt_state		=	DRT_READ_IDLE;	
 	sycamore->pdev			=	NULL;
 	sycamore->read_pos		=	0;
 	sycamore->read_state	=	READ_IDLE;
 	sycamore->write_func	=	NULL;
 	sycamore->write_data	=	NULL;
-	sycamore->drt_waiting	=	false;
-
 	memset (&sycamore->write_buffer[0], 0, WRITE_BUF_SIZE);
 
 //workqueue setup
 
 	sycamore->ping_timeout	=	DEFAULT_PING_TIMEOUT;	
 	sycamore->do_ping		=	true;
+	sycamore->enable_periodic	= false;
 	sycamore->sycamore_found =	false;
 
-	INIT_DELAYED_WORK(&sycamore->work, sycamore_periodic); 
+	INIT_DELAYED_WORK(&sycamore->periodic_work, sycamore_periodic); 
 	INIT_WORK(&sycamore->write_work, sycamore_write_work);
+	INIT_WORK(&sycamore->control_work, sycamore_control_work);	
 
 	init_waitqueue_head(&sycamore->write_queue);
 	init_waitqueue_head(&sycamore->read_queue);
@@ -161,9 +161,10 @@ int sycamore_attach(sycamore_t *sycamore){
 	//platform_device_register(&sycamore_tty);
 	sycamore->pdev = platform_device_register_simple("sycamore_tty", -1, NULL, 0);
 
-	//end create platform device
-	schedule_delayed_work(&sycamore->work, sycamore->ping_timeout);
 	//return 1 cause we dont want a device file in the /dev directory right now
+
+//removed the schedule periodic function here
+	schedule_work(&sycamore->control_work);	
 	return 1;
 
 fail_sysfs:
@@ -180,6 +181,8 @@ void sycamore_disconnect(sycamore_t *sycamore){
 		printk ("Sycmoare == NULL");
 		return;
 	}
+	cancel_delayed_work_sync(&sycamore->periodic_work);
+	cancel_work_sync(&sycamore->control_work);
 	cancel_work_sync(&sycamore->write_work);
 	if (sycamore->size_of_drt > 0) {
 		//DRT has a string
@@ -198,7 +201,6 @@ void sycamore_disconnect(sycamore_t *sycamore){
 	platform_device_del(sycamore->platform_device);
 	platform_device_put(sycamore->platform_device);
 
-	cancel_delayed_work_sync(&sycamore->work);
 
 }
 
@@ -254,3 +256,5 @@ int sycamore_bus_read(sycamore_dev_t *dev){
 	return dev->read_count;
 
 }
+
+

@@ -30,6 +30,7 @@ SOFTWARE.
 #include "sycamore_commands.h"
 
 
+void drt_state_machine(sycamore_t * sycamore);
 
 bool is_drt_read(sycamore_t *sycamore){
 	return (sycamore->drt_state == DRT_READ_SUCCESS);
@@ -68,111 +69,38 @@ void process_control_response(sycamore_t *s){
 	//s->read_device_address = address of device to read from
 
 
-	u32 addr = s->read_address + s->read_data_pos;
+//	u32 addr = s->read_address + s->read_data_pos;
 
 
 	//check if this is a DRT response
 	switch (s->read_command) {
 		case (SYCAMORE_PING):
-			if (s->drt_state == DRT_READ_INIT){
+			if (s->drt_state == DRT_READ_IDLE){
 				//initialize a DRT read
 				s->drt_state = DRT_READ_START;
+				atomic_set(&s->port_lock, 0);
 			}
 			break;
 		case (SYCAMORE_READ):
 			if (s->read_device_address == 0x00){
-				//reading from the DRT
-				switch (s->drt_state){
-					case (DRT_READ_INIT):
-						if (s->drt){
-							//erase the current DRT string
-							kfree(s->drt);
-							s->drt = NULL;
-						}
-						break;
-					//need to read a total of 8 data items
-					case (DRT_READ_START):
-						if (s->drt_waiting) {
-							s->drt_state = DRT_READ_START_WAIT;
-						}
-						break;
-					case (DRT_READ_START_WAIT):
-						if (s->drt_waiting) {
-							//position
-							switch (addr) {
-								case (0x00):
-									s->drt_version = s->read_data >> 16;
-									break;
-								case (0x01):
-									s->number_of_devices = s->read_data;
-									s->size_of_drt = ((s->number_of_devices + 1) * 8 * 4);
-									break;
-								case (0x02):
-//XXX: RFU DRT Implementation
-									break;
-								case (0x03):
-//XXX: RFU DRT Implementation
-									break;
-								case (0x04):
-//XXX: RFU DRT Implementation
-									break;
-								case (0x05):
-//XXX: RFU DRT Implementation
-									break;
-								case (0x06):
-//XXX: RFU DRT Implementation
-									break;
-								case (0x07):
-//XXX: RFU DRT Implementation
-									s->drt_state = DRT_READ_ALL;
-								break;
-								default:
-									//processing the rest of the data
-									//something wrong here
-									s->drt_state = DRT_READ_INIT;
-									break;
-
-							}
-						}
-
-						break;
-					case (DRT_READ_ALL):
-						if (s->drt_waiting){
-							s->drt_state = DRT_READ_ALL_WAIT;
-						}
-						break;
-					case (DRT_READ_ALL_WAIT):
-						//reading the entire DRT right now
-						if (addr + 3 < s->size_of_drt){
-							s->drt[addr] 		= (u8) (s->read_data & 0x000F);
-							s->drt[addr + 1] 	= (u8) (s->read_data & 0x00F0 >> 8);
-							s->drt[addr + 2]	= (u8) (s->read_data & 0x0F00 >> 16);
-							s->drt[addr + 3]	= (u8) (s->read_data & 0xF000 >> 24);
-
-							//if addr + 3 == s->size_of_drt then we've read everything
-						}
-						if (addr + 3 == s->size_of_drt){
-							s->drt_state = DRT_READ_SUCCESS;
-						}
-
-						break;
-					case (DRT_READ_SUCCESS):
-						//don't do anything
-						break;
-					default:
-						s->drt_state = DRT_READ_INIT;
-						break;
-						//if addr + 3 == s->size_of_drt then we've read everything
-					}
+				//printk("addr: %08X, DRT STATE: %d\n", addr, s->drt_state);
+				drt_state_machine(s);
+				if (s->drt_state == DRT_READ_IDLE ||
+					s->drt_state == DRT_READ_ALL ||
+					s->drt_state == DRT_READ_SUCCESS){
+						
+					atomic_set(&s->port_lock, 0);
 				}
-				//check if this is a response to the wishbone_master control
-				else if (s->read_device_address == 0xFF){
+			}
+			//check if this is a response to the wishbone_master control
+			else if (s->read_device_address == 0xFF){
 				//response to a wishbone master control
 //XXX: process info from the wishbone master
 					//things to process:
 						//state machine behavior
 						//sycamore main paramters
-				}
+				atomic_set(&s->port_lock, 0);
+			}
 
 			break;
 		case (SYCAMORE_INTERRUPTS):
@@ -366,7 +294,6 @@ int sycamore_control_process_read_data(sycamore_t * s, char * buffer, int length
 					//process the data out
 					if (is_control_response(s)){
 						process_control_response(s);
-												
 					}
 //XXX need to write to the associated driver
 					else if (s->devices[s->read_device_address] != NULL){
@@ -388,17 +315,32 @@ int sycamore_control_process_read_data(sycamore_t * s, char * buffer, int length
 							dev->read_address = s->read_address;
 							dev->read_address = s->read_size + 1;
 							atomic_set(&dev->read_data_ready, 1);
+
 						}
 					}
 
 					//see if we are done
 					if (s->read_data_count == 0){
+						atomic_set(&s->port_lock, 0);
 						s->read_state = READ_IDLE;
 						printk("%s: parsed data\n", __func__);
 						printk("c:%8X\n", s->read_command);
 						printk("a:%8X : %6X\n", s->read_device_address, s->read_address);
 						printk("s:%8d\n", s->read_size + 1);
 						printk("d:%.8X\n\n", s->read_data);
+
+						printk("%s: drt_state = %d\n", __func__, s->drt_state);
+						if (is_control_response(s)){
+							if (!is_drt_read(s) || !is_ping_response(s)){
+								schedule_work(&s->control_work);
+							}
+/*
+							else if (!s->enable_periodic){
+								s->enable_periodic = true;
+								schedule_delayed_work(&s->work, s->ping_timeout);
+							}
+*/
+						}
 					}
 					else {
 						s->read_pos = 0;
@@ -428,71 +370,35 @@ int sycamore_control_process_read_data(sycamore_t * s, char * buffer, int length
  *	sycamore-bus will call this every periodic 
  *	timeout to perform maitenance functions
 */
-void sycamore_control_periodic (sycamore_t * sycamore){
+void sycamore_control_periodic (sycamore_t * s){
 	int retval = 0;
-	printk("%s: DRT STATE: %d\n", __func__, sycamore->drt_state);
-	if (atomic_read(&sycamore->port_lock) == 0){
-		switch (sycamore->drt_state){
-			case DRT_READ_START:
-				sycamore->drt_waiting = true;
-				atomic_set(&sycamore->port_lock , 1);
-				retval = sycamore_write(sycamore, 
-						SYCAMORE_READ, 
-							0x00, 
-							0x00, 
-							NULL, 
-							8); 	
-				//hopefully get a response in 200 milliseconds
-				schedule_delayed_work(&sycamore->work, 200);
-				return;
-				break;
-			case (DRT_READ_START_WAIT):
-				sycamore->drt_waiting = false;
-				return;
-				break;
-			case DRT_READ_ALL:
-				sycamore->drt_waiting = true;
-				if (sycamore->drt == NULL){
-					sycamore->drt_waiting = true;
-					sycamore->drt = kmalloc( sycamore->size_of_drt, GFP_KERNEL);
-					//send a request to receive all of the data
-					sycamore_write(	sycamore, 
-							SYCAMORE_READ,
-							0x00,
-							0x00,
-							NULL,
-							(u32) (sycamore->number_of_devices + 1) * 8); 
-				}
-				//hopefully get a response in 200 milliseconds
-				schedule_delayed_work(&sycamore->work, 200);
-				return;
-				break;
-			case DRT_READ_ALL_WAIT:
-				sycamore->drt_waiting = false;
-				return;
-				break;
-			default:
-				if (sycamore->do_ping){
-					atomic_set(&sycamore->port_lock , 1);
-				}
+	//printk("%s: DRT STATE: %d\n", __func__, s->drt_state);
+	if (atomic_read(&s->port_lock) == 0){
+		printk("%s: no port lock\n", __func__);
+	}
+	else {
+		printk("%s: port lock\n", __func__);
+	}
 
-				retval = sycamore_write (sycamore,
-								SYCAMORE_PING,
-								0,
-								0,
-								NULL,
-								0);
-	
-				break;
+	if (atomic_read(&s->port_lock) == 0){
+		//check if the DRT STATE MACHINE is not active
+		if (s->do_ping){
+			atomic_set(&s->port_lock , 1);
+			retval = sycamore_write (s,
+							SYCAMORE_PING,
+							0,
+							0,
+							NULL,
+							0);
 		}
 	}
 	//schedule the next sycamore_periodic
-	schedule_delayed_work(&sycamore->work, sycamore->ping_timeout);
+	schedule_delayed_work(&s->periodic_work, s->ping_timeout);
 }
 void sycamore_write_work(struct work_struct *work){
 	//int retval = 0;
 	sycamore_t *s = NULL;
-	s = container_of(work, sycamore_t, work.work);	
+	s = container_of(work, sycamore_t, write_work);	
 
 	//this is called from the write callback to handle non critical write functions
 	//this is a response to a write request from a s virtual device
@@ -518,7 +424,7 @@ void sycamore_write_work(struct work_struct *work){
 	}
 	else {
 		//finished sending data to the FPGA
-		atomic_set(&s->port_lock, 0);
+		//atomic_set(&s->port_lock, 0);
 	}
 }
 
@@ -531,6 +437,7 @@ int sycamore_write (sycamore_t * sycamore,
 
 	u32 true_data_size = 0;
 	sycamore->write_out_count = 0;
+
 	//create the constant size string
 	if (length > 0){
 		true_data_size = length - 1;	
@@ -617,3 +524,162 @@ int sycamore_write (sycamore_t * sycamore,
 
 
 
+void drt_state_machine(sycamore_t * s){
+
+	int i = 0;
+	int retval = 0;
+	u32 addr = s->read_address + s->read_data_pos;
+//	printk("%s: addr: %08X, DRT STATE: %d\n", __func__, addr, s->drt_state);
+	//reading from the DRT
+	switch (s->drt_state){
+		case (DRT_READ_IDLE):
+			
+		break;
+	//need to read a total of 8 data items
+	case (DRT_READ_START):
+		//this id done executed by the periodic function
+		//printk("starting a drt read\n");
+
+		//clear out any pervioud drt
+		if (s->drt){
+			//erase the current DRT string
+			kfree(s->drt);
+			s->drt = NULL;
+		}
+
+		atomic_set(&s->port_lock , 1);
+		retval = sycamore_write(s, 
+					SYCAMORE_READ, 
+					0x00, 
+					0x00, 
+					NULL, 
+					8); 	
+		s->drt_state	= DRT_READ_START_RESPONSE;
+		break;
+	case (DRT_READ_START_RESPONSE):
+		//this is executed by the read response function
+		//position
+		switch (addr) {
+			case (0x00):
+				s->drt_version = s->read_data >> 16;
+				break;
+			case (0x01):
+				s->number_of_devices = s->read_data;
+				s->size_of_drt = ((s->number_of_devices + 1) * 8 * 8);
+				break;
+			case (0x02):
+//XXX: RFU DRT Implementation
+				break;
+			case (0x03):
+//XXX: RFU DRT Implementation
+				break;
+			case (0x04):
+//XXX: RFU DRT Implementation
+				break;
+			case (0x05):
+//XXX: RFU DRT Implementation
+				break;
+			case (0x06):
+//XXX: RFU DRT Implementation
+				break;
+			case (0x07):
+//XXX: RFU DRT Implementation
+				s->drt_state = DRT_READ_ALL;
+				break;
+			default:
+				//processing the rest of the data
+				//something wrong here
+				s->drt_state = DRT_READ_IDLE;
+				break;
+		}
+
+		break;
+	case (DRT_READ_ALL):
+		//executed by the periodic function
+		if (s->drt == NULL){
+			s->drt = kmalloc( s->size_of_drt, GFP_KERNEL);
+			//send a request to receive all of the data
+			sycamore_write(s, 
+							SYCAMORE_READ,
+							0x00,
+							0x00,
+							NULL,
+							(u32) (s->number_of_devices + 1) * 8); 
+		}
+		s->drt_state = DRT_READ_ALL_RESPONSE;
+
+		break;
+	case (DRT_READ_ALL_RESPONSE):
+		//reading the entire DRT right now
+//		printk ("address of read = %d, size of DRT = %d\n", addr, s->size_of_drt);
+//		printk ("read data: %08X\n", s->read_data);
+		sprintf (&s->drt[addr * 8], "%08X", s->read_data);
+/*
+		if (addr + 3 < s->size_of_drt){
+			
+			s->drt[addr + 3]	= (u8) (s->read_data & 0xF000 >> 24);
+			s->drt[addr + 2]	= (u8) (s->read_data & 0x0F00 >> 16);
+			s->drt[addr + 1] 	= (u8) (s->read_data & 0x00F0 >> 8);
+			s->drt[addr] 		= (u8) (s->read_data & 0x000F);
+
+			//if addr + 3 == s->size_of_drt then we've read everything
+		}
+*/
+		if (addr == ((s->size_of_drt / 8) - 1)){
+			printk("%s Read all the DRT data!\ndrt:\n\n", __func__);
+			for (i = 0; i < ((s->number_of_devices + 1) * 8); i++){
+				printk("%2d: %c%c%c%c%c%c%c%c\n", i, 
+								s->drt[(i * 8)], 
+								s->drt[(i * 8) + 1], 
+								s->drt[(i * 8) + 2], 
+								s->drt[(i * 8) + 3], 
+								s->drt[(i * 8) + 4], 
+								s->drt[(i * 8) + 5], 
+								s->drt[(i * 8) + 6], 
+								s->drt[(i * 8) + 7]);
+			}
+			s->drt_state = DRT_READ_SUCCESS;
+		}
+
+		break;
+	case (DRT_READ_SUCCESS):
+		//don't do anything
+		break;
+	default:
+		s->drt_state = DRT_READ_IDLE;
+		break;
+		//if addr + 3 == s->size_of_drt then we've read everything
+	}
+	
+}
+
+
+void sycamore_control_work(struct work_struct *work){
+	sycamore_t *s = NULL;
+	s = container_of(work, sycamore_t, control_work);	
+	printk ("%s: entered\n", __func__);
+	//if the FPGA hasn't been found we need to call the ping command
+	if (!s->sycamore_found){
+		//don't let the periodic function do any work right now, we have to be in control
+		//while we are setting up the DRT and the virtual table
+		sycamore_write (s,
+								SYCAMORE_PING,
+								0,
+								0,
+								NULL,
+								0);
+	}
+	else {
+		//if the DRT hasn't been acquired we need to start that process
+		drt_state_machine(s);
+		//if the DRT has been acquired check if the virtual devices are created
+	
+//XXX: the enable periodic function isn't really needed, but due to kernel crashes, this will keep the code form calling 
+//delayed work over and over again
+		if (!s->enable_periodic && is_drt_read(s)){
+			s->enable_periodic = true;
+			s->do_ping	=	true;
+			schedule_delayed_work(&s->periodic_work, s->ping_timeout);
+		}
+	}
+}
