@@ -1,0 +1,5 @@
+Sycamore module
+
+This module is the abstraction for sycamore, right now there really can be only one sycamore bus in the system, this should change eventually allowing two different sycamores to be on the system controlled through different means.
+
+This is the first level of abstraction that all low level drivers should attach on to

@@ -25,7 +25,7 @@
 #include <linux/usb/serial.h>
 
 #include <linux/platform_device.h>
-#include "../sycamore/sycamore_platform.h"
+#include "../sycamore/sycamore_driver.h"
 
 /*
  * Version Information
@@ -79,7 +79,7 @@ static void cp210x_dtr_rts(struct usb_serial_port *p, int on);
 static int debug;
 
 
-static int cp210x_sycamore_ioctl ( struct tty_struct *tty, unsigned int cmd, unsigned long arg);
+//static int cp210x_sycamore_ioctl ( struct tty_struct *tty, unsigned int cmd, unsigned long arg);
 
 void cp210x_sycamore_process_read_urb(struct urb *urb);
 
@@ -117,7 +117,7 @@ static struct usb_serial_driver cp210x_device = {
 	.attach			= cp210x_startup,
 	.dtr_rts		= cp210x_dtr_rts,
 	.disconnect		= cp210x_sycamore_disconnect,
-	.ioctl			= cp210x_sycamore_ioctl,
+//	.ioctl			= cp210x_sycamore_ioctl,
 	.process_read_urb = cp210x_sycamore_process_read_urb,
 	.write_bulk_callback = cp210x_sycamore_write_bulk_callback
 };
@@ -775,43 +775,45 @@ static void __exit cp210x_exit(void)
 
 static int cp210x_sycamore_attach(struct usb_serial *serial){
 	//generate the sycamore structure
-	sycamore_t *sycamore = NULL;
+	sycamore_driver_t *sd = NULL;
 	struct usb_serial_port *port = NULL;	
 	struct tty_struct *tty = NULL;
 	int retval = 0;
 
 	dbg("%s entered", __func__);
-	sycamore = (sycamore_t *) kzalloc(sizeof(sycamore_t), GFP_KERNEL);
+	sd = sycamore_driver_init();
+	if (sd == NULL){
+		printk("%s: Failed to create a sycamore object\n", __func__);
+		return -1;
+	}
 	//this device only has one serial port at 0
 	port = serial->port[0];
 	tty = port->port.tty;
 
 	//make a tty device for sycamore
-	usb_set_serial_port_data(port, (void *) sycamore);
+	usb_set_serial_port_data(port, (void *) sd);
 
 	//we have to cut the normal usb-serial.c off
-	usb_set_intfdata(serial->interface, serial);
+	usb_set_intfdata(serial->interface, sd);
 	
 //XXX: with a return of zero usb-serial will initialize normally (ttyUSBX) in the future this should be replaced, and direct access to the sycamore platform should be removed
 
-//XXX:DON'T OPEN A INODE!
+//XXX:DON'T OPEN AN INODE!
 	retval = 1;
 		
 		
 //	usb_serial_generic_open(tty, port);
 	cp210x_open(tty, port);
-
-//	dbg("%s tty == %p", __func__, tty);
-	retval = sycamore_attach(sycamore);
-	
-	sycamore_set_write_func(sycamore, cp210x_sycamore_write_data, (void *)port);
+	sycamore_driver_set_write_function(	sd, 
+									cp210x_sycamore_write_data, 
+									(void *)port);
 	dbg("%s returning value %d", __func__, retval);
 	return retval;
 
 }
 static void cp210x_sycamore_disconnect(struct usb_serial *serial){
 	
-	sycamore_t * sycamore = NULL;	
+	sycamore_driver_t * sd = NULL;	
 	struct usb_serial_port *port = NULL;
 
 	dbg("%s entered", __func__);
@@ -819,16 +821,14 @@ static void cp210x_sycamore_disconnect(struct usb_serial *serial){
 	cp210x_close(port);
 
 
-	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
-	sycamore_disconnect(sycamore);
-	kfree(sycamore);
-//	usb_serial_generic_close(port);
-//	sycamore_close_tty_port(&port->port, NULL);
+	sd = (sycamore_driver_t *) usb_get_serial_port_data(port);
+	sycamore_driver_destroy(sycamore);
 	usb_set_serial_port_data(port, (void *) NULL);
 
 }
 
 
+/*
 static int cp210x_sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg){
 	sycamore_t *sycamore = NULL;
 	struct usb_serial_port *port = tty->driver_data;
@@ -838,6 +838,7 @@ static int cp210x_sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsig
 //	return sycamore_ioctl(sycamore, cmd, arg);
 	return 0;
 }
+*/
 
 int cp210x_sycamore_write_data(const void *data, const unsigned char * buf, int count){
 //	dbg("%s: sending: %s", __func__, buf);
@@ -942,7 +943,7 @@ void cp210x_sycamore_write_bulk_callback(struct urb *urb){
 	struct usb_serial_port *port = urb->context;
 	int status = urb->status;
 	int i;
-	sycamore_t *sycamore = NULL;
+	sycamore_driver_t *sd = NULL;
 
 	dbg("%s - port %d", __func__, port->number);
 
@@ -969,26 +970,26 @@ void cp210x_sycamore_write_bulk_callback(struct urb *urb){
 	dbg("%s: got to callback!\n", __func__);
 
 //	usb_serial_port_softint(port);
-	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
-	sycamore_write_callback(sycamore);
+	sd = (sycamore_driver_t *) usb_get_serial_port_data(port);
+	sycamore_driver_write_callback(sd);
 }
 
 void cp210x_sycamore_process_read_urb(struct urb *urb)
 {
 	struct usb_serial_port *port = urb->context;
 	struct tty_struct *tty;
-	sycamore_t *sycamore = NULL;
+	sycamore_driver_t *sd = NULL;
 	char *ch = NULL;
 	int i;
 	
-	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
+	sd = (sycamore_driver_t *) usb_get_serial_port_data(port);
 	ch = (char *)urb->transfer_buffer;
 
 	if (!urb->actual_length)
 		return;
 	
 	//write to sycamore before we check if the tty is there
-	sycamore_read_data(sycamore, ch, urb->actual_length);
+	sycamore_driver_read_data(sd, ch, urb->actual_length);
 
 	tty = tty_port_tty_get(&port->port);
 	if (!tty)
