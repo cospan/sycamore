@@ -52,7 +52,7 @@ void sycamore_driver_read_data(
 						char *buffer, 
 						int length);
 
-sycamore_driver_t * sycamore_driver_init (void); 
+sycamore_driver_t * sycamore_driver_init (void * protocol_data); 
 
 void sycamore_driver_destroy(sycamore_driver_t *sd);
 

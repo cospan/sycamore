@@ -1,6 +1,6 @@
 obj-m += sycamore.o
 
-sycamore-objs := ../sycamore/sycamore_driver.o cp210x-sycamore.o
+sycamore-objs := ../sycamore/sycamore_driver.o uart_protocol.o cp210x-sycamore.o
 
 .PHONY: all clean
 

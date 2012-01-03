@@ -781,7 +781,7 @@ static int cp210x_sycamore_attach(struct usb_serial *serial){
 	int retval = 0;
 
 	dbg("%s entered", __func__);
-	sd = sycamore_driver_init();
+	sd = sycamore_driver_init(serial);
 	if (sd == NULL){
 		printk("%s: Failed to create a sycamore object\n", __func__);
 		return -1;
@@ -796,8 +796,6 @@ static int cp210x_sycamore_attach(struct usb_serial *serial){
 	//we have to cut the normal usb-serial.c off
 	usb_set_intfdata(serial->interface, sd);
 	
-//XXX: with a return of zero usb-serial will initialize normally (ttyUSBX) in the future this should be replaced, and direct access to the sycamore platform should be removed
-
 //XXX:DON'T OPEN AN INODE!
 	retval = 1;
 		
@@ -822,23 +820,10 @@ static void cp210x_sycamore_disconnect(struct usb_serial *serial){
 
 
 	sd = (sycamore_driver_t *) usb_get_serial_port_data(port);
-	sycamore_driver_destroy(sycamore);
+	sycamore_driver_destroy(sd);
 	usb_set_serial_port_data(port, (void *) NULL);
 
 }
-
-
-/*
-static int cp210x_sycamore_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long arg){
-	sycamore_t *sycamore = NULL;
-	struct usb_serial_port *port = tty->driver_data;
-	
-	dbg("%s entered", __func__);
-	sycamore = (sycamore_t *) usb_get_serial_port_data(port);
-//	return sycamore_ioctl(sycamore, cmd, arg);
-	return 0;
-}
-*/
 
 int cp210x_sycamore_write_data(const void *data, const unsigned char * buf, int count){
 //	dbg("%s: sending: %s", __func__, buf);

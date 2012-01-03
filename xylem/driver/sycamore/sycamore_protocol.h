@@ -16,6 +16,8 @@
 #ifndef __SYCAMORE_PROTOCOL_H__
 #define __SYCAMORE_PROTOCOL_H__
 
+#include <linux/types.h>
+
 #define TIMED_OUT			-2
 #define PROTOCOL_ERROR		-1
 #define INITIALIZED			0
@@ -32,6 +34,8 @@ struct _sycamore_protocol_t {
 	//protocol specific data
 	void * protocol;
 
+	void * protocol_data;
+
 	//generic items in all protocols
 	int command_status;
 
@@ -39,7 +43,7 @@ struct _sycamore_protocol_t {
 	char *drt;
 };
 
-sycamore_protocol_t * sp_init (void);
+sycamore_protocol_t * sp_init (void * protocol_data);
 
 void sp_destroy(sycamore_protocol_t *sp);
 
@@ -59,7 +63,7 @@ int sp_parse_read(	sycamore_protocol_t *sp,
 bool sp_is_control_response ( sycamore_protocol_t *sp);
 void sp_start_read_drt (sycamore_protocol_t *sp);
 bool sp_is_ping_response(sycamore_protocol_t *sp);
-int sp_get_command_status(sycamore_protocol *sp);
+int sp_get_command_status(sycamore_protocol_t *sp);
 
 
 

@@ -50,6 +50,7 @@ sycamore_protocol_t * sp_init(void * protocol_data){
 	}
 	sp->command_status = INITIALIZED;
 	sp->drt = NULL;
+	sp->protocol_data = protocol_data;
 
 	//CUSTOM_START
 
@@ -124,7 +125,9 @@ int sp_parse_read(	sycamore_protocol_t *sp,
 int sp_format_new_write(	sycamore_protocol_t *sp,
 							char * buffer_out, 
 							char * buffer_in, 
-							int size);
+							int size){
+	return 0;
+}
 
 /**
  * sp_format_cont_write
@@ -137,7 +140,9 @@ int sp_format_new_write(	sycamore_protocol_t *sp,
 int sp_format_cont_write(	sycamore_protocol_t *sp,
 							char * buffer_out, 
 							char * buffer_in, 
-							int size);
+							int size){
+	return 0;
+}
 
 /**
  * sp_is_control_response
@@ -147,7 +152,9 @@ int sp_format_cont_write(	sycamore_protocol_t *sp,
  *	true: control response
  *	false: not a control response
  **/
-bool sp_is_control_response ( sycamore_protocol_t *sp);
+bool sp_is_control_response ( sycamore_protocol_t *sp){
+	return false;
+}
 
 /**
  * sp_start_read_drt
@@ -156,7 +163,8 @@ bool sp_is_control_response ( sycamore_protocol_t *sp);
  * Return:
  *	nothing
  **/
-void sp_start_read_drt (sycamore_protocol_t *sp);
+void sp_start_read_drt (sycamore_protocol_t *sp){
+}
 
 /**
  * sp_is_ping_response
@@ -166,8 +174,9 @@ void sp_start_read_drt (sycamore_protocol_t *sp);
  *	true: if this is a ping response
  *	false: if this is not a ping response
  **/
-bool sp_is_ping_response(sycamore_protocol_t *sp);
-
+bool sp_is_ping_response(sycamore_protocol_t *sp){
+	return false;
+}
 /**
  * sp_get_command_status
  * Description: get the numeric value of the command (see sycamore_protocol.h
@@ -176,7 +185,9 @@ bool sp_is_ping_response(sycamore_protocol_t *sp);
  * Return:
  *	numeric command status value
  **/
-int sp_get_command_status(sycamore_protocol *sp);
+int sp_get_command_status(sycamore_protocol_t *sp){
+	return 0;
+}
 
 
 

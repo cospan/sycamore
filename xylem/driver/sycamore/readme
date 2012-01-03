@@ -1,5 +1,49 @@
-Sycamore module
+Sycamore model
 
-This module is the abstraction for sycamore, right now there really can be only one sycamore bus in the system, this should change eventually allowing two different sycamores to be on the system controlled through different means.
+Sycamore is designed to interface with an FPGA or ASIC a minimum amount of coding.
+The higher levels will generally need not be touched when porting over a new
+protocol, the main portion of the code that will need to be modified is the 
+protocol layer [1]. It is likely that there already is a physical layer driver
+that will require little modification to start communicating with a device.
 
-This is the first level of abstraction that all low level drivers should attach on to
+the level of abstraction is as follows (lowest to highest):
+
+
+[0]: physical layer:
+	-a hardware driver which specific to a protocol such as UART or PCI
+	-the interface between this layer and the next layer up is to read and write
+	data to the remote device, and set control parameters specific to the protocol
+
+[1]: sycamore protocol layer:
+	-the sycamore protocol that is wraps the communication between the host and the
+	slave sycamore
+	-wraps up all sycamore commands/read/writes into writable form for the physical
+	layer.
+	-decodes all incomming data from the physical layer and presents an abstracted
+	data for the above bus layer
+
+[2]: sycamore bus layer:
+	-generates a platform bus
+	-generates virtual devices
+	-sysfs interface
+	-sends protocol agnostic commands/reads/writes to the protocol layer to encode
+	the data for the physical layer
+
+[3]: sycamore virtual device layer:
+	-virtual platform devices that will communicate with the sycamore bus
+	-the interface between this layer and the bus layer is read, write, and interrupt
+	-this layer generates a device specific interface. presenting devices such as
+		-gpio
+		-buttons
+		-leds
+		-spi
+		-uart
+		-i2c
+		-frame buffers
+
+[4]: sycamore driver layer:
+	-drivers to interface with these virtual devices
+	-these drivers will instantiate inodes that will interface with userland
+	applications like any other driver
+	
+

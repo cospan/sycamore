@@ -3,6 +3,40 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
 
+
+
+/**
+ * sycamore_driver_init
+ * Description: Initializes the sycamore_driver
+ *	-creates an instance
+ *	-initializes the variables
+ *
+ * Return:
+ *	sycamore_driver_t instantiation initialized
+ *	NULL on failure
+ */
+
+sycamore_driver_t * sycamore_driver_init(void * protocol_data){
+	sycamore_driver_t * sd = NULL;
+	sd = (sycamore_driver_t *) kzalloc(sizeof(sycamore_driver_t), GFP_KERNEL);
+	if (sd == NULL){
+		printk ("%s: Failed to allocate sycamore_driver_t\n", __func__);
+		return NULL;
+	}
+
+	//initialize the variables
+	sd->write_func = NULL;
+	sd->write_data = NULL;
+
+	//initialize all things sycmore_driver_t
+
+
+	//initialize the protocol
+	sd->sp = sp_init(protocol_data); 
+	return sd;
+}
+
+
 /**
  * sycamore_driver_set_write_function
  * Description: sets the driver specific write function, this is what
@@ -36,33 +70,6 @@ void sycamore_driver_read_data(
 						int length){
 }
 
-
-/**
- * sycamore_driver_init
- * Description: Initializes the sycamore_driver
- *	-creates an instance
- *	-initializes the variables
- *
- * Return:
- *	sycamore_driver_t instantiation initialized
- *	NULL on failure
- */
-
-sycamore_driver_t * sycamore_driver_init(void){
-	sycamore_driver_t * sd = NULL;
-	sd = (sycamore_driver_t *) kzalloc(sizeof(sycamore_driver_t), GFP_KERNEL);
-	if (sd == NULL){
-		printk ("%s: Failed to allocate sycamore_driver_t\n", __func__);
-		return NULL;
-	}
-
-	//initialize the variables
-	sd->write_func = NULL;
-	sd->write_data = NULL;
-
-	//initialize all things sycmore_driver_t
-	return sd;
-}
 
 /**
  * sycamore_driver_destroy
