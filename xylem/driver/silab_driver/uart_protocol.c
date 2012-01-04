@@ -1,6 +1,7 @@
 //protocol_template.c
 #include <linux/kernel.h>
 #include <linux/slab.h>
+#include <linux/workqueue.h>
 #include "../sycamore/sycamore_protocol.h"
 #include "../sycamore/sycamore_bus.h"
 #include "../sycamore/sycamore_commands.h"
@@ -16,7 +17,7 @@ struct _sycamore_protocol_t {
 	//protocol specific data
 	void * protocol;
 
-	sycamore_bus_t * sb;
+	sycamore_bus_t sb;
 
 	//hardware comm
 	hardware_write_func_t write_func;
@@ -26,6 +27,8 @@ struct _sycamore_protocol_t {
 	int write_out_count;
 	int write_out_size;
 	char write_buffer[WRITE_BUF_SIZE];
+	struct work_struct write_work;
+
 
 
 	//read information
@@ -42,7 +45,8 @@ struct _sycamore_protocol_t {
 
 
 
-//local function templates
+//local function prototypes
+//sets up everything for a write to the hardware
 int hardware_write (
 				sycamore_protocol_t * sp,
 				u32 command,
@@ -51,6 +55,8 @@ int hardware_write (
 				char * buffer,
 				u32 length);
 
+
+void sp_write_work(struct work_struct *work);
 
 /**
  * protocol_template
@@ -99,6 +105,8 @@ sycamore_protocol_t * sp_init(void){
 	sp->write_data			= NULL;
 	sp->write_func			= NULL;
 
+	INIT_WORK(&sp->write_work, sp_write_work);
+
 	sp->write_out_count		= 0;
 	sp->write_out_size		= 0;
 
@@ -138,6 +146,10 @@ void sp_destroy(sycamore_protocol_t *sp){
 	//stop anything you need to stop here, deallocate anything here
 	//CUSTOM_END
 	//free the custom protocol stuff
+		
+
+	cancel_work_sync(&sp->write_work);
+
 	kfree(sp->protocol);
 	kfree(sp);
 }
@@ -160,6 +172,42 @@ void sp_set_write_function(
 }
 
 
+/**
+ * sp_write_work
+ * Desciption: bottom half interrupts so that the heavly lifting
+ *	of writing to the hardware driver isn't done within a interrupt
+ *	context
+ *
+ * Return:
+ *	nothing
+ **/
+void sp_write_work(struct work_struct *work){
+	sycamore_protocol_t *sp = NULL;
+	printk("%s: entered\n", __func__);
+	sp = container_of(work, sycamore_protocol_t, write_work);
+
+	if (sp->write_out_count < sp->write_out_size){
+		//got more data to send out
+		printk("sending the rest of the data (%d more bytes)\n", sp->write_out_size - sp->write_out_count);	
+		sp->write_out_count += sp->write_func(
+								sp->write_data, 
+								&sp->write_buffer[sp->write_out_count], 
+								sp->write_out_size - sp->write_out_count);
+		if (sp->write_out_count != sp->write_out_size){
+			printk("%s: Didn't send all the data out! length of write == %d, length written = %d\n", 
+						__func__, 
+						sp->write_out_size, 
+						sp->write_out_count);
+		}
+		else {
+			printk("%s: Sent all the rest of the data\n", __func__);
+		}
+	}
+	else {
+		//finished sending data to the FPGA give the bus a callback
+		sb_write_callback(&sp->sb);
+	}
+}
 
 /**
  * sp_write_callback
@@ -172,6 +220,7 @@ void sp_set_write_function(
  **/
 void sp_write_callback(sycamore_protocol_t *sp){
 	printk("%s: entered\n", __func__);
+	schedule_work(&sp->write_work);
 }
 
 /**
@@ -348,16 +397,15 @@ void sp_hardware_read(
 					sp->read_data_count--;
 //XXX need to indicate that there is data read to the sycamore_bus
 
-					if (sp->sb != NULL){
 					
-						if (sp->read_command == SYCAMORE_INTERRUPTS){
-							sb_interrupt(sp->sb, sp->read_data);		
-							continue;
-						}
-						if (sp->read_command == SYCAMORE_PING){
-							sb_ping_response(sp->sb);
-							continue;
-						}
+					if (sp->read_command == SYCAMORE_INTERRUPTS){
+						sb_interrupt(&sp->sb, sp->read_data);		
+						continue;
+					}
+					if (sp->read_command == SYCAMORE_PING){
+						sb_ping_response(&sp->sb);
+						continue;
+					}
 //					sb_read(sp->sb, 
 //XXX: send one double word at a time to the sycamore bus
 						/*
@@ -367,12 +415,11 @@ void sp_hardware_read(
 							the position is defined in terms of 4 * 8 = 32
 							and were copying it into a byte array
 						*/
-						read_buffer_pos = sp->read_data_pos << 2;
-						if (sp->read_data_count == 0){
+					read_buffer_pos = sp->read_data_pos << 2;
+					if (sp->read_data_count == 0){
 //XXX: tell the sycamore bus we are done with a read
-//							dev->read_address = sp->read_address;
-//							dev->read_address = sp->read_size + 1;
-						}
+//						dev->read_address = sp->read_address;
+//						dev->read_address = sp->read_size + 1;
 					}
 					if (sp->read_data_count == 0){
 						sp->read_state = READ_IDLE;
@@ -413,13 +460,18 @@ void sp_hardware_read(
 
 
 int sp_write(
-		sycamore_protocol_t *sp,
+		sycamore_bus_t *sb,
 		u8 device_address,
 		u32 offset,
 		char * out_buffer,
 		u32 length){
+
+	sycamore_protocol_t *sp = NULL;
 	int retval = 0;
+
 	printk("%s: entered\n", __func__);
+	sp = container_of(sb, sycamore_protocol_t, sb); 
+
 	retval = hardware_write (
 				sp,
 				SYCAMORE_WRITE,
@@ -440,14 +492,16 @@ int sp_write(
  *	nothing
  **/
 void sp_read(
-		sycamore_protocol_t *sp,
+		sycamore_bus_t *sb,
 		u8 device_address,
 		u32 offset,
 		char * out_buffer,
 		u32 length){
 
+	sycamore_protocol_t *sp = NULL;
 	int retval = 0;
 	printk("%s: entered\n", __func__);
+	sp = container_of(sb, sycamore_protocol_t, sb); 
 	retval = hardware_write (
 				sp,
 				SYCAMORE_READ,
@@ -464,8 +518,10 @@ void sp_read(
  * Return:
  *	nothing
  **/
-void sp_ping(	sycamore_protocol_t *sp){
+void sp_ping(	sycamore_bus_t *sb){
+	sycamore_protocol_t *sp = NULL;
 	printk("%s: entered\n", __func__);
+	sp = container_of(sb, sycamore_protocol_t, sb); 
 	hardware_write(	sp,
 					SYCAMORE_PING,
 					0,
