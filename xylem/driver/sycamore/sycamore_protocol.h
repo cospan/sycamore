@@ -17,54 +17,25 @@
 #define __SYCAMORE_PROTOCOL_H__
 
 #include <linux/types.h>
+#define WRITE_BUF_SIZE 512
 
-#define TIMED_OUT			-2
-#define PROTOCOL_ERROR		-1
-#define INITIALIZED			0
-#define NOT_FINISHED		1
-#define READ_RESPONSE		2
-#define WRITE_ACK			3
-#define PING_RESPONSE		4
-#define DRT_RESPONSE		5
-#define CONTROL_RESPONSE	6
+//hardware callback whenever we want to perform a write to the controlling device
+typedef int (*hardware_write_func_t) (	const void * data, 
+										const unsigned char * buf, 
+										int count);
 
 typedef struct _sycamore_protocol_t sycamore_protocol_t;
 
-struct _sycamore_protocol_t {
-	//protocol specific data
-	void * protocol;
-
-	void * protocol_data;
-
-	//generic items in all protocols
-	int command_status;
-
-	int size_of_drt;
-	char *drt;
-};
-
-sycamore_protocol_t * sp_init (void * protocol_data);
-
+sycamore_protocol_t * sp_init (void);
 void sp_destroy(sycamore_protocol_t *sp);
-
-int sp_format_new_write(	sycamore_protocol_t *sp,
-							char * buffer_out, 
-							char * buffer_in, 
-							int size);
-int sp_format_cont_write(	sycamore_protocol_t *sp,
-							char * buffer_out, 
-							char * buffer_in, 
-							int size);
-
-int sp_parse_read(	sycamore_protocol_t *sp, 
-					char * buffer_in,
-					int size);
-
-bool sp_is_control_response ( sycamore_protocol_t *sp);
-void sp_start_read_drt (sycamore_protocol_t *sp);
-bool sp_is_ping_response(sycamore_protocol_t *sp);
-int sp_get_command_status(sycamore_protocol_t *sp);
-
-
+void sp_write_callback(sycamore_protocol_t *sp);
+void sp_set_write_function(
+						sycamore_protocol_t *sp,
+						hardware_write_func_t write_func,
+						void *data);
+void sp_hardware_read(
+						sycamore_protocol_t *sp, 
+						char *buffer, 
+						int length);
 
 #endif //__SYCAMORE_PROTOCOL_H__

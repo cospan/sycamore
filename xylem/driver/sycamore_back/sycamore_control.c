@@ -297,7 +297,9 @@ int sycamore_control_process_read_data(sycamore_t * s, char * buffer, int length
 					}
 //XXX need to write to the associated driver
 					else if (s->devices[s->read_device_address] != NULL){
-						sycamore_dev_t *dev = (sycamore_dev_t *) platform_get_drvdata(s->devices[s->read_device_address]); 	
+						sycamore_dev_t *dev = (sycamore_dev_t *) 
+										platform_get_drvdata(
+											s->devices[s->read_device_address]); 	
 //XXX: call the devices read function
 						/*
 							send the address
