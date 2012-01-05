@@ -58,8 +58,8 @@ struct _sycamore_bus_t {
 };
 
 //sycamore bus
-void sycamore_bus_init (sycamore_bus_t * sb); 
-void sycamore_bus_destroy(sycamore_bus_t *sb);
+void sb_init (sycamore_bus_t * sb); 
+void sb_destroy(sycamore_bus_t *sb);
 
 //sycamore device
 void sd_init(sycamore_device_t *sd);
@@ -67,33 +67,34 @@ void sd_destroy(sycamore_device_t *sd);
 
 
 //********** TO THE UPPER LEVEL (sycamore device) **********
-void sd_read(sycamore_device_t *sd, int size);
-void sd_interrupt(sycamore_device_t *sd);
+void sb_sd_read(sycamore_device_t *sd, int size);
+void sb_sd_interrupt(sycamore_device_t *sd);
 
 
 //********** FROM THE UPPER LEVEL (sycamore device) **********
-void sb_write(sycamore_device_t *sd);
+void sd_sb_write(sycamore_device_t *sd);
+void sd_sb_read(sycamore_device_t *sd, u32 address, u32 size);
+//read from a device
 
 
 
 //********** TO THE LOWER LEVEL (sycamore protocol) **********
 //write to the FPGA
-int sp_write(	
+int sb_sp_write(	
 				sycamore_bus_t *sb, 
 				u8 device_address, 
 				u32 offset, 
 				char * out_buffer, 
 				u32 length);
-
 //read from the FPGA
-void sp_read(	
+void sb_sp_read(	
 				sycamore_bus_t *sb,
 				u8 device_address, 
 				u32 offset, 
 				char * in_buffer, 
 				u32 length);
 //ping the FPGA
-void sp_ping(
+void sb_sp_ping(
 				sycamore_bus_t *sb);
 
 
@@ -102,15 +103,15 @@ void sp_ping(
 
 //********** FROM THE LOWER LEVEL **********
 //a ping response from the FPGA
-void sb_ping_response(
+void sp_sb_ping_response(
 				sycamore_bus_t *sb);
 //interrupts
-void sb_interrupt(
+void sp_sb_interrupt(
 				sycamore_bus_t *sb,
 				u32 interrupts);
 
 //write from the sycamore protocol layer to here
-void sb_read(sycamore_bus_t *sb,
+void sp_sb_read(sycamore_bus_t *sb,
 				u8 device_address,	//device to write to
 				u32 offset,			//where in the offset we started
 				u32 position,		//position in the read
@@ -118,7 +119,7 @@ void sb_read(sycamore_bus_t *sb,
 				u32 size_left);		//how much more we have to read
 
 
-void sb_write_callback(sycamore_bus_t *sb);
+void sp_sb_write_callback(sycamore_bus_t *sb);
 
 
 #endif //__SYCAMORE_BUS_H__

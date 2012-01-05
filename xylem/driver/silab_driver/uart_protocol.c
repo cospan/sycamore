@@ -56,7 +56,7 @@ int hardware_write (
 				u32 length);
 
 
-void sp_write_work(struct work_struct *work);
+void write_work(struct work_struct *work);
 
 /**
  * protocol_template
@@ -105,7 +105,7 @@ sycamore_protocol_t * sp_init(void){
 	sp->write_data			= NULL;
 	sp->write_func			= NULL;
 
-	INIT_WORK(&sp->write_work, sp_write_work);
+	INIT_WORK(&sp->write_work, write_work);
 
 	sp->write_out_count		= 0;
 	sp->write_out_size		= 0;
@@ -173,7 +173,7 @@ void sp_set_write_function(
 
 
 /**
- * sp_write_work
+ * write_work
  * Desciption: bottom half interrupts so that the heavly lifting
  *	of writing to the hardware driver isn't done within a interrupt
  *	context
@@ -181,7 +181,7 @@ void sp_set_write_function(
  * Return:
  *	nothing
  **/
-void sp_write_work(struct work_struct *work){
+void write_work(struct work_struct *work){
 	sycamore_protocol_t *sp = NULL;
 	printk("%s: entered\n", __func__);
 	sp = container_of(work, sycamore_protocol_t, write_work);
@@ -205,7 +205,7 @@ void sp_write_work(struct work_struct *work){
 	}
 	else {
 		//finished sending data to the FPGA give the bus a callback
-		sb_write_callback(&sp->sb);
+		sp_sb_write_callback(&sp->sb);
 	}
 }
 
@@ -399,11 +399,11 @@ void sp_hardware_read(
 
 					
 					if (sp->read_command == SYCAMORE_INTERRUPTS){
-						sb_interrupt(&sp->sb, sp->read_data);		
+						sp_sb_interrupt(&sp->sb, sp->read_data);		
 						continue;
 					}
 					if (sp->read_command == SYCAMORE_PING){
-						sb_ping_response(&sp->sb);
+						sp_sb_ping_response(&sp->sb);
 						continue;
 					}
 //					sb_read(sp->sb, 
@@ -459,7 +459,7 @@ void sp_hardware_read(
 }
 
 
-int sp_write(
+int sb_sp_write(
 		sycamore_bus_t *sb,
 		u8 device_address,
 		u32 offset,
@@ -491,7 +491,7 @@ int sp_write(
  * Return:
  *	nothing
  **/
-void sp_read(
+void sb_sp_read(
 		sycamore_bus_t *sb,
 		u8 device_address,
 		u32 offset,
@@ -518,7 +518,7 @@ void sp_read(
  * Return:
  *	nothing
  **/
-void sp_ping(	sycamore_bus_t *sb){
+void sb_sp_ping(	sycamore_bus_t *sb){
 	sycamore_protocol_t *sp = NULL;
 	printk("%s: entered\n", __func__);
 	sp = container_of(sb, sycamore_protocol_t, sb); 

@@ -15,7 +15,7 @@
 
 //local function prototypes
 void control_work(struct work_struct *work);
-void reset_devices(sycamore_bus_t *sb);
+void reset_sycamore_devices(sycamore_bus_t *sb);
 void drt_state_machine(sycamore_bus_t *sb);
 
 /**
@@ -29,7 +29,7 @@ void drt_state_machine(sycamore_bus_t *sb);
  *	NULL on failure
  */
 
-void sycamore_bus_init(sycamore_bus_t *sb){
+void sb_init(sycamore_bus_t *sb){
 	//initialize the variables
 	printk("%s: entered\n", __func__);
 
@@ -50,13 +50,13 @@ void sycamore_bus_init(sycamore_bus_t *sb){
  * Return:
  *	nothing
  */
-void sycamore_bus_destroy(sycamore_bus_t *sb){
+void sb_destroy(sycamore_bus_t *sb){
 
 	//clean up any resources
 	//kill off the control work struct
 	cancel_work_sync(&sb->control_work);
 
-	reset_devices(sb);
+	reset_sycamore_devices(sb);
 
 	if (sb->drt != NULL){
 		kfree(sb->drt);
@@ -79,7 +79,7 @@ void sycamore_bus_destroy(sycamore_bus_t *sb){
  * Return:
  *	Nothing
  **/
-void sb_read(sycamore_bus_t *sb,
+void sp_sb_read(sycamore_bus_t *sb,
 				u8 device_address,	//device to write to
 				u32 offset,			//where in the offset we started
 				u32 position,		//position in the read
@@ -114,7 +114,7 @@ void sb_read(sycamore_bus_t *sb,
  * Return:
  *	Nothing
  **/
-void sb_interrupt(
+void sp_sb_interrupt(
 				sycamore_bus_t *sb,
 				u32 interrupts){
 	printk("%s: entered\n", __func__);
@@ -142,7 +142,7 @@ void sb_interrupt(
  * Return:
  *	Nothing
  **/
-void sb_ping_response(
+void sp_sb_ping_response(
 				sycamore_bus_t *sb){
 	printk("%s: entered\n", __func__);
 	//check if need to get the DRT
@@ -159,7 +159,7 @@ void sb_ping_response(
  * Return:
  *	Nothing
  **/
-void sb_write_callback(sycamore_bus_t *sb){
+void sp_sb_write_callback(sycamore_bus_t *sb){
 	printk("%s: entered\n", __func__);
 }
 
@@ -173,7 +173,7 @@ void sb_write_callback(sycamore_bus_t *sb){
  *	nothing
  */
 void control_work(struct work_struct *work){
-	sycamore_but_t *sb = NULL;
+	sycamore_bus_t *sb = NULL;
 	printk("%s: entered\n", __func__);
 
 	sb = container_of (work, sycamore_bus_t, control_work);
@@ -184,13 +184,13 @@ void control_work(struct work_struct *work){
 			clear out all of the devices, this could be either from initialization or
 			if the FPGA was reset
 		*/
-		reset_devices(sb);
+		reset_sycamore_devices(sb);
 
 		//reset the drt state machine
 		drt_state_machine(sb);
 
 		//ping the FPGA
-		sp_ping(sb);
+		sb_sp_ping(sb);
 	}
 	else {
 		drt_state_machine(sb);
@@ -199,16 +199,16 @@ void control_work(struct work_struct *work){
 
 
 /**
- * reset_devices
+ * reset_sycamore_devices
  * Description: clears all the devices of the characteristics, performs just like a
  *	remove of a device
  *
  * Return:
  *	nothing
  **/
-void reset_devices(sycamore_bus_t *sb){
-	printk("%s: entered\n", __func__);
+void reset_sycamore_devices(sycamore_bus_t *sb){
 	int i;
+	printk("%s: entered\n", __func__);
 
 	for (i = 1; i < MAX_NUM_DEVICES; i++){
 		//go through each of the devices and call the remove function
@@ -217,8 +217,8 @@ void reset_devices(sycamore_bus_t *sb){
 
 
 void drt_state_machine(sycamore_bus_t *sb){
-	int i = 0;
-	int retval = 0;
+	//int i = 0;
+	//int retval = 0;
 
 	printk("%s: entered\n", __func__);
 	if (sb->drt == NULL || 
@@ -251,7 +251,7 @@ void drt_state_machine(sycamore_bus_t *sb){
 		case (DRT_READ_SUCCESS):
 			break;
 		default:
-			s->drt_state = DRT_READ_IDLE;
+			sb->drt_state = DRT_READ_IDLE;
 			//something went wrong, most likely we need to restart the DRT STATE MACHINE
 			schedule_work(&sb->control_work);
 			break;
