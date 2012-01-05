@@ -1,7 +1,33 @@
 //sycamore_bus.c
+
+/*
+Distributed under the MIT licesnse.
+Copyright (c) 2011 Dave McCoy (dave.mccoy@cospandesign.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in 
+the Software without restriction, including without limitation the rights to 
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+of the Software, and to permit persons to whom the Software is furnished to do 
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all 
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+SOFTWARE.
+*/
+
+
 #include "sycamore_bus.h"
 #include <linux/kernel.h>
 #include <linux/slab.h>
+#include <linux/sched.h>
 
 //DRT state machine variable
 #define DRT_READ_IDLE 			0
@@ -16,8 +42,9 @@
 //local function prototypes
 void control_work(struct work_struct *work);
 void reset_sycamore_devices(sycamore_bus_t *sb);
-void drt_state_machine(sycamore_bus_t *sb);
-
+int protocol_write(sycamore_device_t *sd, u32 command, u32 address, u8 *data, u32 size);
+void ping (sycamore_bus_t * sb);
+//void drt_state_machine(sycamore_bus_t *sb);
 /**
  * sycamore_bus_init
  * Description: Initializes the sycamore_bus
@@ -26,20 +53,50 @@ void drt_state_machine(sycamore_bus_t *sb);
  *
  * Return:
  *	sycamore_bus_t instantiation initialized
- *	NULL on failure
+ *	-1 on failure
  */
 
-void sb_init(sycamore_bus_t *sb){
+int sb_init(sycamore_bus_t *sb){
 	//initialize the variables
+	int i = 0;
+	srb_t * srb = NULL;
+
 	printk("%s: entered\n", __func__);
 
 	//initialize all things sycmore_driver_t
 	sb->sycamore_found = false;
-	sb->size_of_drt = 0;
-	sb->drt = NULL;
+	sb->sleeping_context = NULL;
+	atomic_set(&sb->bus_busy, 0);
+//	sb->size_of_drt = 0;
+//	sb->drt = NULL;
 	INIT_WORK(&sb->control_work, control_work); 
 
+
+	//setup the SRB lists
+	INIT_LIST_HEAD(&sb->available_queue);
+	INIT_LIST_HEAD(&sb->ready_queue);
+	INIT_LIST_HEAD(&sb->busy_queue);
+
+	//initialize the wait queue
+	init_waitqueue_head(&sb->write_wait_queue);
+
+	//add SRB's to the available_queue
+	for (i = 0; i < NUM_OF_SRBS; i++){
+		srb = srb_new();	
+		if (srb == NULL){
+			printk("%s: failed to instantiate an SRB\n", __func__);
+			goto fail1;
+		}
+		//add it to the available queue
+		list_add_tail(srb_get_list_head(srb), &sb->available_queue);
+	}
+	//gotta start the ball rolling
 	schedule_work(&sb->control_work);
+
+	return 0;
+
+fail1:
+	return -1;
 }
 
 
@@ -52,14 +109,35 @@ void sb_init(sycamore_bus_t *sb){
  */
 void sb_destroy(sycamore_bus_t *sb){
 
+	struct list_head *pos = NULL;
+	srb_t *srb = NULL;
+
+	printk("%s: entered\n", __func__);
 	//clean up any resources
 	//kill off the control work struct
 	cancel_work_sync(&sb->control_work);
 
+	//stop any new transactions
+	atomic_set(&sb->bus_busy, 1);
+
 	reset_sycamore_devices(sb);
 
-	if (sb->drt != NULL){
-		kfree(sb->drt);
+	if (!list_empty_careful(&sb->ready_queue)){
+		list_for_each(pos, &sb->ready_queue){
+			list_add_tail(pos, &sb->busy_queue); 
+		}
+	}
+	if (!list_empty_careful(&sb->available_queue)){
+		list_for_each(pos, &sb->available_queue){
+			list_add_tail(pos, &sb->busy_queue); 
+		}
+
+	}
+	//destroy all the SRB
+	if (!list_empty_careful(&sb->busy_queue)){
+		list_for_each_entry(srb, &sb->busy_queue, lh){
+			srb_destroy(srb);		
+		}
 	}
 }
 
@@ -101,6 +179,16 @@ void sp_sb_read(sycamore_bus_t *sb,
 		launch off a workqueue so that the virtual device is not operating in
 		an interrupt
 	*/
+
+
+	/* when were done we need to release the context */ 
+	wake_up_process(sb->sleeping_context);
+
+	//now we can say the bus is not busy
+	/**DO NOT CALL THIS BEFORE RELEASING THE CONTEXT, BAD THINGS WILL HAPPEN! **/
+	atomic_set(&sb->bus_busy, 1);
+	wake_up(&sb->write_wait_queue);
+	
 
 }
 
@@ -186,15 +274,18 @@ void control_work(struct work_struct *work){
 		*/
 		reset_sycamore_devices(sb);
 
-		//reset the drt state machine
+/*		//reset the drt state machine
 		drt_state_machine(sb);
+*/
 
 		//ping the FPGA
-		sb_sp_ping(sb);
+		ping(sb);
 	}
+	/*
 	else {
 		drt_state_machine(sb);
 	}
+	*/
 }
 
 
@@ -215,7 +306,7 @@ void reset_sycamore_devices(sycamore_bus_t *sb){
 	}
 }
 
-
+/*
 void drt_state_machine(sycamore_bus_t *sb){
 	//int i = 0;
 	//int retval = 0;
@@ -257,3 +348,59 @@ void drt_state_machine(sycamore_bus_t *sb){
 			break;
 	}
 }
+*/
+
+
+/**
+ * protocol_write
+ * Description: initiate a write to the bus
+ *	if the sd device implements blocking then the bus will hold the context
+ *	in a wait queue until the bus is available
+ *	regardless of if this is a read, or a write to the protocol layer it looks the same from here
+ **/
+int protocol_write(sycamore_device_t *sd, u32 command, u32 address, u8 *data, u32 size){
+	//try and get a SRB from the available queue	
+	sycamore_bus_t *sb = NULL;
+
+	printk("%s: entered\n", __func__);
+	sb = sd->sb;
+
+	//check if the bus is busy right now
+	if (atomic_read(&sb->bus_busy)){
+		if (!sd->blocking){
+			//the device is not blocking, so just return
+			return -EAGAIN;
+		}
+		if (wait_event_interruptible_exclusive(sb->write_wait_queue, (atomic_read(&sb->bus_busy) == 0))){
+			/*
+				got an interupt before the system could respond,
+				this could be due to closing sycamore
+			*/
+			return -ERESTARTSYS;
+		}
+		//woot! bus is free again
+	}
+
+	//grab the bus for myself
+	atomic_set(&sb->bus_busy, 1);
+
+	//all the SRB's should be available to me right now
+	sb->working_device = sd;	
+	sd->write_in_progress = 1;
+	
+	sb_sp_write_start(
+						sb,
+						command,
+						sd->index,
+						address,
+						size);
+	sb->sleeping_context = current;
+//XXX: make the context sleep here until the the write is complete the read function should get an acknowledgement to the write
+	set_current_state(TASK_INTERRUPTIBLE);
+	schedule();
+	return -1;
+
+}
+void sd_sb_read(sycamore_device_t *sd, u32 address, u32 size){
+}
+
