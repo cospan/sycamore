@@ -25,6 +25,7 @@ SOFTWARE.
 
 
 #include "sycamore_bus.h"
+#include "sycamore_commands.h"
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
@@ -65,7 +66,6 @@ int sb_init(sycamore_bus_t *sb){
 
 	//initialize all things sycmore_driver_t
 	sb->sycamore_found = false;
-	sb->sleeping_context = NULL;
 	atomic_set(&sb->bus_busy, 0);
 //	sb->size_of_drt = 0;
 //	sb->drt = NULL;
@@ -158,16 +158,52 @@ void sb_destroy(sycamore_bus_t *sb){
  *	Nothing
  **/
 void sp_sb_read(sycamore_bus_t *sb,
+				u32 command,
 				u8 device_address,	//device to write to
 				u32 offset,			//where in the offset we started
 				u32 position,		//position in the read
+				u32 total_length,	//total length of data to read in
 				u32 length,			//length of this read
-				u32 size_left){		//how much more we have to read
+				u32 size_left,		//how much more we have to read
+				u8 * data){		
 
+	u32 interrupts = 0;
 	printk("%s: entered\n", __func__);
 	//if the device doesn't exists throw all this away
 
 
+	switch (command){
+		case (SYCAMORE_INTERRUPTS):
+			interrupts |= (u32) (data[0] << 24);
+			interrupts |= (u32) (data[1] << 16);
+			interrupts |= (u32) (data[2] << 8);
+			interrupts |= (u32) (data[3]);
+			//this assumes that the bytes for an int ar arranged correctly
+			if (interrupts & 0x01){
+				//FPGA was reset
+//XXX: FPGA reset here! (make a function that will reset everything
+				sb->sycamore_found = false;
+				schedule_work(&sb->control_work);
+			}
+			break;
+		case (SYCAMORE_PING):
+			//response from a ping
+			sb->sycamore_found = true;
+			schedule_work(&sb->control_work);
+			break;
+		case (SYCAMORE_WRITE):
+//XXX: Tell the appropriate device that the write was acknowledged
+			break;
+		case (SYCAMORE_READ):
+//XXX: Feed the device data to be read in
+			//we feed the device one double word at a time, the device must put it together
+			//once the data is all read in then we need to tell the read that it's done
+			break;
+		default:
+			//an undefined command??
+			printk("%s: received an illegal command: %8X\n", __func__, command);
+			break;
+	}
 	/*
 		grab the read buffer of the virtual device and start copying the data
 		into it
@@ -181,62 +217,14 @@ void sp_sb_read(sycamore_bus_t *sb,
 	*/
 
 
+	/*
+		determine if this is a ping
+	*/
 	/* when were done we need to release the context */ 
-	wake_up_process(sb->sleeping_context);
-
-	//now we can say the bus is not busy
-	/**DO NOT CALL THIS BEFORE RELEASING THE CONTEXT, BAD THINGS WILL HAPPEN! **/
 	atomic_set(&sb->bus_busy, 1);
 	wake_up(&sb->write_wait_queue);
 	
 
-}
-
-/**
- * sb_interrupts
- * Description: this is called when an interrupt is detected from
- *	the FPGA
- *	NOTE: THIS IS CALLED FROM AN INTERRUPT CONTEXT, AND ANY REAL WORK
- *		MUST BE DONE IN A WORKQUEUE (don't be dick to the kernel man)
- *
- * Return:
- *	Nothing
- **/
-void sp_sb_interrupt(
-				sycamore_bus_t *sb,
-				u32 interrupts){
-	printk("%s: entered\n", __func__);
-
-	//check if this is an interrupt for the system
-	if (interrupts & 0x01){
-//XXX: (this feature hasn't been implemented on the FPGA) we have a system interrupt, so the FPGA was reset
-		sb->sycamore_found = false;
-		schedule_work(&sb->control_work);	
-	}
-	else {
-		//send an interrupt to the appropriate device
-
-//XXX: write the interrupt for the sycamore_device
-
-	}
-
-}
-
-
-/**
- * sb_ping_respone
- * Description: this is called when the FPGA responds to a ping request
- *
- * Return:
- *	Nothing
- **/
-void sp_sb_ping_response(
-				sycamore_bus_t *sb){
-	printk("%s: entered\n", __func__);
-	//check if need to get the DRT
-	//if so send a request for the first 8 double words
-	sb->sycamore_found = true;
-	schedule_work(&sb->control_work);	
 }
 
 /**
@@ -388,16 +376,14 @@ int protocol_write(sycamore_device_t *sd, u32 command, u32 address, u8 *data, u3
 	sb->working_device = sd;	
 	sd->write_in_progress = 1;
 	
-	sb_sp_write_start(
+	sb_sp_write(
 						sb,
 						command,
 						sd->index,
 						address,
+						data,
 						size);
-	sb->sleeping_context = current;
 //XXX: make the context sleep here until the the write is complete the read function should get an acknowledgement to the write
-	set_current_state(TASK_INTERRUPTIBLE);
-	schedule();
 	return -1;
 
 }

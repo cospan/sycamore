@@ -91,7 +91,6 @@ struct _sycamore_bus_t {
 	struct work_struct control_work;
 	wait_queue_head_t write_wait_queue;
 
-	void * sleeping_context;
 	sycamore_device_t * working_device;
 	
 	sycamore_device_t devices[MAX_NUM_DEVICES];
@@ -123,35 +122,27 @@ void sd_sb_read(sycamore_device_t *sd, u32 address, u32 size);
 
 //********** TO THE LOWER LEVEL (sycamore protocol) **********
 //write to the FPGA
-int sb_sp_write_start(
+int sb_sp_write(
 				sycamore_bus_t *sb,
 				u32 command,
 				u8 device_index,
 				u32 address,
+				u8 * data,
 				u32 length);
-
-//called from the write callback
-int sb_sp_write_srb(	
-				srb_t *srb);
 
 
 
 //********** FROM THE LOWER LEVEL **********
-//a ping response from the FPGA
-void sp_sb_ping_response(
-				sycamore_bus_t *sb);
-//interrupts
-void sp_sb_interrupt(
-				sycamore_bus_t *sb,
-				u32 interrupts);
-
 //write from the sycamore protocol layer to here
 void sp_sb_read(sycamore_bus_t *sb,
+				u32 command,
 				u8 device_address,	//device to write to
 				u32 offset,			//where in the offset we started
 				u32 position,		//position in the read
+				u32	total_length,	//total length of data to be read in
 				u32 length,			//length of this read
-				u32 size_left);		//how much more we have to read
+				u32 size_left,
+				u8 * data);		//how much more we have to read
 
 
 void sp_sb_write_callback(sycamore_bus_t *sb);

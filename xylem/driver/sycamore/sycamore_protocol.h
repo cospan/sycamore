@@ -28,7 +28,7 @@ typedef struct _sycamore_protocol_t sycamore_protocol_t;
 
 sycamore_protocol_t * sp_init (void);
 void sp_destroy(sycamore_protocol_t *sp);
-void sp_write_callback(sycamore_protocol_t *sp);
+void sp_write_callback(sycamore_protocol_t *sp, u32 bytes_left);
 void sp_set_write_function(
 						sycamore_protocol_t *sp,
 						hardware_write_func_t write_func,
