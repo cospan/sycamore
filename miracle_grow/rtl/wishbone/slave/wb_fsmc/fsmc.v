@@ -149,6 +149,7 @@ always @ (posedge clk) begin
 						transmit_request	<= 1;
 					end
 					else begin
+//XXX: there is a bug here, the FSMC waits for a small amount of time before dropping the write enable
 						//fsmc write
 						fsmc_state	<= FSMC_WRITE;
 						if (~lfsmc_ub_n) begin

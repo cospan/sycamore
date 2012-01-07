@@ -46,11 +46,8 @@ SOFTWARE.
 #include <linux/workqueue.h>
 #include <linux/list.h>
 #include <linux/wait.h>
-#include "srb.h"
 
 #define MAX_NUM_DEVICES 256
-
-#define NUM_OF_SRBS 4
 
 typedef struct _sycamore_device_t sycamore_device_t;
 typedef struct _sycamore_bus_t sycamore_bus_t;
@@ -80,13 +77,6 @@ struct _sycamore_bus_t {
 //	int drt_state;
 //	int size_of_drt;
 //	char *drt;	
-
-	//srb lists
-	struct list_head available_queue;
-	struct list_head ready_queue;
-	//so we always have a link to the SRB's
-	struct list_head busy_queue;
-
 
 	struct work_struct control_work;
 	wait_queue_head_t write_wait_queue;
