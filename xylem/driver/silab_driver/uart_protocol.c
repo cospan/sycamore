@@ -613,17 +613,15 @@ int hardware_write (
 				u32 command,
 				u8 device_address,
 				u32 offset,
-				char * buffer,
+				char * write_buffer,
 				u32 length){
+
+	u32 buffer_size;
+	u8 buffer[ENCODED_BUF_SIZE];
+
 	u32 true_data_size = 0;
+	u32 offset = 0;
 
-	u32 buffer_size = 0;
-	u8 * buffer = NULL;
-
-	//put all the header data into the front encoded buffer
-	//make it convenient to work with this buffer
-	buffer = &sp->enc[0].buffer[0];
-	
 	if (length > 0){
 		true_data_size = length - 1;
 	}
@@ -633,7 +631,7 @@ int hardware_write (
 	//for reading command and the case where data doesn't matter
 	if ((length == 0) || ((0xFFFF & command) == SYCAMORE_READ)){
 		buffer_size = snprintf(
-						buffer, 
+						&buffer[0], 
 						ENCODED_BUF_SIZE, 
 						"L%07X%08X%02X%06X%s",
 						true_data_size,
@@ -645,15 +643,14 @@ int hardware_write (
 	else {
 		buffer_size = snprintf (
 						buffer, 
-						&sp->wr_buffer[0], 
+						&buffer[0], 
 						ENCODED_BUF_SIZE, 
 						"L%07X%08X%02X%06X", 
 						true_data_size, 
 						command, 
 						device_address, 
 						offset);
-		//for the writes I don't put in any of the data
-		//that will be handled by the write callback
+		//that will be handled by handled after
 	}
 
 	buffer[buffer_size] = 0;
@@ -663,22 +660,26 @@ int hardware_write (
 			buffer);
 
 
-	sp->enc[0].size = buffer_size;
 	if (sp->write_func != NULL){
-		sp->enc[0].offset = sp->write_func(
-										sp->write_data, 
-										buffer, 
-										buffer_size);
+		offset = 0;
 
-		if (sp->enc[0].offset != buffer_size){
-			printk("%s: Didn't send all the data out! length of write == %d, length written = %d\n", 
-				__func__, 
-				buffer_size, 
-				sp->enc[0].offset);
+		//spin until we send it all
+		while (offset != buffer_size){
+			buffer_size -= offset;
+			offset = sp->write_func(
+						sp->write_data, 
+						&buffer[offset], 
+						buffer_size);
 		}
-		else {
-			printk("%s: Sent all data at once!\n", __func__);
+
+
+		//if we have a read funciton were done!
+	
+		if ((length == 0) || ((0xFFFF & command) == SYCAMORE_READ)){
+			return 0;
 		}
+		//spin until we send all the data
+
 		return buffer_size;
 	}
 
