@@ -956,7 +956,7 @@ void cp210x_sycamore_write_bulk_callback(struct urb *urb){
 
 //	usb_serial_port_softint(port);
 	sp = (sycamore_protocol_t *) usb_get_serial_port_data(port);
-	sp_write_callback(sp, port->tx_bytes);
+//	sp_write_callback(sp, port->tx_bytes);
 }
 
 void cp210x_sycamore_process_read_urb(struct urb *urb)

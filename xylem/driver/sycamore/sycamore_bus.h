@@ -44,18 +44,36 @@ SOFTWARE.
 
 #include <linux/types.h>
 #include <linux/workqueue.h>
-#include <linux/list.h>
 #include <linux/wait.h>
+#include <linux/platform_device.h>
 
 #define MAX_NUM_DEVICES 256
+#define CONTROL_TIMEOUT 100
 
 typedef struct _sycamore_device_t sycamore_device_t;
 typedef struct _sycamore_bus_t sycamore_bus_t;
 
+
+/*--------------------------------------------------- */
+//Devices
+//hardware callback whenever we want to perform a write to the controlling device
+typedef int (*device_read_func_t) 		(	void *device,
+											u32 position,
+											u32 start_address,
+											u32 total_length,
+											u32 size_left,
+											u8 * data,
+											u32 length
+											);
+typedef void (*device_interrupt_func_t) (	void *device,
+											u32 interrupt);
+typedef void (*device_destroy_func_t) 	(	void *device);
+
+
 struct _sycamore_device_t {
 	char *name;	
 
-	u32 index;
+	u32 device_address;
 	u16 flags;
 	u16 type;
 
@@ -66,6 +84,16 @@ struct _sycamore_device_t {
 
 	//write variables
 	sycamore_bus_t *sb;
+
+	//specific device
+	void * device;
+
+	//function table
+	device_read_func_t 			read;
+	device_interrupt_func_t 	interrupt;
+	device_destroy_func_t		destroy;
+
+	struct platform_device 		*pdev;
 };
 
 struct _sycamore_bus_t {
@@ -73,41 +101,43 @@ struct _sycamore_bus_t {
 	bool sycamore_found;
 
 	atomic_t bus_busy;
-	//device rom table
-//	int drt_state;
-//	int size_of_drt;
-//	char *drt;	
 
-	struct work_struct control_work;
+	struct delayed_work control_work;
 	wait_queue_head_t write_wait_queue;
 
 	sycamore_device_t * working_device;
-	
 	sycamore_device_t devices[MAX_NUM_DEVICES];
 };
 
 
-//srb queue functions
-
-//sycamore bus
-int sb_init(sycamore_bus_t * sb); 
-void sb_destroy(sycamore_bus_t *sb);
-
 //sycamore device
-void sd_init(sycamore_device_t *sd);
-void sd_destroy(sycamore_device_t *sd);
+void sycamore_device_init(sycamore_bus_t *sb, sycamore_device_t *sd, u16 type, u16 flags, u32 device_address);
+void sycamore_device_destroy(sycamore_device_t *sd);
 
 
 //********** TO THE UPPER LEVEL (sycamore device) **********
-void sb_sd_read(sycamore_device_t *sd, int size);
-void sb_sd_interrupt(sycamore_device_t *sd);
+void sycamore_device_read_callback(sycamore_device_t *sd, 
+									u32 position,
+									u32 start_address,
+									u32 total_length,
+									u32 size_left,
+									u8 * data,
+									u32 length);
+
+void sycmaore_device_interrupt(sycamore_device_t *sd, u32 interrupt);
 
 
 //********** FROM THE UPPER LEVEL (sycamore device) **********
-int sd_sb_write(sycamore_device_t *sd, u32 address, u8 * data, u32 size);
-void sd_sb_read(sycamore_device_t *sd, u32 address, u32 size);
+int bus_write(sycamore_device_t *sd, u32 address, u8 * data, u32 size);
+void bus_read(sycamore_device_t *sd, u32 address, u32 size);
 //read from a device
 
+
+/*--------------------------------------------------- */
+//Bus
+
+int sb_init(sycamore_bus_t * sb); 
+void sb_destroy(sycamore_bus_t *sb);
 
 
 //********** TO THE LOWER LEVEL (sycamore protocol) **********
@@ -135,7 +165,6 @@ void sp_sb_read(sycamore_bus_t *sb,
 				u8 * data);		//how much more we have to read
 
 
-void sp_sb_write_callback(sycamore_bus_t *sb);
 
 
 #endif //__SYCAMORE_BUS_H__

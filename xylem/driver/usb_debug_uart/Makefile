@@ -14,3 +14,6 @@ remove:
 install_dep:
 	./ins_m.sh
 
+syc_test:
+	../../uart/user_scripts/sycamore.py
+

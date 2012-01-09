@@ -17,7 +17,6 @@
 #define __SYCAMORE_PROTOCOL_H__
 
 #include <linux/types.h>
-#define WRITE_BUF_SIZE 512
 
 //hardware callback whenever we want to perform a write to the controlling device
 typedef int (*hardware_write_func_t) (	const void * data, 

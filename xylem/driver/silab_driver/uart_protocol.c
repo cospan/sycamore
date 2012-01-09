@@ -42,14 +42,6 @@ SOFTWARE.
 
 #define ENCODED_BUF_SIZE	512
 
-typedef struct _encoded_buffer_t encoded_buffer_t;
-
-struct _encoded_buffer_t {
-	u32 size;
-	u32 offset;
-	u8 buffer[ENCODED_BUF_SIZE];
-};
-
 struct _sycamore_protocol_t {
 	//protocol specific data
 	void * protocol;
@@ -60,34 +52,7 @@ struct _sycamore_protocol_t {
 	hardware_write_func_t write_func;
 	void * write_data;
 
-	//write data
-	u32 wr_command; 
-		/*	save the command, if it's a read then we only send lenght, and not 
-			data
-		*/
-	u32 wr_count;
-		/* number of (raw) bytes that have been sent
-		*/
-	u32 wr_offset;
-		/*
-			offset into the raw buffer (not the encoded buffer)
-		*/
-	u32 wr_buf_size;
-		/*
-			total size of the output buffer
-		*/
-	u8 *wr_buffer;
-		/*
-			pointer to the buffer of data to write 
-			(this data is owned by the device) so DON'T DESTROY IT!
-		*/
-	struct work_struct write_work;
-
-	u32 hw_bytes_left;
-
 	
-	int cur_enc_buf;
-	encoded_buffer_t enc[2];
 	//the current offset within the encoded buffer
 
 	//read information
@@ -109,18 +74,19 @@ struct _sycamore_protocol_t {
 
 //local function prototypes
 //sets up everything for a write to the hardware
-int hardware_write (
-				sycamore_protocol_t * sp,
-				u32 command,
-				u8 device_address,
-				u32 offset,
-				char * buffer,
-				u32 length);
+int hardware_write (sycamore_protocol_t * sp,
+					u32 command,
+					u8 device_address,
+					u32 offset,
+					char * buffer,
+					u32 length);
 
 
-void write_work(struct work_struct *work);
-void encode_buffer(sycamort_protocol_t *sp);
-
+int encode_buffer(	u8 * enc_buffer,
+					u8 * buffer_in, 
+					int * enc_buffer_size, 
+					int in_buffer_size, 
+					int max_enc_buffer_size);
 /**
  * protocol_template
  * Description: Modify this file to adapt a new hardware interconnect
@@ -150,7 +116,7 @@ sycamore_protocol_t * sp_init(void){
 	sycamore_protocol_t *sp = NULL;
 	my_protocol_t *mp = NULL;
 
-	printk("%s: initializing the protocol specific driver\n", __func__);
+	printk("%s: (sycamore) initializing the protocol specific driver\n", __func__);
 	//allocate space for the sycamore_protocol_t structure
 	sp = (sycamore_protocol_t *) kzalloc(sizeof(sycamore_protocol_t), GFP_KERNEL);
 	if (sp == NULL){
@@ -168,9 +134,6 @@ sycamore_protocol_t * sp_init(void){
 	sp->write_data			= NULL;
 	sp->write_func			= NULL;
 
-	INIT_WORK(&sp->write_work, write_work);
-
-	sp->wr_count		= 0;
 	sp->read_command 		= 0;
 	sp->read_size 			= 0;
 	sp->read_data			= 0;
@@ -180,13 +143,17 @@ sycamore_protocol_t * sp_init(void){
 	sp->read_address 		= 0;
 	sp->read_device_address	= 0;
 	sp->read_state			= READ_IDLE;
-	memset (&sp->wr_buffer[0], 0, WRITE_BUF_SIZE);
 	memset (&sp->read_out_data[0], 0, READ_BUF_SIZE);
+
+
 	//CUSTOM_START
 
 	//initialize your variables here
 
 	//CUSTOM_END
+
+	sb_init(&sp->sb);
+
 	return sp;
 
 fail1:
@@ -209,8 +176,8 @@ void sp_destroy(sycamore_protocol_t *sp){
 	//CUSTOM_END
 	//free the custom protocol stuff
 		
+	printk("%s: (sycamore) destroy the protocol specific driver\n", __func__);
 
-	cancel_work_sync(&sp->write_work);
 
 	kfree(sp->protocol);
 	kfree(sp);
@@ -228,101 +195,12 @@ void sp_set_write_function(
 						sycamore_protocol_t *sp, 
 						hardware_write_func_t write_func, 
 						void *data){
-	printk("%s: setting the write function to %p\n", __func__, write_func);
+	printk("%s: (sycamore) setting the write function to %p\n", __func__, write_func);
 	sp->write_func = write_func;
 	sp->write_data = data;
 }
 
 
-/**
- * write_work
- * Desciption: bottom half interrupts so that the heavly lifting
- *	of writing to the hardware driver isn't done within a interrupt
- *	context
- *
- * Return:
- *	nothing
- **/
-void write_work(struct work_struct *work){
-	sycamore_protocol_t *sp = NULL;
-	u32 offset = 0;
-	u32 length = 0;
-	u8 * buffer;
-
-	printk("%s: entered\n", __func__);
-	sp = container_of(work, sycamore_protocol_t, write_work);
-
-
-
-	//localize everything so that it's just easier to read
-	offset = sp->enc[sp->cur_enc_buf].offset;
-	length = sp->enc[sp->cur_enc_buf].size;
-	buffer = &sp->enc[sp->cur_enc_buf].buffer[0];
-
-	if (offset < length){
-		//more data to send
-	}
-	if (offset == length){
-		//sent all data in the current encoded buffer
-	}
-
-	//first see if we are finished with the encoded buffer
-	if (sp->wr_offset < length){
-		//got more data to send out
-		printk("sending the rest of the data (%d more bytes)\n", length - sp->wr_count);	
-		sp->wr_count += sp->write_func(
-								sp->write_data, 
-								&buffer[sp->wr_offset], 
-								length - sp->wr_offset);
-		if (sp->wr_count != length - sp->wr_offset){
-			printk("%s: Didn't send all the data out! length of write == %d, length written = %d\n", 
-						__func__, 
-						length - sp->wr_offset, 
-						sp->wr_count);
-		}
-		else {
-			printk("%s: Sent all the rest of the data\n", __func__);
-
-			//need to see if there is more data to encode
-
-		}
-	}
-	else {
-		//finished sending data to the FPGA give the bus a callback
-		sp_sb_write_callback(&sp->sb);
-	}
-
-
-
-//XXX: wr_offset may need to be divided by two
-	sp->wr_offset += sp->wr_count;
-	
-}
-
-/**
- * sp_write_callback
- * Description: called when a write has been completed
- *	if there is a long write, then this is used to send the rest of 
- *	the rest of the data
- *
- * Return:
- *	Nothing
- **/
-void sp_write_callback(sycamore_protocol_t *sp, u32 bytes_left){
-	printk("%s: entered\n", __func__);
-	sp->hw_bytes_left = bytes_left;
-	if (sp->hw_bytes_left > 0){
-		printk("%s: usb-serial didn't send all bytes to the FPGA there are %d bytes left\n", __func__, bytes_left);
-	}
-
-
-/*
-	by now the encoded buffer should be ready
-	I can probably send the data down in here, and process the next bach of encoded data in the write_work,
-	but for this first version I'll put everything in the write_work, and save that optimization for later
-*/
-	schedule_work(&sp->write_work);
-}
 
 /**
  * sp_read_data
@@ -342,7 +220,7 @@ void sp_hardware_read(
 	int i = 0;
 	int ch = 0;
 	int read_buffer_pos = 0; 
-	printk("%s: entered\n", __func__);
+//	printk("%s: (sycamore) entered\n", __func__);
 //XXX: I forgot why I needed to do '++i'
 	for (i = 0; i < length; ++i){
 		ch = buffer[i];
@@ -496,10 +374,17 @@ void sp_hardware_read(
 				if (sp->read_pos == 8){
 
 					sp->read_data_count--;
-					sp->read_out_data[0] = ((u8) sp->read_data >> 24);
-					sp->read_out_data[1] = ((u8) sp->read_data >> 16);
-					sp->read_out_data[2] = ((u8) sp->read_data >> 8);
-					sp->read_out_data[3] = ((u8) sp->read_data);
+					sp->read_out_data[0] = (u8) (0x0FF & (sp->read_data >> 24));
+					sp->read_out_data[1] = (u8) (0x0FF & (sp->read_data >> 16));
+					sp->read_out_data[2] = (u8) (0x0FF & (sp->read_data >> 8));
+					sp->read_out_data[3] = (u8) (0x0FF & sp->read_data);
+					printk("%s: (sycamore) %08X: %4X, %4X, %4X, %4X\n",
+											__func__,
+											sp->read_data,
+											sp->read_out_data[0],
+											sp->read_out_data[1],
+											sp->read_out_data[2],
+											sp->read_out_data[3]);
 					//send data up to the bus one double word at a time
 					sp_sb_read(	&sp->sb,
 								sp->read_command,
@@ -570,16 +455,9 @@ int sb_sp_write(
 
 	sycamore_protocol_t *sp = NULL;
 	int retval = 0;
-	int length_aligned = 0;
 
-	printk("%s: entered\n", __func__);
+	printk("%s: (sycamore) entered\n", __func__);
 	sp = container_of(sb, sycamore_protocol_t, sb); 
-
-	//setup the internal write buffer to point to the output buffer
-	sp->wr_command = command;
-	sp->wr_buffer = out_buffer;
-	sp->wr_buf_size = length;
-	sp->wr_offset = 0;
 
 	//it might be a good idea to zero out the encoded buffer
 	retval = hardware_write (
@@ -588,15 +466,9 @@ int sb_sp_write(
 				device_address,
 				offset,
 				out_buffer,
-				length / 4);
+				length);
 
 
-	//start by using the front buffer
-	sp->cur_enc_buf = 0;
-	//the front buffer is begin used to transmit the command
-	sp->enc[1].size = 0;
-	encode_buffer(sp, 1);
-	
 	return retval;
 }
 
@@ -612,18 +484,27 @@ int hardware_write (
 				sycamore_protocol_t * sp,
 				u32 command,
 				u8 device_address,
-				u32 offset,
+				u32 address,
 				char * write_buffer,
 				u32 length){
 
 	u32 buffer_size;
+	u32 buffer_offset;
 	u8 buffer[ENCODED_BUF_SIZE];
 
-	u32 true_data_size = 0;
-	u32 offset = 0;
+	u32 data_offset = 0;
+	u32 data_size = 0;
 
+//XXX:this might change in future versions of the UART protocol
+	u32 true_data_size = 0;
+
+
+	printk("%s: (sycamore) entered\n", __func__);
+
+	printk("%s: (sycamore) length: %d\n", __func__, length);
 	if (length > 0){
-		true_data_size = length - 1;
+		true_data_size = length / 8;
+		true_data_size -= 1;
 	}
 
 	//use the first encoded buffer to write the data out
@@ -637,19 +518,18 @@ int hardware_write (
 						true_data_size,
 						command,
 						device_address,
-						offset,
+						address,
 						"00000000");
 	}
 	else {
 		buffer_size = snprintf (
-						buffer, 
 						&buffer[0], 
 						ENCODED_BUF_SIZE, 
 						"L%07X%08X%02X%06X", 
 						true_data_size, 
 						command, 
 						device_address, 
-						offset);
+						address);
 		//that will be handled by handled after
 	}
 
@@ -661,24 +541,52 @@ int hardware_write (
 
 
 	if (sp->write_func != NULL){
-		offset = 0;
+		data_offset = 0;
 
 		//spin until we send it all
-		while (offset != buffer_size){
-			buffer_size -= offset;
-			offset = sp->write_func(
+		while (data_offset < buffer_size){
+			buffer_size -= data_offset;
+			data_offset = sp->write_func(
 						sp->write_data, 
-						&buffer[offset], 
+						&buffer[data_offset], 
 						buffer_size);
 		}
-
-
 		//if we have a read funciton were done!
 	
 		if ((length == 0) || ((0xFFFF & command) == SYCAMORE_READ)){
 			return 0;
 		}
 		//spin until we send all the data
+		data_size = length;	
+		data_offset = 0;
+		while (data_offset < data_size){
+			data_size -= data_offset;
+			data_offset += encode_buffer(&buffer[0], write_buffer, &buffer_size, data_size, ENCODED_BUF_SIZE);
+
+			buffer_offset = 0;
+			while (buffer_offset < buffer_size){
+				buffer_size -= buffer_offset;	
+				buffer_offset = sp->write_func(
+								sp->write_data,
+								&buffer[buffer_offset],
+								buffer_size);
+			}
+
+		}
+		
+		//need to make sure we align this data to a double word (x4)
+		data_size = length % 4;
+		if (data_size > 0){
+			memset(&buffer[0], '0', data_size);
+			data_offset = 0;
+			while (data_offset < data_size){
+				data_size -= data_offset;
+				data_offset = sp->write_func (
+									sp->write_data,
+									&buffer[data_offset],
+									data_size);
+			}
+		}
 
 		return buffer_size;
 	}
@@ -689,45 +597,39 @@ int hardware_write (
 }
 
 
+
 /**
  * encode_buffer
- * Description: this encodes data to the uart protocol
- *	this reads the wr_buffer and generates an ascii version
- *	of the data, so all the bytes of data take two bytes in the encoded version
- *	this will be called after the first part of the transmission to the FPGA
- *	while the usb-serial is processing it, and after any consecutive writes
+ * Description: encodes data for the UART protocol
  *
- * Return:
- *	the lengths of bytes encoded from the ORIGINAL BUFFER
- **/
-int encode_buffer(sycamort_protocol_t *sp, int buffer_select){
-	int i = 0;
-	int buffer_index = 0;
-	int length_to_process = 0;
+ *	enc_buffer: encoded data buffer
+ *	buffer_in: raw incomming data
+ *	enc_buffer_size: size of the encoded buffer
+ *	in_buffer_size: size of the in buffer
+ *	max_enc_buffer_size: maximum size of the encoded buffer
+ *
+ * Return: size of incomming buffer used this can be used as the offset into the input buffer
+ **/ 
+
+int encode_buffer(u8 * enc_buffer, u8 * buffer_in, int * enc_buffer_size, int in_buffer_size, int max_enc_buffer_size){
+	int i = 0;	
+	int length;
+	int buffer_index;
 	u8 top_nibble;
 	u8 bottom_nibble;
-	printk("%s: entered\n", __func__);
 
-	//all output data must be a multiple of four because we send 32 bits down at a time, so if the data is less than that we
-	// buffer it
-	if (sp->out_size == 0){
-		return;
+	printk("%s: (sycamore) entered\n", __func__);
+
+	length = in_buffer_size * 2;
+	if (max_enc_buffer_size < in_buffer_size * 2){
+		length = max_enc_buffer_size;
 	}
 
-	//get the number of bytes that I still need to process from the write buffer
-	length_to_process = sp->write_out_size - sp->wr_offset;
-
-	//check if I have enough room in the buffer to do this?
-	if (length_to_process > ENCODED_BUF_SIZE / 2){
-		//not enough room so this won't finish the write transaction
-		length_to_process = ENCODED_BUF_SIZE / 2;	
-	}
-
-	for (i = 0; i < length_to_process; i++ ){
+	for (i = 0; i < length; i++){
 		buffer_index = i * 2;
 		
-		top_nibble = sp->wr_buffer[i] >> 4;
-		bottom_nibble = sp->wr_buffer[i] 0xF;
+		top_nibble = buffer_in[i] >> 4;
+		bottom_nibble = buffer_in[i] & 0xF;
 
 		if (top_nibble > 0x0A){
 			top_nibble += ('A' - 10);
@@ -743,10 +645,11 @@ int encode_buffer(sycamort_protocol_t *sp, int buffer_select){
 			bottom_nibble += '0';
 		}
 
-		sp->enc[buffer_select].buffer[buffer_index] = top_nibble;
-		sp->enc[buffer_select].buffer[buffer_index + 1] = bottom_nibble;
+		enc_buffer[buffer_index] = top_nibble;
+		enc_buffer[buffer_index + 1] = bottom_nibble;
 	}
-
-	sp->enc[buffer_select].size = length_to_process;
-	return length_to_process;
+	*enc_buffer_size = length;
+	return length / 2;
 }
+
+

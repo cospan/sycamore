@@ -26,18 +26,10 @@ SOFTWARE.
 
 #include "sycamore_bus.h"
 #include "sycamore_commands.h"
+#include "devices/drt/drt.h"
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
-
-//DRT state machine variable
-#define DRT_READ_IDLE 			0
-#define DRT_READ_START			1
-#define DRT_READ_START_RESPONSE	2
-#define DRT_READ_ALL			3
-#define DRT_READ_ALL_RESPONSE	4
-#define DRT_READ_SUCCESS 		5
-#define DRT_READ_FAIL			6
 
 
 //local function prototypes
@@ -59,44 +51,27 @@ void ping (sycamore_bus_t * sb);
 
 int sb_init(sycamore_bus_t *sb){
 	//initialize the variables
-	int i = 0;
-	srb_t * srb = NULL;
 
-	printk("%s: entered\n", __func__);
+	printk("%s: (sycamore) entered\n", __func__);
 
 	//initialize all things sycmore_driver_t
 	sb->sycamore_found = false;
 	atomic_set(&sb->bus_busy, 0);
-//	sb->size_of_drt = 0;
-//	sb->drt = NULL;
-	INIT_WORK(&sb->control_work, control_work); 
-
-
-	//setup the SRB lists
-	INIT_LIST_HEAD(&sb->available_queue);
-	INIT_LIST_HEAD(&sb->ready_queue);
-	INIT_LIST_HEAD(&sb->busy_queue);
+	INIT_DELAYED_WORK(&sb->control_work, control_work); 
 
 	//initialize the wait queue
 	init_waitqueue_head(&sb->write_wait_queue);
 
-	//add SRB's to the available_queue
-	for (i = 0; i < NUM_OF_SRBS; i++){
-		srb = srb_new();	
-		if (srb == NULL){
-			printk("%s: failed to instantiate an SRB\n", __func__);
-			goto fail1;
-		}
-		//add it to the available queue
-		list_add_tail(srb_get_list_head(srb), &sb->available_queue);
-	}
+	reset_sycamore_devices(sb);
+
 	//gotta start the ball rolling
-	schedule_work(&sb->control_work);
+	schedule_delayed_work(&sb->control_work, CONTROL_TIMEOUT);
+
+	//initialize the DRT
+	sycamore_device_init(sb, &sb->devices[0], 0, 0, 0);
+	sb->devices[0].pdev = platform_device_register_simple("drt", -1, 0, 0);
 
 	return 0;
-
-fail1:
-	return -1;
 }
 
 
@@ -109,36 +84,19 @@ fail1:
  */
 void sb_destroy(sycamore_bus_t *sb){
 
-	struct list_head *pos = NULL;
-	srb_t *srb = NULL;
-
-	printk("%s: entered\n", __func__);
+	printk("%s: (sycamore) entered\n", __func__);
 	//clean up any resources
 	//kill off the control work struct
-	cancel_work_sync(&sb->control_work);
+	cancel_delayed_work_sync(&sb->control_work);
 
 	//stop any new transactions
 	atomic_set(&sb->bus_busy, 1);
-
 	reset_sycamore_devices(sb);
 
-	if (!list_empty_careful(&sb->ready_queue)){
-		list_for_each(pos, &sb->ready_queue){
-			list_add_tail(pos, &sb->busy_queue); 
-		}
-	}
-	if (!list_empty_careful(&sb->available_queue)){
-		list_for_each(pos, &sb->available_queue){
-			list_add_tail(pos, &sb->busy_queue); 
-		}
+	platform_device_unregister(sb->devices[0].pdev);
+	platform_device_put(sb->devices[0].pdev);
 
-	}
-	//destroy all the SRB
-	if (!list_empty_careful(&sb->busy_queue)){
-		list_for_each_entry(srb, &sb->busy_queue, lh){
-			srb_destroy(srb);		
-		}
-	}
+	sycamore_device_destroy(&sb->devices[0]);
 }
 
 
@@ -160,7 +118,7 @@ void sb_destroy(sycamore_bus_t *sb){
 void sp_sb_read(sycamore_bus_t *sb,
 				u32 command,
 				u8 device_address,	//device to write to
-				u32 offset,			//where in the offset we started
+				u32 start_address,	//where in the offset we started
 				u32 position,		//position in the read
 				u32 total_length,	//total length of data to read in
 				u32 length,			//length of this read
@@ -168,7 +126,7 @@ void sp_sb_read(sycamore_bus_t *sb,
 				u8 * data){		
 
 	u32 interrupts = 0;
-	printk("%s: entered\n", __func__);
+	printk("%s: (sycamore) entered\n", __func__);
 	//if the device doesn't exists throw all this away
 
 
@@ -183,13 +141,13 @@ void sp_sb_read(sycamore_bus_t *sb,
 				//FPGA was reset
 //XXX: FPGA reset here! (make a function that will reset everything
 				sb->sycamore_found = false;
-				schedule_work(&sb->control_work);
+				schedule_delayed_work(&sb->control_work, 0);
 			}
 			break;
 		case (SYCAMORE_PING):
 			//response from a ping
 			sb->sycamore_found = true;
-			schedule_work(&sb->control_work);
+			schedule_delayed_work(&sb->control_work, 0);
 			break;
 		case (SYCAMORE_WRITE):
 //XXX: Tell the appropriate device that the write was acknowledged
@@ -198,6 +156,14 @@ void sp_sb_read(sycamore_bus_t *sb,
 //XXX: Feed the device data to be read in
 			//we feed the device one double word at a time, the device must put it together
 			//once the data is all read in then we need to tell the read that it's done
+			
+			sycamore_device_read_callback(	&sb->devices[0],
+											position,
+											start_address,
+											total_length,
+											size_left,
+											data,
+											length);
 			break;
 		default:
 			//an undefined command??
@@ -221,22 +187,10 @@ void sp_sb_read(sycamore_bus_t *sb,
 		determine if this is a ping
 	*/
 	/* when were done we need to release the context */ 
-	atomic_set(&sb->bus_busy, 1);
+	atomic_set(&sb->bus_busy, 0);
 	wake_up(&sb->write_wait_queue);
 	
 
-}
-
-/**
- * sb_write_callback
- * Description: called when a write request is finished
- *	but before we got a response from the FPGA
- *
- * Return:
- *	Nothing
- **/
-void sp_sb_write_callback(sycamore_bus_t *sb){
-	printk("%s: entered\n", __func__);
 }
 
 
@@ -250,12 +204,13 @@ void sp_sb_write_callback(sycamore_bus_t *sb){
  */
 void control_work(struct work_struct *work){
 	sycamore_bus_t *sb = NULL;
-	printk("%s: entered\n", __func__);
+	printk("%s: (sycamore) entered\n", __func__);
 
-	sb = container_of (work, sycamore_bus_t, control_work);
+	sb = container_of (work, sycamore_bus_t, control_work.work);
 
 	//check if sycamore has been found
 	if (!sb->sycamore_found){
+		printk("%s: (sycamore) pinging sycamore\n", __func__);
 		/*
 			clear out all of the devices, this could be either from initialization or
 			if the FPGA was reset
@@ -269,11 +224,21 @@ void control_work(struct work_struct *work){
 		//ping the FPGA
 		ping(sb);
 	}
-	/*
 	else {
-		drt_state_machine(sb);
+		printk("%s: (sycamore) got a ping response\n", __func__);
+		//drt_state_machine(sb);
+
+		if (!drt_working(&sb->devices[0])){
+			drt_start (&sb->devices[0]);
+		}
+		else {
+			if (drt_finished(&sb->devices[0])){
+				if (drt_success(&sb->devices[0])){
+					printk("%s: (sycamore) Successfully read DRT!\n", __func__);
+				}
+			}
+		}
 	}
-	*/
 }
 
 
@@ -287,57 +252,44 @@ void control_work(struct work_struct *work){
  **/
 void reset_sycamore_devices(sycamore_bus_t *sb){
 	int i;
-	printk("%s: entered\n", __func__);
+	printk("%s: (sycamore) entered\n", __func__);
 
 	for (i = 1; i < MAX_NUM_DEVICES; i++){
 		//go through each of the devices and call the remove function
 	}
 }
 
-/*
-void drt_state_machine(sycamore_bus_t *sb){
-	//int i = 0;
-	//int retval = 0;
 
-	printk("%s: entered\n", __func__);
-	if (sb->drt == NULL || 
-		sb->size_of_drt == 0 || 
-		!sb->sycamore_found){
-		//all good reasons to reset the state machine
-		sb->drt_state = DRT_READ_IDLE;		
-	}
-
-	switch (sb->drt_state){
-		case (DRT_READ_IDLE):
-			if (sb->sycamore_found){
-				sb->drt_state = DRT_READ_START;
-				schedule_work(&sb->control_work);
-			}
-			//reset the DRT
-			if (sb->drt != NULL){
-				kfree(sb->drt);
-			}
-			sb->size_of_drt = 0;
-			break;
-		case (DRT_READ_START):
-			break;
-		case (DRT_READ_START_RESPONSE):
-			break;
-		case (DRT_READ_ALL):
-			break;
-		case (DRT_READ_ALL_RESPONSE):
-			break;
-		case (DRT_READ_SUCCESS):
-			break;
-		default:
-			sb->drt_state = DRT_READ_IDLE;
-			//something went wrong, most likely we need to restart the DRT STATE MACHINE
-			schedule_work(&sb->control_work);
-			break;
-	}
+/**
+ * bus_write
+ * Description: called from the device when it writes to the bus
+ *	Note: this context can be put to sleep by the bus when waiting for
+ *	other transactions to finish, or when this transaction is finished
+ *
+ * Return:
+ *	0 on success (all bytes should be sent each time)
+ *	-1 on failure
+ **/
+int bus_write(sycamore_device_t *sd, u32 address, u8 * data, u32 size){
+	printk("%s: (sycamore) entered\n", __func__);
+	return protocol_write(sd, SYCAMORE_WRITE, address, data, size);
 }
-*/
 
+
+/**
+ * bus_read
+ * Description: called from the device when it reads from the bus
+ *	Note: this context can be put to sleep by the bus when waiting for
+ *	other transactions to finish, and must sleep on it's own in order
+ *	to wait for a read callback (readcallback) should wake up this context
+ *
+ * Return:
+ *	Nothing
+ **/
+void bus_read(sycamore_device_t *sd, u32 address, u32 size){
+	printk("%s: (sycamore) entered\n", __func__);
+	protocol_write(sd, SYCAMORE_READ, address, NULL, size);
+}
 
 /**
  * protocol_write
@@ -350,15 +302,19 @@ int protocol_write(sycamore_device_t *sd, u32 command, u32 address, u8 *data, u3
 	//try and get a SRB from the available queue	
 	sycamore_bus_t *sb = NULL;
 
-	printk("%s: entered\n", __func__);
+	printk("%s: (sycamore) entered\n", __func__);
 	sb = sd->sb;
+
 
 	//check if the bus is busy right now
 	if (atomic_read(&sb->bus_busy)){
+		printk("%s: (sycamore) read lock\n", __func__);
 		if (!sd->blocking){
 			//the device is not blocking, so just return
+			printk("%s: (sycamore) non block\n", __func__);
 			return -EAGAIN;
 		}
+		printk("%s: (sycamore) starting wait\n", __func__);
 		if (wait_event_interruptible_exclusive(sb->write_wait_queue, (atomic_read(&sb->bus_busy) == 0))){
 			/*
 				got an interupt before the system could respond,
@@ -379,7 +335,7 @@ int protocol_write(sycamore_device_t *sd, u32 command, u32 address, u8 *data, u3
 	sb_sp_write(
 						sb,
 						command,
-						sd->index,
+						sd->device_address,
 						address,
 						data,
 						size);
@@ -387,6 +343,15 @@ int protocol_write(sycamore_device_t *sd, u32 command, u32 address, u8 *data, u3
 	return -1;
 
 }
-void sd_sb_read(sycamore_device_t *sd, u32 address, u32 size){
-}
 
+void ping (sycamore_bus_t * sb){
+	printk("%s: (sycamore) entered\n", __func__);
+	atomic_set(&sb->bus_busy, 1);
+	sb_sp_write(
+				sb,
+				SYCAMORE_PING,
+				0x00,
+				0x00,
+				NULL,
+				0x00);
+}
