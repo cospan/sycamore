@@ -31,10 +31,10 @@ Organization of the ROM 32 bit address location
 DRT_DEV_OFFSET[x * 8] + 0:		Device ID (this is associated with the flags register bit 0 to indicate this is a standard device or not)
 	(Addr: 31-0	)	: device ID number (see below)
 DRT_DEV_OFFSET[x * 8] + 1:		FLAGS
-	(Addr: 0 )		: standard device (can use generic drivers)
 		Note: bit 31:16 are set by saplib
-	(Addr: 16)		: memory device (access this device in the memory bus)
+	(Addr: 31-16)		: memory device (access this device in the memory bus)
 							use commands with the flag MEMORY for read and write
+	(Addr: 15-0 )		: standard device (can use generic drivers)
 DRT_DEV_OFFSET[x * 8] + 2:		Offset from 0x00 	(NEED A NAME, not used yet)
 DRT_DEV_OFFSET[x * 8] + 3:		Size of address space for device (NEED A NAME)
 DRT_DEV_OFFSET[x * 8] + 4:		Size of address space for device (NEED A NAME)

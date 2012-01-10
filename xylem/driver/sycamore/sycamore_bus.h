@@ -50,6 +50,7 @@ SOFTWARE.
 #define MAX_NUM_DEVICES 256
 #define CONTROL_TIMEOUT 100
 
+#define SYCAMORE_BUS_NAME "sycamore"
 typedef struct _sycamore_device_t sycamore_device_t;
 typedef struct _sycamore_bus_t sycamore_bus_t;
 
@@ -67,7 +68,8 @@ typedef int (*device_read_func_t) 		(	void *device,
 											);
 typedef void (*device_interrupt_func_t) (	void *device,
 											u32 interrupt);
-typedef void (*device_destroy_func_t) 	(	void *device);
+typedef void (*device_destroy_func_t) 	(	sycamore_device_t *sd,
+											void *device);
 
 
 struct _sycamore_device_t {
@@ -76,6 +78,7 @@ struct _sycamore_device_t {
 	u32 device_address;
 	u16 flags;
 	u16 type;
+	u32 size;
 
 	//read variables
 
@@ -94,6 +97,7 @@ struct _sycamore_device_t {
 	device_destroy_func_t		destroy;
 
 	struct platform_device 		*pdev;
+	struct platform_driver		pdrv;
 };
 
 struct _sycamore_bus_t {
@@ -106,7 +110,16 @@ struct _sycamore_bus_t {
 	wait_queue_head_t write_wait_queue;
 
 	sycamore_device_t * working_device;
+//XXX: it's very likely that users won't use ALL of the devices
+	/*
+		so in the future I think this should be done dynamically
+		but for the first version it's not worth the effor
+	*/
 	sycamore_device_t devices[MAX_NUM_DEVICES];
+
+
+	struct platform_device 	*pdev;
+	struct platform_driver	pdrv;
 };
 
 
@@ -125,6 +138,8 @@ void sycamore_device_read_callback(sycamore_device_t *sd,
 									u32 length);
 
 void sycmaore_device_interrupt(sycamore_device_t *sd, u32 interrupt);
+
+struct platform_device * get_sycamore_bus_pdev(sycamore_bus_t *sb);
 
 
 //********** FROM THE UPPER LEVEL (sycamore device) **********

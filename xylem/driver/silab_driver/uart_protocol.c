@@ -175,6 +175,7 @@ void sp_destroy(sycamore_protocol_t *sp){
 	//stop anything you need to stop here, deallocate anything here
 	//CUSTOM_END
 	//free the custom protocol stuff
+	sb_destroy(&sp->sb);
 		
 	printk("%s: (sycamore) destroy the protocol specific driver\n", __func__);
 

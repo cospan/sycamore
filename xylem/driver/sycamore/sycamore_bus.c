@@ -35,9 +35,17 @@ SOFTWARE.
 //local function prototypes
 void control_work(struct work_struct *work);
 void reset_sycamore_devices(sycamore_bus_t *sb);
+void destroy_sycamore_devices(sycamore_bus_t *sb);
+void initialize_sycamore_devices(sycamore_bus_t *sb);
 int protocol_write(sycamore_device_t *sd, u32 command, u32 address, u8 *data, u32 size);
 void ping (sycamore_bus_t * sb);
-//void drt_state_machine(sycamore_bus_t *sb);
+
+
+//platform_driver functions
+static int __devinit sycamore_bus_drv_probe(struct platform_device *dev);
+static int __devexit sycamore_bus_drv_remove(struct platform_device *dev);
+
+
 /**
  * sycamore_bus_init
  * Description: Initializes the sycamore_bus
@@ -51,6 +59,7 @@ void ping (sycamore_bus_t * sb);
 
 int sb_init(sycamore_bus_t *sb){
 	//initialize the variables
+	int rc = 0;
 
 	printk("%s: (sycamore) entered\n", __func__);
 
@@ -62,15 +71,30 @@ int sb_init(sycamore_bus_t *sb){
 	//initialize the wait queue
 	init_waitqueue_head(&sb->write_wait_queue);
 
-	reset_sycamore_devices(sb);
+	initialize_sycamore_devices(sb);
 
 	//gotta start the ball rolling
 	schedule_delayed_work(&sb->control_work, CONTROL_TIMEOUT);
 
+/*
+	sb->pdrv.probe = sycamore_bus_drv_probe;
+	sb->pdrv.remove = sycamore_bus_drv_remove;
+	sb->pdrv.driver.name = (char *) kzalloc(strlen(SYCAMORE_BUS_NAME), GFP_KERNEL);
+	memcpy((char *)sb->pdrv.driver.name, (char *)SYCAMORE_BUS_NAME, strlen(SYCAMORE_BUS_NAME));
+	sb->pdrv.driver.owner = THIS_MODULE;
+
+*/
+//	rc = platform_driver_register(&sb->pdrv);
+//	if (!rc){
+		//setup the sycamore_bus platform device
+		sb->pdev = platform_device_register_simple(SYCAMORE_BUS_NAME, -1, 0, 0);
+//		if (sb->pdev == NULL){
+//			platform_driver_unregister(&sb->pdrv);
+//		}
+//	}
+
 	//initialize the DRT
 	sycamore_device_init(sb, &sb->devices[0], 0, 0, 0);
-	sb->devices[0].pdev = platform_device_register_simple("drt", -1, 0, 0);
-
 	return 0;
 }
 
@@ -92,11 +116,15 @@ void sb_destroy(sycamore_bus_t *sb){
 	//stop any new transactions
 	atomic_set(&sb->bus_busy, 1);
 	reset_sycamore_devices(sb);
-
-	platform_device_unregister(sb->devices[0].pdev);
-	platform_device_put(sb->devices[0].pdev);
-
+	destroy_sycamore_devices(sb);
 	sycamore_device_destroy(&sb->devices[0]);
+
+	platform_device_unregister(sb->pdev);
+//	platform_driver_unregister(&sb->pdrv);
+
+
+	//free the string
+	kfree(sb->pdrv.driver.name);
 }
 
 
@@ -235,13 +263,44 @@ void control_work(struct work_struct *work){
 			if (drt_finished(&sb->devices[0])){
 				if (drt_success(&sb->devices[0])){
 					printk("%s: (sycamore) Successfully read DRT!\n", __func__);
+
 				}
 			}
 		}
 	}
 }
 
+/**
+ * initialize_sycamore_devices
+ * Description: sets all the parameters of every device to initial values
+ *
+ * Return:
+ *	nothing
+ **/
 
+void initialize_sycamore_devices(sycamore_bus_t *sb){
+	int i;
+	printk("%s: (sycamore) entered\n", __func__);
+	for (i = 1; i < MAX_NUM_DEVICES; i++){
+
+		sb->devices[i].device_address 		=	0;
+		sb->devices[i].flags 				=	0;
+		sb->devices[i].type 				=	0;
+		sb->devices[i].size 				=	0;
+
+		sb->devices[i].blocking				=	false;
+		sb->devices[i].write_in_progress	=	false;
+
+
+		sb->devices[i].device				=	NULL;
+
+		sb->devices[i].pdev					=	NULL;
+
+		sb->devices[i].destroy				=	NULL;
+		sb->devices[i].read					=	NULL;
+		sb->devices[i].interrupt			=	NULL;
+	}
+}
 /**
  * reset_sycamore_devices
  * Description: clears all the devices of the characteristics, performs just like a
@@ -258,6 +317,25 @@ void reset_sycamore_devices(sycamore_bus_t *sb){
 		//go through each of the devices and call the remove function
 	}
 }
+
+/**
+ * destory_sycamore_devices
+ * Description: remove all devices
+ *
+ * Return:
+ *	nothing
+ **/
+
+void destroy_sycamore_devices(sycamore_bus_t *sb){
+	int i;
+	printk("%s: (sycamore) entered\n", __func__);
+
+	for (i = 1; i < MAX_NUM_DEVICES; i++){
+		//go through each of the devices and call the remove function
+		sycamore_device_destroy(&sb->devices[i]);
+	}
+}
+
 
 
 /**
@@ -355,3 +433,22 @@ void ping (sycamore_bus_t * sb){
 				NULL,
 				0x00);
 }
+
+
+struct platform_device * get_sycamore_bus_pdev (sycamore_bus_t *sb){
+	return sb->pdev;
+}
+
+
+
+//platform driver functions
+static int __devinit sycamore_bus_drv_probe(struct platform_device *dev){
+	printk("%s: (sycamore) entered\n", __func__);
+	return 0;
+}
+static int __devexit sycamore_bus_drv_remove(struct platform_device *dev){
+	printk("%s: (sycamore) entered\n", __func__);
+	return 0;
+}
+
+

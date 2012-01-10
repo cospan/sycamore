@@ -30,11 +30,39 @@ void sycamore_device_init(sycamore_bus_t *sb, sycamore_device_t *sd, u16 type, u
 	sd->device_address = device_address;
 	sd->sb = sb;
 
+	sd->destroy = NULL;
+	sd->interrupt = NULL;
+	sd->read = NULL;
 
 	switch (type){
 		case (DEVICE_DRT):
 			printk("%s: initializing device DRT\n", __func__);
-			sd->device = drt_init(sd);
+			sd->device = drt_init(sd, DEVICE_DRT_NAME);
+			break;
+		case (DEVICE_GPIO):
+			printk("%s: initializing device GPIO\n", __func__);
+			sd->device = gpio_dev_init(sd, DEVICE_GPIO_NAME);
+			break;
+		case (DEVICE_UART):
+			printk("%s: initializing device UART\n", __func__);
+			break;
+		case (DEVICE_I2C):
+			printk("%s: initializing device I2C\n", __func__);
+			break;
+		case (DEVICE_SPI):
+			printk("%s: initializing device SPI\n", __func__);
+			break;
+		case (DEVICE_MEMORY):
+			printk("%s: initializing device Memory\n", __func__);
+			break;
+		case (DEVICE_CONSOLE):
+			printk("%s: initializing device Console\n", __func__);
+			break;
+		case (DEVICE_FSMC):
+			printk("%s: initializing device FSMC\n", __func__);
+			break;
+		case (DEVICE_FRAME_BUFFER):
+			printk("%s: initializing device Frame Buffer\n", __func__);
 			break;
 		default:
 			//load the default device
@@ -53,7 +81,7 @@ void sycamore_device_init(sycamore_bus_t *sb, sycamore_device_t *sd, u16 type, u
  **/
 void sycamore_device_destroy(sycamore_device_t *sd){
 	if (sd->destroy != NULL){
-		sd->destroy(sd->device);
+		sd->destroy(sd, sd->device);
 	}
 	else {
 		printk("%s: destroy not defined\n", __func__);
@@ -63,7 +91,7 @@ void sycamore_device_destroy(sycamore_device_t *sd){
 
 
 /**
- * device_read_callbakc (generic)
+ * device_read_callback (generic)
  * Description: called when a device specifies a read
  *	since the write context is left then this function is used to wait for a
  *	response
