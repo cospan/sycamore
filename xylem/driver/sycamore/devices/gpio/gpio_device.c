@@ -44,8 +44,8 @@ struct _sycamore_gpio_dev_t {
 };
 
 
-void gpio_dev_destroy(sycamore_device_t *sd, void * device);
-void gpio_dev_interrupt(void *device, u32 interrupt);
+void gpio_dev_destroy(sycamore_device_t *sd);
+void gpio_dev_interrupt(sycamore_device_t *sd, u32 interrupt);
 
 void * gpio_dev_init(	sycamore_device_t * sd, 
 						const char * name){
@@ -73,10 +73,10 @@ void * gpio_dev_init(	sycamore_device_t * sd,
 	return gpio_dev;
 }
 
-void gpio_dev_destroy (sycamore_device_t * sd, void * device){
+void gpio_dev_destroy (sycamore_device_t * sd){
 	sycamore_gpio_dev_t *gpio_dev = NULL;
 	printk("%s: (sycamore) entered\n", __func__);
-	gpio_dev = (sycamore_gpio_dev_t *) device;
+	gpio_dev = (sycamore_gpio_dev_t *) sd->device;
 
 	platform_device_unregister(sd->pdev);
 	
@@ -85,7 +85,7 @@ void gpio_dev_destroy (sycamore_device_t * sd, void * device){
 }
 
 
-void gpio_dev_interrupt(void *device, u32 interrupt){
+void gpio_dev_interrupt(sycamore_device_t *sd, u32 interrupt){
 	printk("%s: (sycamore) entered\n", __func__);
 	//don't really have anything to do yet
 }

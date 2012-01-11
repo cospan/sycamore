@@ -41,10 +41,6 @@ int protocol_write(sycamore_device_t *sd, u32 command, u32 address, u8 *data, u3
 void ping (sycamore_bus_t * sb);
 
 
-//platform_driver functions
-static int __devinit sycamore_bus_drv_probe(struct platform_device *dev);
-static int __devexit sycamore_bus_drv_remove(struct platform_device *dev);
-
 
 /**
  * sycamore_bus_init
@@ -59,7 +55,6 @@ static int __devexit sycamore_bus_drv_remove(struct platform_device *dev);
 
 int sb_init(sycamore_bus_t *sb){
 	//initialize the variables
-	int rc = 0;
 
 	printk("%s: (sycamore) entered\n", __func__);
 
@@ -76,25 +71,10 @@ int sb_init(sycamore_bus_t *sb){
 	//gotta start the ball rolling
 	schedule_delayed_work(&sb->control_work, CONTROL_TIMEOUT);
 
-/*
-	sb->pdrv.probe = sycamore_bus_drv_probe;
-	sb->pdrv.remove = sycamore_bus_drv_remove;
-	sb->pdrv.driver.name = (char *) kzalloc(strlen(SYCAMORE_BUS_NAME), GFP_KERNEL);
-	memcpy((char *)sb->pdrv.driver.name, (char *)SYCAMORE_BUS_NAME, strlen(SYCAMORE_BUS_NAME));
-	sb->pdrv.driver.owner = THIS_MODULE;
-
-*/
-//	rc = platform_driver_register(&sb->pdrv);
-//	if (!rc){
-		//setup the sycamore_bus platform device
-		sb->pdev = platform_device_register_simple(SYCAMORE_BUS_NAME, -1, 0, 0);
-//		if (sb->pdev == NULL){
-//			platform_driver_unregister(&sb->pdrv);
-//		}
-//	}
+	sb->pdev = platform_device_register_simple(SYCAMORE_BUS_NAME, -1, 0, 0);
 
 	//initialize the DRT
-	sycamore_device_init(sb, &sb->devices[0], 0, 0, 0);
+	sycamore_device_init(sb, &sb->devices[0], 0, 0, 0, 0);
 	return 0;
 }
 
@@ -117,10 +97,11 @@ void sb_destroy(sycamore_bus_t *sb){
 	atomic_set(&sb->bus_busy, 1);
 	reset_sycamore_devices(sb);
 	destroy_sycamore_devices(sb);
+
+	//destroy the drt
 	sycamore_device_destroy(&sb->devices[0]);
 
 	platform_device_unregister(sb->pdev);
-//	platform_driver_unregister(&sb->pdrv);
 
 
 	//free the string
@@ -185,13 +166,16 @@ void sp_sb_read(sycamore_bus_t *sb,
 			//we feed the device one double word at a time, the device must put it together
 			//once the data is all read in then we need to tell the read that it's done
 			
-			sycamore_device_read_callback(	&sb->devices[0],
+			sycamore_device_read_callback(	&sb->devices[device_address],
 											position,
 											start_address,
 											total_length,
 											size_left,
 											data,
 											length);
+			if (device_address == 0){
+				schedule_delayed_work(&sb->control_work, 0);
+			}
 			break;
 		default:
 			//an undefined command??
@@ -231,7 +215,17 @@ void sp_sb_read(sycamore_bus_t *sb,
  *	nothing
  */
 void control_work(struct work_struct *work){
+	int i = 0;
 	sycamore_bus_t *sb = NULL;
+
+	//device variables
+	int device_count = 0;
+	u32 type = 0;
+	u32 flags = 0;
+	u32 size = 0;
+	u32 dev_address = 0;
+
+
 	printk("%s: (sycamore) entered\n", __func__);
 
 	sb = container_of (work, sycamore_bus_t, control_work.work);
@@ -260,10 +254,47 @@ void control_work(struct work_struct *work){
 			drt_start (&sb->devices[0]);
 		}
 		else {
+
 			if (drt_finished(&sb->devices[0])){
 				if (drt_success(&sb->devices[0])){
+
 					printk("%s: (sycamore) Successfully read DRT!\n", __func__);
 
+					device_count = drt_get_number_of_devices(&sb->devices[0]);
+
+					//i = 0 is the DRT
+					printk("%s: (sycamore) Number of devices: %d\n",
+									__func__,
+									device_count);
+
+					for (i = 1; i <= device_count; i++){
+						printk("%s: (sycamore) device num: %d\n", 
+									__func__,
+									i);
+						if (drt_get_device_data(	&sb->devices[0],
+													i,
+													&type,
+													&flags,
+													&size,
+													&dev_address) < 0){
+							printk("%s: (sycamore) failed to get device data\n",
+									__func__);
+							continue;
+						}
+						printk("%s: (sycamore) found a device\n", __func__);
+						printk("\ttype:\t\t%08X\n", type);
+						printk("\tflags:\t\t%08X\n", flags);
+						printk("\tsize:\t\t%08X\n", size);
+						printk("\taddress:\t%08X\n", dev_address);
+						sycamore_device_init(	sb,
+												&sb->devices[i],
+												type,
+												flags,
+												dev_address,
+												size);
+					}
+
+					printk("%s: (sycamore) Finished\n", __func__);
 				}
 			}
 		}
@@ -439,16 +470,5 @@ struct platform_device * get_sycamore_bus_pdev (sycamore_bus_t *sb){
 	return sb->pdev;
 }
 
-
-
-//platform driver functions
-static int __devinit sycamore_bus_drv_probe(struct platform_device *dev){
-	printk("%s: (sycamore) entered\n", __func__);
-	return 0;
-}
-static int __devexit sycamore_bus_drv_remove(struct platform_device *dev){
-	printk("%s: (sycamore) entered\n", __func__);
-	return 0;
-}
 
 

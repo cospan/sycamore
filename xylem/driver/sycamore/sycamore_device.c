@@ -21,7 +21,12 @@
  * Return:
  *	Nothing
  **/
-void sycamore_device_init(sycamore_bus_t *sb, sycamore_device_t *sd, u16 type, u16 flags, u32 device_address){
+void sycamore_device_init(	sycamore_bus_t *sb, 
+							sycamore_device_t *sd, 
+							u16 type, 
+							u16 flags, 
+							u32 device_address,
+							u32 size){
 
 
 	printk("%s: (sycamore) entered\n", __func__);	
@@ -81,12 +86,8 @@ void sycamore_device_init(sycamore_bus_t *sb, sycamore_device_t *sd, u16 type, u
  **/
 void sycamore_device_destroy(sycamore_device_t *sd){
 	if (sd->destroy != NULL){
-		sd->destroy(sd, sd->device);
+		sd->destroy(sd);
 	}
-	else {
-		printk("%s: destroy not defined\n", __func__);
-	}
-	
 }
 
 

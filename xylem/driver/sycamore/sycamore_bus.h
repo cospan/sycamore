@@ -66,10 +66,9 @@ typedef int (*device_read_func_t) 		(	void *device,
 											u8 * data,
 											u32 length
 											);
-typedef void (*device_interrupt_func_t) (	void *device,
+typedef void (*device_interrupt_func_t) (	sycamore_device_t *sd,
 											u32 interrupt);
-typedef void (*device_destroy_func_t) 	(	sycamore_device_t *sd,
-											void *device);
+typedef void (*device_destroy_func_t) 	(	sycamore_device_t *sd);
 
 
 struct _sycamore_device_t {
@@ -124,7 +123,12 @@ struct _sycamore_bus_t {
 
 
 //sycamore device
-void sycamore_device_init(sycamore_bus_t *sb, sycamore_device_t *sd, u16 type, u16 flags, u32 device_address);
+void sycamore_device_init(	sycamore_bus_t *sb, 
+							sycamore_device_t *sd, 
+							u16 type, 
+							u16 flags, 
+							u32 device_address,
+							u32 size);
 void sycamore_device_destroy(sycamore_device_t *sd);
 
 

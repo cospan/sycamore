@@ -29,13 +29,8 @@ struct _drt_t {
 
 };
 
-void drt_destroy(	sycamore_device_t *sd,
-					void * data);
-void drt_interrupt (void * data, u32 interrupt);
-
-//platform_driver functions
-static int __devinit drt_drv_probe(struct platform_device *dev);
-static int __devexit drt_drv_remove(struct platform_device *dev);
+void drt_destroy(	sycamore_device_t *sd);
+void drt_interrupt (sycamore_device_t *sd, u32 interrupt);
 
 void drt_state_machine(	drt_t * drt, 
 						u32 start_address,
@@ -210,9 +205,8 @@ void drt_state_machine(	drt_t * drt,
 
 void *drt_init(		sycamore_device_t *sd,
 					const char * name){
-	int rc = 0;
 	drt_t *drt = NULL;
-	struct platform_device * parent = NULL;
+//	struct platform_device * parent = NULL;
 	printk("%s: (sycamore) entered\n", __func__);
 	drt = (drt_t *) kzalloc(sizeof(drt_t), GFP_KERNEL);
 	if (drt == NULL){
@@ -224,22 +218,12 @@ void *drt_init(		sycamore_device_t *sd,
 	drt->drt_state = DRT_READ_IDLE;
 	drt->sd = sd;
 
+	sd->device = drt;
 	sd->read = drt_read;
 	sd->interrupt = drt_interrupt;
 	sd->destroy = drt_destroy;
-/*
-	sd->pdrv.probe = drt_drv_probe;
-	sd->pdrv.remove = drt_drv_remove;
-	sd->pdrv.driver.name = (char *) kzalloc(strlen(name), GFP_KERNEL);
-	memcpy((char *)sd->pdrv.driver.name, (char *)name, strlen(name));
-	sd->pdrv.driver.owner = THIS_MODULE;
-*/
-	
-//	rc = platform_driver_register(&sd->pdrv);
-
-//	if (!rc){
-		parent = get_sycamore_bus_pdev(sd->sb);
-		sd->pdev = platform_device_register_resndata( 
+//	parent = get_sycamore_bus_pdev(sd->sb);
+	sd->pdev = platform_device_register_resndata( 
 											NULL,
 											name,
 											-1,
@@ -247,20 +231,16 @@ void *drt_init(		sycamore_device_t *sd,
 											0,
 											sd,
 											1);
-//	}
 	return drt;
 }
 
-void drt_destroy(	sycamore_device_t *sd,
-					void * data){
+void drt_destroy(	sycamore_device_t *sd){
 	drt_t *drt = NULL;
-
+	drt = (drt_t *) sd->device;
 	printk("%s: (sycamore) entered\n", __func__);
 
 	//unregister the platform from the sycamore bus
-//	platform_driver_unregister(&sd->pdrv);
 	platform_device_unregister(sd->pdev);
-	drt = (drt_t *) data;
 	if (drt->drt != NULL){
 		kfree(drt->drt);
 		drt->drt = NULL;
@@ -290,7 +270,7 @@ int drt_read 	(	void * device,
 
 	return 0;
 }
-void drt_interrupt (void * data, u32 interrupt){
+void drt_interrupt (sycamore_device_t *sd, u32 interrupt){
 	//don't response to an interrupt
 }
 
@@ -331,17 +311,20 @@ void drt_reset(sycamore_device_t *sd){
 
 void drt_start(sycamore_device_t *sd){
 	drt_t *drt = NULL;
-	printk("%s: (sycamore) entered\n", __func__);
 	drt = sd->device;
+
+	printk("%s: (sycamore) entered\n", __func__);
 
 	drt->drt_state = DRT_READ_START;
 	drt_state_machine(drt, 0, 0, 0, 0, NULL, 0);
 }
 
-int drt_get_number_of_devices( void * data){
+int drt_get_number_of_devices(sycamore_device_t *sd){
 	drt_t *drt = NULL;
-	drt = (drt_t *) data;
+	drt = sd->device;
+
 	printk("%s: (sycamore) entered\n", __func__);
+
 	return drt->number_of_devices;
 }
 
@@ -360,36 +343,35 @@ u32 hstring_to_num(char * str, int length){
 	return num;
 }
 
-int drt_get_device_data(		void *data,
-								int data_index,
-								u16 *type,
-								u16 *flags,
+int drt_get_device_data(		sycamore_device_t *sd,
+								int dev_index,
+								u32 *type,
+								u32 *flags,
 								u32 *size,
 								u32 *device_address){
 
 	drt_t *drt = NULL;
 	int offset = 0;	
+	drt = sd->device;
+
 	printk("%s: (sycamore) entered\n", __func__);
-	if (data_index >= drt->number_of_devices){
+
+	if (dev_index > drt->number_of_devices){
 		return -1;
 	}
-	drt = (drt_t *) data;
-	offset = (data_index + 1) * 8 * 8;
+
+	offset = (dev_index) * 8 * 8;
+
+	printk("%s: (sycamore) index: %d\n", __func__, offset);
+
 	//don't count the drt device
-	*device_address = (u32) hstring_to_num(&drt->drt[offset], 8);
-	*flags = (u16) hstring_to_num(&drt->drt[offset + 8], 4);
-	*type = (u16) hstring_to_num(&drt->drt[offset + 12], 4);
-	*size = (u32) hstring_to_num(&drt->drt[offset + 16], 8);
+	*type = (u32) hstring_to_num(&drt->drt[offset], 8);
+	*flags = (u32) hstring_to_num(&drt->drt[offset + 8], 8);
+	*device_address = (u32) hstring_to_num(&drt->drt[offset + 16], 8);
+	*size = (u32) hstring_to_num(&drt->drt[offset + 24], 8);
 	return 0;
 }
 
 
 
 
-static int __devinit drt_drv_probe(struct platform_device *dev){
-	return 0;
-}
-
-static int __devexit drt_drv_remove(struct platform_device *dev){
-	return 0;
-}

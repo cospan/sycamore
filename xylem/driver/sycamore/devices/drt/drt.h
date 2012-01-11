@@ -39,12 +39,12 @@ bool drt_working (sycamore_device_t * sd);
 bool drt_finished (sycamore_device_t * sd);
 
 //drt devices functions
-int drt_get_number_of_devices(	void * data);
-int drt_get_device_data(		void * data, 
+int drt_get_number_of_devices(	sycamore_device_t *sd);
+int drt_get_device_data(		sycamore_device_t *sd, 
 								int device_index, 
-								u16 *type, 
-								u16	*flags, 
-								u32 *size,
-								u32	*device_address); 
+								u32 *type, 
+								u32	*flags, 
+								u32 *device_address,
+								u32 *size); 
 
 #endif //__DRT_H__
