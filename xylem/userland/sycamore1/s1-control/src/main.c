@@ -131,6 +131,7 @@ static int cmd_test (state_t *state, const char *cmd, int argc, char **argv){
 	int i = 0;
 	int result = 0;
 	int size = 0;
+	char buffer[1024];
 	printf ("unit-test\n");
 	state->comm = comm_init();
 	state->eeprom = eeprom_init();
@@ -166,6 +167,22 @@ static int cmd_test (state_t *state, const char *cmd, int argc, char **argv){
 	size = eeprom_calculate_size(state->eeprom);
 	printf ("size: %d\n", size);
 
+	printf ("generating the eeprom raw file\n");
+	size = eeprom_generate_byte_string(	state->eeprom, 
+										&buffer[0], 
+										1024);
+	printf ("writing to file");
+
+	FILE *f = fopen("usb_descriptor.hex", "w");
+	if (f == NULL){
+		printf ("failed to open the file\n");
+	}
+	else {
+		size = fwrite(&buffer, 1, size, f);
+		printf ("wrote %d bytes\n", size);
+		fclose(f);
+	}
+	
 
 	//initializing the EEPROM
 /*

@@ -174,7 +174,7 @@ eeprom_t * eeprom_init(){
 	//Device
 	eeprom->bdevice_length			= 18;
 	eeprom->bdevice_type			= 1;
-	eeprom->wBCDusb_version			= 200;
+	eeprom->wBCDusb_version			= 0x0C8;
 	eeprom->bdevice_class			= 0;
 	eeprom->bdevice_subclass		= 0;
 	eeprom->bdevice_protocol		= 0;
@@ -183,7 +183,7 @@ eeprom_t * eeprom_init(){
 	eeprom->wvendor_id				= SYCAMORE1_VENDOR_ID; 
 	//product id
 	eeprom->wproduct_id				= SYCAMORE1_PRODUCT_ID;
-	eeprom->wBCDversion				= 700;
+	eeprom->wBCDversion				= 0x0700;
 	eeprom->ivendor					= 1;
 	eeprom->iproduct				= 2;
 	eeprom->iserial					= 0;
@@ -457,6 +457,7 @@ int eeprom_generate_byte_string (eeprom_t *eeprom, uint8_t *data, int max_length
 							eeprom->wconf0_total_length +
 							eeprom->wconf1_total_length;
 
+	char *eeprom_buf = (char*) eeprom;
 	int i = 0;
 	bool carry_byte = false;
 
@@ -464,15 +465,17 @@ int eeprom_generate_byte_string (eeprom_t *eeprom, uint8_t *data, int max_length
 		return -1;
 	}
 	
-	if ((descriptor % 2) != 0){
+	/*
+	if ((descriptor_length % 2) != 0){
 		carry_byte = true;
 	}
-	for (i = 0; i < descriptor_length; i+= 2){
+	*/
+	for (i = 0; i < descriptor_length; i++){
 		//go through each words, and flip the bytes 
-		
+		data[i] = eeprom_buf[i];
 	}
 
 
-	return 0;
+	return i;
 }
 
