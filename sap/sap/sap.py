@@ -68,8 +68,8 @@ def main(argv):
 				print "Compress output, tgz"
 				compress = True			
 			elif opt in ("-o", "--output"):
-				print "Output filename: " + output_filename
 				output_filename = arg
+				print "Output filename: " + output_filename
 
 
 		if (len(args) == 0):
