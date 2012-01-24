@@ -29,7 +29,7 @@ class Test (unittest.TestCase):
 		os.environ["S1_BASE"] = sys.path[0] + "/s1-pycontrol"
 
 
-		self.bbc = BitBangController(0x0403, 0x6010, 2)
+		self.bbc = BitBangController(0x0403, 0x8530, 2)
 		return
 
 	def tearDown(self):

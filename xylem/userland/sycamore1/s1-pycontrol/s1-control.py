@@ -57,7 +57,7 @@ def usage():
 class Sycamore1():
 
 	
-	def __init__(self, idVendor = 0x0403, idProduct = 0x6010):
+	def __init__(self, idVendor = 0x0403, idProduct = 0x8530):
 		self.vendor = idVendor 
 		self.product = idProduct
 		self.fifo = FifoController(idVendor, idProduct)

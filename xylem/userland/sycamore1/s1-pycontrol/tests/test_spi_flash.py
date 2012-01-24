@@ -25,7 +25,7 @@ class Test (unittest.TestCase):
 		os.environ["S1_BASE"] = sys.path[0] + "/s1-pycontrol"
 
 
-		self.manager = SerialFlashManager(0x0403, 0x6010, 2)
+		self.manager = SerialFlashManager(0x0403, 0x8530, 2)
 		self.flash = self.manager.get_flash_device()
 		return
 
