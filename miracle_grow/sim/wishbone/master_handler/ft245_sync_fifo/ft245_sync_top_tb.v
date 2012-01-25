@@ -41,203 +41,36 @@ module ft245_sync_top_tb;
 
 	
 	
-
-
-
 	//instantiate the uart
-	uart urt(
+	ft245_sync_fifo sync_fifo(
 		.clk(clk),
 		.rst(rst),
-		.rx(rx),
-		.tx(tx),
-		.transmit(transmit),
-		.tx_byte(tx_byte),
-		.received(received),
-		.rx_byte(rx_byte),
-		.is_receiving(is_receiving),
-		.is_transmitting(is_transmitting),
-		.rx_error(rx_error)
+		.data(data),
+		.txe_n(txe_n),
+		.wr_n(wr_n),
+		.rde_n(rde_n),
+		.rd_n(rd_n),
+		.oe_n(oe_n),
+		.siwu(siwu)
 	);
 
-	wire	tx2;
-	wire	received2;
-	wire [7:0]	rx_byte2;
-	wire 		is_receiving2;
-	wire 		is_transmitting2;
-	wire 		rx_error2;
 
+integer ch;
+integer fd_in;
+integer fd_out;
 
-
-	uart_back urt_bk(
-		.clk(clk),
-		.rst(rst),
-		.rx(rx),
-		.tx(tx2),
-		.transmit(transmit),
-		.tx_byte(tx_byte),
-		.received(received),
-		.rx_byte(rx_byte2),
-		.is_receiving(is_receiving2),
-		.is_transmitting(is_transmitting2),
-		.recv_error(rx_error2)
-
-	);
-
-	integer fd_in;
-	integer fd_out;
-	reg [7:0] ch = 0;
-	reg [3:0]	bit_index =0;
-
-	always #1 clk = ~clk;
-	
 initial begin
 
 	ch 		= 0;
-
 	$dumpfile ("design.vcd");
-	$dumpvars (0, uart_top_tb);
-	fd_in = $fopen ("uart_input_data.txt", "r");
-	//fd_out = $fopen ("uart/uart_output_data.txt", "r");
-
-	rst 					<= 0;	
-	#5
-	rst 					<= 1;
-	rx						<= 1;
-	transmit				<= 0;
-	tx_byte					<= 8'h00;
-	hp_delay				<= 0;
-	fp_delay				<= 0;
-	bit_index				<= 0;
-	#5
-	rst 					<= 0;
-	#10000
+	$dumpvars (0, ft245_sync_top_tb);
+	fd_in = $fopen ("fsync_input_data.txt", "r");
 
 	//testing input
 	if (fd_in == 0) begin
-		$display("uart_input_data.txt was not found");
+		$display("fsync_input_data.txt was not found");
 	end	
 	else begin
-//		ch = $fgetc(fd_in);
-//		while (ch != -1) begin
-//			#10
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-
-			$display("Start bit goes low");
-//			ch = $fgetc(fd_in);				
-			ch = 8'hF0;
-			bit_index <= 0;
-			//set the rx line low
-			rx <= 0;
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			wait(delay_finished);
-
-			//send seventh bit
-			$display ("7th....");
-			rx <= ch[bit_index];
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			bit_index	<= bit_index + 1;
-			wait(delay_finished);
-
-			//send sixth bit
-			$display ("6th....");
-			rx <= ch[bit_index];
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			bit_index	<= bit_index + 1;
-			wait(delay_finished);
-
-			//send fifth bit
-			$display ("5th....");
-			rx <= ch[bit_index];
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			bit_index	<= bit_index + 1;
-			wait(delay_finished);
-
-			//send fourth bit
-			$display ("4th....");
-			rx <= ch[bit_index];
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			bit_index	<= bit_index + 1;
-			wait(delay_finished);
-
-			//send third bit
-			$display ("3rd....");
-			rx <= ch[bit_index];
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			bit_index	<= bit_index + 1;
-			wait(delay_finished);
-
-			//send second bit
-			$display ("2nd....");
-			rx <= ch[bit_index];
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			bit_index	<= bit_index + 1;
-			wait(delay_finished);
-
-			//send first bit
-			$display ("1st....");
-			rx <= ch[bit_index];
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			bit_index	<= bit_index + 1;
-			wait(delay_finished);
-
-			//send zeroith bit
-			$display ("0th....");
-			rx <= ch[bit_index];
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			bit_index	<= bit_index + 1;
-			wait(delay_finished);
-
-			//wait 1 stop bit
-			$display ("stop bit");
-			rx <= 1;
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			wait(delay_finished);
-			rx	<= 1;
-
-			wait(received == 0);
-
-
-			//test a transmit
-
-			tx_byte 	<= 8'h01;
-			transmit	<= 1;
-
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			wait(delay_finished);
-			fp_delay	<= 1;
-			wait(delay_finished == 0);
-			fp_delay	<= 0;
-			wait(delay_finished);
-
-			transmit 	<= 0;
-
-
-			wait (is_transmitting == 0);
-
-//		end
 	end
 	#10000
 	$finish;
@@ -245,25 +78,9 @@ end
 
 always @ (posedge clk) begin
 	if (rst) begin
-		delay <= 16'h0;
-		delay_finished	<= 0;
 	end
 	else begin
-		if (delay > 0) begin
-			delay <= delay - 1;
-			delay_finished	<= 0;
-		end
-		else begin
-			delay_finished	<= 1;
-			if (fp_delay) begin
-				$display ("full period wait");
-				delay	<= `FULL_PERIOD;
-			end
-			else if (hp_delay) begin
-				$display ("half period wait");
-				delay	<= `HALF_PERIOD;
-			end
-		end
+		//not in reset
 	end
 end
 
