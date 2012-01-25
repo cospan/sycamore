@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from array import array as Array
 import sys
 import time
@@ -50,7 +51,7 @@ def usage():
 	print "\treset the internal state machine of the FPGA"
 	print "\t\ts1-command.py -r"
 	print ""
-	print "\tread back the .mcs file, all files will be 512KB"
+	print "\tread back the .mcs file, all files will be 2MB"
 	print "\t\ts1-command.py -z outfile.txt"
 	print ""
 

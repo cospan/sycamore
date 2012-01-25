@@ -15,7 +15,7 @@ class Numonyx_FlashDevice(SerialFlash):
 	#ID variables
 	JEDEC_ID			=	0x20
 	SERIALFLASH_ID		=	0x20
-	DEVICES				=	{0x13: 2 << 18}
+	DEVICES				=	{0x15: 1 << 0x15}
 	
 	#commands
 	CMD_WRITE_ENABLE	=	0x06 # Write enable
@@ -37,10 +37,11 @@ class Numonyx_FlashDevice(SerialFlash):
 
 
 	PAGE_DIV			=  	8					#??
-	SECTOR_DIV			=	16					#place holder	
+	SECTOR_DIV			=	0x10				#place holder	
 
 	PAGE_SIZE			=	1 << PAGE_DIV		#256 bytes	
 	SECTOR_SIZE			=	1 << SECTOR_DIV		#65,536 bytes	
+	NUM_SECTORS			=	(1 << 0x15) / SECTOR_SIZE	
 
 	SPI_FREQUENCY_MAX	=	75 					# MHz
 	ADDRESS_WIDTH		=	1
