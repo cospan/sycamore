@@ -80,7 +80,8 @@ class Sycamore1():
 		#print out the device that was found
 #		print "Found: ", str(flash)
 
-		flash.erase(0x00, len(flash))
+#		flash.erase(0x00, len(flash))
+		flash.bulk_erase()
 		#write data to the output
 		flash.write(0x00, mcs)
 
@@ -119,13 +120,14 @@ class Sycamore1():
 
 	def program_FPGA(self):
 		bbc = BitBangController(self.vendor, self.product, 2)	
-		bbc.set_pins_to_output()
+		bbc.set_pins_to_input()
+		#I don't know if this works
+		bbc.set_program_to_output()
 		bbc.program_high()
-		time.sleep(.2)
+		time.sleep(.5)
 		bbc.program_low()
 		time.sleep(.2)
 		bbc.program_high()
-
 		bbc.set_pins_to_input()
 
 
@@ -222,6 +224,10 @@ def main(argv):
 	print "Sending program signal"
 	s1.program_FPGA()
 
+	print "Wait for 6 seconds before setting the FIFO"
+	print "just in case this is the reason why the FPGA"
+	print "isn't programming"
+	time.sleep(6)
 
 	print "Change to highspeed Synchronous FIFO mode"
 	s1.set_sync_fifo_mode()

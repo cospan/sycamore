@@ -27,8 +27,8 @@ SOFTWARE.
 module ft245_sync_top_tb; 
 
 
-	reg 			clk = 0;
-	reg 			rst = 0;
+	reg 			clk			=	0;
+	reg 			rst			=	0;
 
 	wire 	[7:0]	data;
 	reg 	[7:0] 	in_data;
@@ -39,25 +39,45 @@ module ft245_sync_top_tb;
 	wire			oe_n;
 	wire			siwu;
 
-	
+	wire			ftdi_clk;
+
+	reg		[31:0]	host_data_in;
+	reg				host_rd;
+	wire			host_empty;
+
+	wire	[31:0]	host_data_out;
+	reg				host_wr;
+	wire			host_full;
+
 	
 	//instantiate the uart
 	ft245_sync_fifo sync_fifo(
-		.clk(clk),
 		.rst(rst),
-		.data(data),
-		.txe_n(txe_n),
-		.wr_n(wr_n),
-		.rde_n(rde_n),
-		.rd_n(rd_n),
-		.oe_n(oe_n),
-		.siwu(siwu)
+		.ftdi_clk(ftdi_clk),
+		.ftdi_data(data),
+		.ftdi_txe_n(txe_n),
+		.ftdi_wr_n(wr_n),
+		.ftdi_rde_n(rde_n),
+		.ftdi_rd_n(rd_n),
+		.ftdi_oe_n(oe_n),
+		.ftdi_siwu(siwu),
+
+		.hi_clk(clk),
+		.hi_data_in(host_data_in),
+		.hi_rd(host_rd),
+		.hi_empty(host_empty),
+		
+		.hi_data_out(host_data_out),
+		.hi_wr(host_wr),
+		.hi_full(host_full)
 	);
 
 
 integer ch;
 integer fd_in;
 integer fd_out;
+
+
 
 initial begin
 
@@ -76,8 +96,25 @@ initial begin
 	$finish;
 end
 
+//virtual FTDI chip
+always @ (posedge ftdi_clk) begin
+	if (rst) begin
+		txe_n	<= 1;
+		rde_n	<= 1;
+	end
+	else begin
+		//not in reset
+	end
+end
+
+
+//host_interface
 always @ (posedge clk) begin
 	if (rst) begin
+		host_data_in	<= 32'h0;
+		host_rd			<= 0;
+		
+		host_wr			<= 0;
 	end
 	else begin
 		//not in reset

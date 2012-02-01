@@ -1,0 +1,4 @@
+../../../../rtl/mg_defines.v
+../../../../rtl/wishbone/host_interface/fsmc/fsmc.v
+fsmc_top_tb.v
+

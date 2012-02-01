@@ -3,7 +3,7 @@
 -Everthing that is initiates an action from another core (input to that core) is _en
 -Everthing that is an output of a core to indicate that it is ready (output from that core) is _ready
 
-master_handler:
+interconnect:
 	-these are the structures that facilitate the communication between an entity outside of the FPGA and the wishbone master.
 	-there are three planned: UART, FSMC (parallel memory interface for OAK), PCIE
 	-the structures have a defined interface that must be followed because the sap library that generates the project will be looking for specific inputs and outputs

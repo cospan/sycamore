@@ -1,4 +1,0 @@
-../../../../rtl/mg_defines.v
-../../../../rtl/wishbone/master_handler/uart/uart_back.v
-../../../../rtl/wishbone/master_handler/uart/uart.v
-uart_top_tb.v

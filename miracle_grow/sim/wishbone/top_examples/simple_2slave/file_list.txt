@@ -1,7 +1,7 @@
 ../../../../rtl/mg_defines.v
-../../../../rtl/wishbone/master_handler/uart/uart_input_handler.v
-../../../../rtl/wishbone/master_handler/uart/uart_output_handler.v
-../../interconnect/example_2port_interconnect/wishbone_interconnect.v
+../../../../rtl/wishbone/host_interface/uart/uart_input_handler.v
+../../../../rtl/wishbone/host_interface/uart/uart_output_handler.v
+../../host_interface/example_2port_host_interface/wishbone_host_interface.v
 device_table_defines.v
 ../../../../rtl/wishbone/slave/device_rom_table/device_rom_table.v
 ../../../../rtl/wishbone/slave/simple_gpio/simple_gpio.v

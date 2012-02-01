@@ -55,7 +55,7 @@ class Numonyx_FlashDevice(SerialFlash):
 	SR_WP				=	0b10000000	# Write Protect
 
 
-	PROGRAM_PAGE_TIMES	=	(0.0008, 0.005)
+	PROGRAM_PAGE_TIMES	=	(0.0010, 0.010)
 	ERASE_SECTOR_TIMES	=	(0.6, 3)
 	ERASE_BULK_TIMES	=	(4.5, 10)
 	SPI_FREQ_MAX		=	30	#MHz
@@ -64,13 +64,14 @@ class Numonyx_FlashDevice(SerialFlash):
 		self._spi = spiport;
 		device = self._jedec2int(jedec)[2]
 		self._size = self.DEVICES[device]
-#		self._spi.set_frequency(30E06)
+#		self._size = 1 << 15
+#		self._spi.set_frequency(1E06)
 	
 	def __len__(self):
 		return self._size
 
 	def __str__(self):
-		return 'Numonyx %d KB' % (len(self) >> 10)
+		return 'Numonyx %d KB, %d sectors each %d bytes' % (len(self) >> 10, self.NUM_SECTORS, self.SECTOR_SIZE)
 
 	def get_capacity(self):
 		return len(self)
@@ -94,16 +95,21 @@ class Numonyx_FlashDevice(SerialFlash):
 		self._spi.exchange(wrsr_cmd)
 
 	def write (self, address, data):
+		length = len(data)
+
+		print "addr: %08X, len data: %08X, len self: %08X" % (address, len(data), len(self))
 		if address + len(data) > len(self):
 			raise SerialFlashValueError("Cannot fit in flash area")
 		if not isinstance (data, Array):
 			data = Array('B', data)
-		length = len(data)
 
+	#	data.byteswap()
 		pos = 0
 		percentage = 0.0
 		while pos < length:
-			percentage = (1000.0 * pos / length)
+			percentage = (100.0 * pos / length)
+			#print "percentage: %d @ 0x%08X" % (percentage, pos)
+
 			size = min (length - pos, self.PAGE_SIZE)
 			self._write(address, data[pos:pos + size])
 			address += size
@@ -119,6 +125,7 @@ class Numonyx_FlashDevice(SerialFlash):
 
 		self._enable_write()
 		self._read_status()
+		print "Erase 0x%08X - 0x%08X Length: %d" % (start, end, length)
 		
 		self._erase_blocks(	self.CMD_ERASE_SECTOR,
 							self.ERASE_SECTOR_TIMES,

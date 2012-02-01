@@ -1,0 +1,5 @@
+../../../../rtl/mg_defines.v
+../../../../rtl/wishbone/interconnect/uart/uart_input_handler.v
+../../../../rtl/wishbone/interconnect/uart/uart_output_handler.v
+../../../../rtl/wishbone/master/wishbone_master.v
+uart_top_tb.v

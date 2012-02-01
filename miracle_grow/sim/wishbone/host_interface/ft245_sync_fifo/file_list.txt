@@ -1,0 +1,5 @@
+../../../../rtl/mg_defines.v
+../../../../rtl/wishbone/host_interface/ft245_sync_fifo/ft245_sync.v
+../../../../rtl/wishbone/host_interface/ft245_sync_fifo/afifo.v
+../../../../rtl/wishbone/host_interface/ft245_sync_fifo/graycounter.v
+ft245_sync_top_tb.v

@@ -69,14 +69,14 @@ class Test (unittest.TestCase):
 #	def test_wake(self):
 #		self.flash.wake()
 
-	def test_flashdevice_read_bandwidth(self):
-		print "Start reading the whole device..."
-		delta = time.time()
-		data = self.flash.read(0, len(self.flash))
-		delta = time.time()-delta
-		length = len(data)
-		print "%d bytes in %d seconds @ %.1f KB/s" % \
-			(length, delta, length/(1024.0*delta))
+#	def test_flashdevice_read_bandwidth(self):
+#		print "Start reading the whole device..."
+#		delta = time.time()
+#		data = self.flash.read(0, len(self.flash))
+#		delta = time.time()-delta
+#		length = len(data)
+#		print "%d bytes in %d seconds @ %.1f KB/s" % \
+#			(length, delta, length/(1024.0*delta))
 
 
 
@@ -98,6 +98,60 @@ class Test (unittest.TestCase):
 #	def test_unlock(self):
 #		"""test the chip's capability to unlock"""
 #		self.flash.unlock()
+
+	def test_rw_sector_1(self):
+		from hashlib import sha1
+		buf = Array('I')
+#		length = 65536
+		length = len(self.flash)
+		print "length: " + str(length)
+		print "Build Sequence"
+		for address in range (0, length):
+			buf.append(address)
+		print "Swap sequence"
+		buf = buf.byteswap()
+		#print "Erase flash from %08X to %08X" % (0, length)
+		print "Erase all of the flash"
+		self.flash.erase(0, len(self.flash))
+		bufstr = buf.tostring()
+		dout = Array('B')
+		dout.fromstring(bufstr)
+		self.flash.write(0, bufstr)
+		print "Verify Flash"
+		wmd = sha1()
+		wmd.update(buf.tostring())
+		refdigest = wmd.hexdigest()
+		print "Read Flash"
+		din = self.flash.read(0, length)
+		print "Dump Flash"
+		print hexdump(din.tostring())
+		print "Verify Flash"
+		rmd = sha1()
+		rmd.update(din.tostring())
+		newdigest = rmd.hexdigest()
+		print "Reference: ", refdigest
+		print "Retrieved: ", newdigest
+
+		try:
+			f = open("din.hex", "w")
+			din.tofile(f)
+			f.close()
+		except IOError, err:
+			print "Error writing to din file"
+
+		try:
+			f = open("dout.hex", "w")
+			dout.tofile(f)
+			f.close()
+		except IOError, err:
+			print "Error writing to dout file"
+
+
+		if refdigest != newdigest:
+			raise AssertionError("Data Comaparison Mismatch")
+
+		
+
 """
 	def test_flashdevice_long_rw(self):
 		# Fill in the whole flash with a monotonic increasing value, that is

@@ -1,3 +1,0 @@
-../../../../rtl/mg_defines.v
-../../../../rtl/wishbone/master_handler/fsmc/fsmc.v
-fsmc_top_tb.v

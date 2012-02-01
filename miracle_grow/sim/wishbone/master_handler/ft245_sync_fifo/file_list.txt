@@ -1,3 +1,0 @@
-../../../../rtl/mg_defines.v
-../../../../rtl/wishbone/master_handler/ft245_sync_fifo/ft245_sync.v
-ft245_sync_top_tb.v

@@ -1,0 +1,4 @@
+../../../../rtl/mg_defines.v
+../../../../rtl/wishbone/host_interface/uart/uart.v
+../../../../rtl/wishbone/host_interface/uart/uart_back.v
+uart_top_tb.v
