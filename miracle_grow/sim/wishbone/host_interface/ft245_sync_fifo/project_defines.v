@@ -6,5 +6,5 @@
 `define DRT_INPUT_FILE "drt_rom_file.txt"
 `define SIM
 
-`define CLOCK_RATE 60000000
+`define CLOCK_RATE 50000000
 `endif

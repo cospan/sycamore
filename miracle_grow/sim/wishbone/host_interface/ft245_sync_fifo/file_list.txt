@@ -1,5 +1,8 @@
-../../../../rtl/mg_defines.v
 ../../../../rtl/wishbone/host_interface/ft245_sync_fifo/ft245_sync.v
 ../../../../rtl/wishbone/host_interface/ft245_sync_fifo/afifo.v
 ../../../../rtl/wishbone/host_interface/ft245_sync_fifo/graycounter.v
+../../interconnect/example_2port_interconnect/wishbone_interconnect.v
+../../../../rtl/wishbone/slave/wb_gpio/wb_gpio.v
+../../../../rtl/wishbone/slave/device_rom_table/device_rom_table.v
+../../../../rtl/wishbone/master/wishbone_master.v
 ft245_sync_top_tb.v
