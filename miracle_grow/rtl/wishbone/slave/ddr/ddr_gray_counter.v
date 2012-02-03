@@ -6,7 +6,7 @@
 
 `timescale 1ns/1ps
 
-module GrayCounter
+module DDRGrayCounter
    #(parameter   COUNTER_WIDTH = 2)
    
     (output reg  [COUNTER_WIDTH-1:0]    GrayCount_out,  //'Gray' code count output.

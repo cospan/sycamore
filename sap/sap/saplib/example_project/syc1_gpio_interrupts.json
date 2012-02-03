@@ -1,0 +1,59 @@
+{
+	
+	"BASE_DIR":"~/projects/sycamore_projects",
+	"PROJECT_NAME":"example_project",
+	"BUILD_TOOL":"xilinx",
+	"TEMPLATE":"wishbone_template.json",
+	"INTERFACE":"ft_host_interface.v",
+	"SLAVES":{
+		"gpio1":{
+			"filename":"wb_gpio.v"
+		}
+	},
+
+	"CONSTRAINTS":{
+		"constraint_files":[
+			"sycamore1.ucf"
+		],
+		"board":"sycamore1",
+		"device":"xc6slx9tqg144-3",
+		"bind": {
+			"ftdi_clk":{
+				"port":"FTDI_CLK",
+				"direction":"input"
+			},
+			"ftdi_data[7:0]":{
+				"port":"d[7:0]",
+				"direction":"inout"
+			},
+			"ftdi_txe_n":{
+				"port":"txe_n",
+				"direction":"input"
+			},
+			"ftdi_wr_n":{
+				"port":"wr_n",
+				"direction":"output"
+			},
+			"ftdi_rde_n":{
+				"port":"rxe_n",
+				"direction":"input"
+			},
+			"ftdi_rd_n":{
+				"port":"rd_n",
+				"direction":"output"
+			},
+			"ftdi_oe_n":{
+				"port":"oe_n",
+				"direction":"output"
+			},
+			"gpio1_gpio_out[1:0]":{
+				"port":"led[1:0]",
+				"direction":"output"
+			},
+			"gpio1_gpio_in[0]":{
+				"port":"button",
+				"direction":"input"
+			}
+		}
+	}
+}

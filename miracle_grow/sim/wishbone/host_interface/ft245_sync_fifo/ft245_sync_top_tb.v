@@ -55,6 +55,8 @@ reg		[31:0]	syc_data;
 wire	[24:0]	syc_data_count;
 assign syc_data_count = syc_command[24:0];
 
+reg		[31:0]	read_data;
+
 
 
 wire		master_ready;
@@ -171,7 +173,7 @@ wire [31:0]	wbs1_adr_o;
 wire		wbs1_int_i;
 
 
-reg	[31:0]	gpio_in;
+reg	[31:0]	gpio_in	=	32'h01234567;
 wire [31:0]	gpio_out;
 
 assign wbs0_int_i = 0;
@@ -292,40 +294,6 @@ initial begin
 		$display("fsync_input_data.txt was not found");
 	end	
 	else begin
-
-/*
-		$display("Excercising a write");
-		ftdi_new_data_available <= 1;
-
-		number_to_write			<= 4;
-		while (ftdi_state != FTDI_TX_READING_FINISHED) begin
-			#2
-			temp_state	<= ftdi_state;
-		end
-
-		ftdi_new_data_available	<= 0;
-
-		$display ("wating for state machine to return to IDLE");
-		while (ftdi_state != FTDI_IDLE) begin
-			#2
-			temp_state	<= ftdi_state;
-		end
-
-		$display("Excercising a read");
-		ftdi_ready_to_read		<= 1;
-
-		while (ftdi_state	!=	FTDI_RX_STOP) begin
-			#2
-			temp_state	<= ftdi_state;
-		end
-		ftdi_ready_to_read		<= 0;
-
-		$display ("wating for state machine to return to IDLE");
-		while (ftdi_state != FTDI_IDLE) begin
-			#2
-			temp_state	<= ftdi_state;
-		end
-*/
 		//process data from a file
 		while (!$feof(fd_in)) begin
 			read_count = $fscanf (fd_in, "%h:%h:%h\n", syc_command, syc_address, syc_data);
@@ -339,14 +307,7 @@ initial begin
 				temp_state	<= ftdi_state;
 			end
 			ftdi_ready_to_read		<= 0;
-
-			$display ("wating for state machine to return to IDLE");
-			while (ftdi_state != FTDI_IDLE) begin
-				#2
-				temp_state	<= ftdi_state;
-			end
-
-			#20
+			#200
 			temp_state		<= ftdi_state;
 
 		end
@@ -354,7 +315,7 @@ initial begin
 
 	$fclose (fd_in);
 	$display ("Finished tests");
-	#10000
+	#100
 	$finish;
 end
 
@@ -374,7 +335,7 @@ always @ (negedge ftdi_clk) begin
 		ftdi_write_size		<=	0;
 		ftdi_read_count		<=	0;
 		write_count			<=	0;
-		ftdi_in_data				<=	0;
+		ftdi_in_data		<=	0;
 
 	end
 	else begin
@@ -389,9 +350,6 @@ always @ (negedge ftdi_clk) begin
 				//check ifthe 'initial' wants to receive
 				rde_n	<= ~ftdi_ready_to_read;
 
-				//check if the 'initial' wants to transmit
-				txe_n	<= ~ftdi_new_data_available;	
-				
 				//read always gets priority
 				if (~rde_n & ~oe_n) begin
 					$display("tb: rde_n and oe_n LOW, wait for rd_n to go LOW");
@@ -400,10 +358,6 @@ always @ (negedge ftdi_clk) begin
 					//add eight for the address and control data
 					ftdi_write_size	<= (syc_data_count	<< 2) + 8;
 					write_count		<= 0;
-				end
-				else if (~txe_n & ~wr_n) begin
-					$display("tb: txe_n and wr_n LOW, starting reading data from the core");
-					ftdi_state	<=	FTDI_TX_READING;
 				end
 
 			end
@@ -445,6 +399,7 @@ always @ (negedge ftdi_clk) begin
 //						$display ("tb: sending %h", syc_data[31:24]);
 						ftdi_in_data <= syc_data[31:24];
 						syc_data <= {syc_data[24:0], 8'h0};
+
 					end
 					write_count	<= write_count + 1;
 				end
@@ -463,30 +418,6 @@ always @ (negedge ftdi_clk) begin
 					ftdi_state	<= FTDI_IDLE;
 				end
 			end
-			FTDI_TX_READING:	begin
-				//reading data from the core
-				//$display ("read %02X from the core", data);
-				if (wr_n) begin
-					$display ("Core has terminated write before buffer is full");
-					ftdi_state	<= FTDI_TX_READING_FINISHED;
-					txe_n		<= 1;
-				end
-				if (ftdi_read_count == FTDI_BUFFER_SIZE -1 ) begin
-					$display ("FTDI TX buffer full, read %d times", ftdi_read_count);
-					txe_n		<= 1;
-					ftdi_state	<= FTDI_TX_READING_FINISHED;
-				end
-				ftdi_read_count	<=	ftdi_read_count + 1;
-			end
-			FTDI_TX_READING_FINISHED:	begin
-				//the core has signaled a finished read cycle
-//wait for a dip in the SIWU signal
-				$display ("wating for the core to ack my reading is finished");
-				if (wr_n) begin
-					$display ("Finished a TX read from the core");
-					ftdi_state	<= FTDI_IDLE;
-				end
-			end
 			default:					begin
 				ftdi_state	<= FTDI_IDLE;
 			end
@@ -494,13 +425,43 @@ always @ (negedge ftdi_clk) begin
 	end
 end
 
+reg			new_data;
+reg	[1:0]	data_read_count;
 
-//host_interface
-always @ (posedge clk) begin
+//reading interface
+always @ (posedge ftdi_clk) begin
 	if (rst) begin
+		txe_n			<=	1;	
+		data_read_count	<=	0;
+		new_data		<=	0;
+		read_data		<=	0;
+
 	end
 	else begin
 		//not in reset
+		txe_n			<= 0;
+		if (~wr_n) begin
+			
+			if (data_read_count[1:0] == 0) begin
+				read_data[31:24]	<= data; 
+			end
+			else if (data_read_count[1:0] == 1) begin
+				read_data[23:16]	<= data; 
+			end
+			else if (data_read_count[1:0] == 2) begin
+				read_data[15:8]		<= data;
+			end
+			else begin
+				new_data			<= 1;
+				read_data[7:0]		<= data;
+
+			end
+			data_read_count <= data_read_count + 1;
+		end
+		if (new_data) begin
+			new_data	<= 0;
+			$display ("tb: Read: %h", read_data);
+		end
 	end
 end
 

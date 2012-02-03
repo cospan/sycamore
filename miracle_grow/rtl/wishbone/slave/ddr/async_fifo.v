@@ -58,9 +58,9 @@ module async_fifo
     assign NextReadAddressEn  = ReadEn_in  & ~Empty_out;
            
     //Addreses (Gray counters) logic:
-    GrayCounter #(
+    DDRGrayCounter #(
 		.COUNTER_WIDTH( ADDRESS_WIDTH )
-    ) GrayCounter_pWr (
+    ) DDRGrayCounter_pWr (
         .GrayCount_out(pNextWordToWrite),
         .Enable_in(NextWriteAddressEn),
         .Clear_in(Clear_in),
@@ -68,9 +68,9 @@ module async_fifo
         .Clk(WClk)
        );
        
-    GrayCounter #(
+    DDRGrayCounter #(
 		.COUNTER_WIDTH( ADDRESS_WIDTH )
-    ) GrayCounter_pRd (
+    ) DDRGrayCounter_pRd (
         .GrayCount_out(pNextWordToRead),
         .Enable_in(NextReadAddressEn),
         .Clear_in(Clear_in),
