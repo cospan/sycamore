@@ -72,21 +72,21 @@ wire [27:0] out_data_count;
 
 
 	
-	//instantiate the ft245_sync core
-ft245_sync_fifo sync_fifo(
+//instantiate the ft245_sync core
+ft_host_interface ft_hi(
 	.clk(clk),
 	.rst(rst),
 
 	.master_ready(master_ready),
-	.ih_ready(ih_ready),
+	.ih_ready(in_ready),
 
 	.in_command(in_command),
 	.in_address(in_address),
 	.in_data_count(in_data_count),
 	.in_data(in_data),
 
-	.oh_ready(oh_ready),
-	.oh_en(oh_en),
+	.oh_ready(out_ready),
+	.oh_en(out_en),
 
 	.out_status(out_status),
 	.out_address(out_address),
@@ -345,6 +345,9 @@ initial begin
 				#2
 				temp_state	<= ftdi_state;
 			end
+
+			#20
+			temp_state		<= ftdi_state;
 
 		end
 	end

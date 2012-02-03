@@ -1,4 +1,5 @@
 ../../../../rtl/wishbone/host_interface/ft245_sync_fifo/ft245_sync.v
+../../../../rtl/wishbone/host_interface/ft245_sync_fifo/ft_host_interface.v
 ../../../../rtl/wishbone/host_interface/ft245_sync_fifo/afifo.v
 ../../../../rtl/wishbone/host_interface/ft245_sync_fifo/graycounter.v
 ../../interconnect/example_2port_interconnect/wishbone_interconnect.v

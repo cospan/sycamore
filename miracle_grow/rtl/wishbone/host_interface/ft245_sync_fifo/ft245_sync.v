@@ -5,24 +5,16 @@ module ft245_sync_fifo (
 	rst,
 	clk,
 
-	//host interface
-	master_ready,
-	ih_ready,
+	//in fifo
+	in_fifo_rst,
+	in_fifo_rd,
+	in_fifo_empty,
+	in_fifo_data,
 
-	in_command,
-	in_address,
-	in_data_count,
-	in_data,
-
-
-	//outgoing data
-	oh_ready,
-	oh_en,
-
-	out_status,
-	out_address,
-	out_data_count,
-	out_data,
+	//out fifo
+	out_fifo_wr,
+	out_fifo_full,
+	out_fifo_data,
 
 
 	//phy interface
@@ -37,8 +29,20 @@ module ft245_sync_fifo (
 
 
 );
-
+//host interface
+input				clk;
 input				rst;
+
+input				in_fifo_rst;
+input				in_fifo_rd;
+output				in_fifo_empty;
+output	[31:0]		in_fifo_data;
+
+//out fifo
+input				out_fifo_wr;
+output				out_fifo_full;
+input	[31:0]		out_fifo_data;
+
 
 //ftdi
 input				ftdi_clk;
@@ -49,29 +53,6 @@ input				ftdi_rde_n;
 output reg			ftdi_rd_n;
 output reg			ftdi_oe_n;
 output reg			ftdi_siwu;
-
-
-
-//host interface
-input				clk;
-
-input				master_ready;
-output reg			ih_ready;
-
-output reg	[31:0]	in_command;
-output reg	[27:0]	in_data_count;
-output reg	[31:0]	in_address;
-output reg	[31:0]	in_data;
-
-output reg			oh_ready;
-input				oh_en;
-
-input		[31:0]	out_status;
-input		[31:0]	out_address;
-input		[27:0]	out_data_count;
-input		[31:0]	out_data;
-
-
 
 
 
@@ -86,15 +67,13 @@ wire	[31:0]		ft_data_out;
 reg					in_command_ready;
 
 reg		[31:0]		in_fifo_data_in;
-reg					in_fifo_rd;
-wire				in_fifo_empty;
+//reg					in_fifo_rd;
+//wire				in_fifo_empty;
 
-wire	[31:0]		in_fifo_data_out;
+//wire	[31:0]		in_fifo_data_out;
 reg					in_fifo_wr;
 wire				in_fifo_full;
 
-
-reg					in_fifo_rst;
 
 reg				out_fifo_rst;
 wire 			out_fifo_full;
@@ -109,18 +88,18 @@ afifo
 			.ADDRESS_WIDTH(9)
 	)
 fifo_in (
-	.rst(out_fifo_rst),
+	.rst(in_fifo_rst),
 
 	.din_clk(ftdi_clk),
 	.dout_clk(clk),
 
 	.data_in(in_fifo_data_in),
-	.data_out(in_fifo_data_out),
-	.full(out_fifo_full),
-	.empty(out_fifo_empty),
+	.data_out(in_fifo_data),
+	.full(in_fifo_full),
+	.empty(in_fifo_empty),
 
 	.wr_en(in_fifo_wr),
-	.rd_en(ftdi_in_rd)
+	.rd_en(in_fifo_rd)
 
 );
 //data that will be sent to the FTDI chip (out)
@@ -162,34 +141,20 @@ always @ (posedge ftdi_clk) begin
 		ftdi_wr_n		<=	1;
 		ftdi_rd_n		<=	1;
 		ftdi_oe_n		<=	1;
-
 		ftdi_state		<= 	IDLE;
+		ftdi_siwu		<=	0;
 
 		read_count		<=	0;
 
-		in_command		<=	32'h0;
-		in_address		<=	32'h0;
 		in_fifo_data_in	<=	32'h0;
-		in_fifo_rst		<=	1;
 		out_fifo_rst	<= 	1;
 		in_fifo_wr		<=	0;
 		
 	end
 	else begin
 		//pulses 
-		if (in_fifo_rst) begin
-			in_fifo_rst <= 0;
-		end
-		if (in_fifo_wr) begin
-			in_fifo_wr	<= 0;
-		end
-
-		if (out_fifo_rst) begin
-			out_fifo_rst <= 0;
-		end 
-
-
-
+		in_fifo_wr		<= 0;
+		out_fifo_rst	<= 0;
 
 //check if the txe_n or rxe_n unexpectedy went high, if so we need to gracefully return to IDLE
 		case (ftdi_state)
@@ -207,14 +172,10 @@ always @ (posedge ftdi_clk) begin
 					$display ("core: new data available from the FTDI chip");
 					ftdi_state		<=	READ_OE;
 					ftdi_oe_n		<= 0;
-					in_command		<= 32'h0;
-					in_address		<= 32'h0;
 					read_count		<= 32'h0;
-					in_data_count	<= 28'h0;
 
 					//reset the incomming fifo to get rid of possible erronious data
 //XXX: this might not be the correct choice specificially in case the data from the user is over 512 bytes
-					in_fifo_rst	<= 1;
 				end
 				else if (~ftdi_txe_n) begin
 					$display ("core: FTDI chip is ready to be written to");
@@ -236,37 +197,20 @@ always @ (posedge ftdi_clk) begin
 				if (ftdi_rde_n) begin
 //if this is a command that doesn't require address and/or data, then we might have to enable the ih_ready from here
 //for example PING or READ
-					$display ("core: in_command: %h", in_command);
-					$display ("core: in_address: %h", in_address);
-					$display ("core: read_data: %h", in_fifo_data_in);
-					$display ("core: read_count: %h", in_data_count);
 					//were done
 					ftdi_state	<=	IDLE;
 					ftdi_oe_n	<=	1;
 					ftdi_rd_n	<=	1;
 				end
 				else begin
-					$display ("core: Read %02X, count = %d", ftdi_data, read_count);
-					if (read_count == 0) begin
-						in_command <= ftdi_data;
-					end
-					else if (read_count >=1 && read_count < 4) begin
-						//reading command
-						in_data_count <= {in_data_count[19:0], ftdi_data}; 
-					end
-					else if (read_count >= 4 && read_count < 8) begin
-						//reading address
-						in_address <= {in_address[24:0], ftdi_data}; 
-					end
-					else begin
-						//reading data
-						in_fifo_data_in	<= {in_fifo_data_in[24:0], ftdi_data};
-						if ((read_count & 31'h00000003) == 3) begin
-							$display ("core: new data, send this off to the FIFO");
+//					$display ("core: Read %02X, count = %d", ftdi_data, read_count);
+
+					in_fifo_data_in	<= {in_fifo_data_in[24:0], ftdi_data};
+					if ((read_count & 31'h00000003) == 3) begin
+//							$display ("core: new data, send this off to the FIFO");
 							in_fifo_wr	<= 1;
 							//tell the host we are ready
 
-						end
 					end
 					read_count = read_count + 1;
 
@@ -298,7 +242,7 @@ always @ (posedge ftdi_clk) begin
 	end
 end
 
-
+/*
 //host clock domain
 always @ (posedge clk) begin
 	if (rst) begin
@@ -320,7 +264,7 @@ always @ (posedge clk) begin
 end
 
 
-
+*/
 
 
 endmodule
