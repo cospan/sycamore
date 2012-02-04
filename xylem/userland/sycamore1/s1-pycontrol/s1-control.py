@@ -31,7 +31,7 @@ def usage():
 	print ""
 	print "usage: s1-command.py [options] <filename>"
 	print ""
-	print "filename: mcs file to program the FPGA"
+	print "filename: bin file to program the FPGA"
 	print ""
 	print "options:"
 	print "-h\t--help\t\t\t: displays this help"
@@ -39,19 +39,19 @@ def usage():
 	print "-d\t--debug\t\t\t: enables debug settings"
 	print "-r\t--soft_reset\t\t: resets the internal state machine"
 	print "-p\t--program\t\t: resets the FPGA an initiate a configuration"
-	print "-z\t--read_back\t\t: readback the .mcs image to the filename given"
+	print "-z\t--read_back\t\t: readback the .bin image to the filename given"
 	print ""
 	print "Examples:"
-	print "\tupdload the mcs file and program the FPGA"
-	print "\t\ts1-command.py bitfile.mcs"
+	print "\tupdload the bin file and program the FPGA"
+	print "\t\ts1-command.py bitfile.bin"
 	print ""
-	print "\treset the FPGA and program without loading a new mcs file"
+	print "\treset the FPGA and program without loading a new bin file"
 	print "\t\ts1-command.py -p"
 	print ""
 	print "\treset the internal state machine of the FPGA"
 	print "\t\ts1-command.py -r"
 	print ""
-	print "\tread back the .mcs file, all files will be 2MB"
+	print "\tread back the .bin file, all files will be 2MB"
 	print "\t\ts1-command.py -z outfile.txt"
 	print ""
 
@@ -63,11 +63,11 @@ class Sycamore1():
 		self.product = idProduct
 		self.fifo = FifoController(idVendor, idProduct)
 
-	def write_mcs_file(self, filename):
-		mcs = ""
+	def write_bin_file(self, filename):
+		binf = ""
 		try:
 			f = open(filename, "r")	
-			mcs = f.read()
+			binf = f.read()
 			f.close()
 		except IOError, err:
 			print "Failed to open file: ", err
@@ -83,32 +83,32 @@ class Sycamore1():
 #		flash.erase(0x00, len(flash))
 		flash.bulk_erase()
 		#write data to the output
-		flash.write(0x00, mcs)
+		flash.write(0x00, binf)
 
 		#verify that the data was read
-		mcs_rb = flash.read(0x00, len(mcs))
-		mcs_str = mcs_rb.tostring()
-#		print "in file: " + mcs
-#		print "out file: " + mcs_str
+		binf_rb = flash.read(0x00, len(binf))
+		binf_str = binf_rb.tostring()
+#		print "in file: " + binf
+#		print "out file: " + binf_str
 
 		del flash
 		del manager
 
 
-		if (mcs_str != mcs):
+		if (binf_str != binf):
 			return False
 		
 		return True
 
-	def read_mcs_file(self, filename):
+	def read_bin_file(self, filename):
 		manager = serialflash.SerialFlashManager(self.vendor, self.product, 2)
 		flash = manager.get_flash_device()
 
 		#I don't know how long the data is so I'll have to read it all
-		mcs_rb = flash.read(0x00, len(flash))
+		binf_rb = flash.read(0x00, len(flash))
 		try:
 			f = open(filename, "w")
-			mcs_rb.tofile(f)
+			binf_rb.tofile(f)
 			f.close()
 
 		except IOError, err:
@@ -202,19 +202,19 @@ def main(argv):
 			sys.exit()
 
 		elif opt in ("-z", "--read_back"):
-			print "read back the mcs file from the flash"
-			s1.read_mcs_file(arg)
+			print "read back the bin file from the flash"
+			s1.read_bin_file(arg)
 			sys.exit()
 
 	if (len(args) == 0):
 		print ""
-		print "no mcs file found"
+		print "no bin file found"
 		usage()
 		sys.exit(1)
 
 
 	print "uploading FPGA config file...",
-	if (not s1.write_mcs_file(args[0])):
+	if (not s1.write_bin_file(args[0])):
 		print "Failed!"
 		sys.exit(3)
 

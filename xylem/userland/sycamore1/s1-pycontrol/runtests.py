@@ -75,6 +75,7 @@ def main(argv):
 	sys.path.append(sys.path[0] + "/spi_flash")
 	sys.path.append(sys.path[0] + "/bitbang")
 	sys.path.append(sys.path[0] + "/fifo")
+	sys.path.append(sys.path[0] + "/mcs_converter")
 
 
 	global _debug
