@@ -23,6 +23,8 @@ SOFTWARE.
 */
 
 /*
+	02/02/2012
+		-changed the read state machine to use local_data_count instead of out_data_count
 	11/12/2011
 		-added support for burst read and writes
 		-added support for nacks when the slave doesn't respond in time
@@ -268,8 +270,8 @@ always @ (posedge clk) begin
 						mem_stb_o	<= 0;
 					end
 					else if (~mem_stb_o && out_ready) begin
-						$display("WBM: out_data_count = %h", out_data_count);
-						if (out_data_count == 0) begin
+						$display("WBM: local_data_count = %h", local_data_count);
+						if (local_data_count == 0) begin
 							//finished all the reads, put de-assert the cycle
 							mem_cyc_o   <= 0;
 							state       <= IDLE;
@@ -277,7 +279,7 @@ always @ (posedge clk) begin
 						else begin
 							//finished the next double word
 							nack_count		<= nack_timeout;
-							out_data_count	<= out_data_count -1;
+							local_data_count	<= local_data_count -1;
 							mem_adr_o		<= mem_adr_o + 4;
 							mem_stb_o		<= 1;
 						end
@@ -293,8 +295,8 @@ always @ (posedge clk) begin
 						wb_stb_o    <= 0;
 					end
 					else if (~wb_stb_o && out_ready) begin
-						$display("WBM: out_data_count = %h", out_data_count);
-						if (out_data_count == 0) begin
+						$display("WBM: local_data_count = %h", local_data_count);
+						if (local_data_count == 0) begin
 							//finished all the reads, put de-assert the cycle
 							debug_out[6]	<= ~debug_out[6];
 							wb_cyc_o    <= 0;
@@ -304,7 +306,7 @@ always @ (posedge clk) begin
 //the nack count might need to be reset outside of these conditionals becuase
 //at this point we are waiting on the io handler
 							nack_count		<= nack_timeout;
-							out_data_count	<= out_data_count - 1;
+							local_data_count	<= local_data_count - 1;
 							wb_adr_o		<= wb_adr_o + 1;
 							wb_stb_o		<= 1;
 						end

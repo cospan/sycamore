@@ -166,7 +166,14 @@ always @ (posedge clk) begin
 			end
 			READ_CMD: begin
 				in_command		<= {24'h0, in_fifo_data[31:24]};
-				in_data_count	<= {4'h0, in_fifo_data[23:0]};
+				//the first data is included in this first transmition
+				in_data_count	<= 28'h0;
+
+				if (in_fifo_data > 0) begin
+					//for writes the first data byte is included in the first in_ready high, so reduce the count by one
+					in_data_count	<= {4'h0, in_fifo_data[23:0]} - 1;
+				end
+
 				read_count		<= {8'h0, in_fifo_data[23:0]};
 				if (in_fifo_data[27:24] == 0) begin
 					$display ("FT_HI: in command = %h", in_fifo_data[31:24]);
@@ -292,7 +299,9 @@ always @ (posedge clk) begin
 					$display ("FT_OH: out_status: %h", out_status[7:0]);
 					//tell the master to kick back for a sec
 					write_count	<= out_data_count;
-					out_fifo_data	<= {out_status[7:0], out_data_count[23:0]};
+	//				out_fifo_data	<= {out_status[7:0], out_data_count[23:0]};
+					out_fifo_data[31:24]	<= out_status[7:0];
+					out_fifo_data[23:0]		<= 24'h0;
 					if (~out_fifo_full) begin
 						oh_ready	<= 0;
 						//ready to progress
@@ -302,6 +311,9 @@ always @ (posedge clk) begin
 							$display ("FT_OH: Ping response");
 						end
 						else begin
+							//read or write
+							//re-insert the removed 32-bit data count
+							out_fifo_data[23:0] <= out_data_count + 1;
 							write_state	<= WRITE_ADDR;
 						end
 
@@ -312,12 +324,13 @@ always @ (posedge clk) begin
 				if (~out_fifo_full) begin
 					out_fifo_wr		<= 1;
 					out_fifo_data	<=	out_address;
-					if (write_count > 0) begin
-						write_count 	<= write_count - 1;
+					if (out_status[7:0] == 8'hFD) begin
+						//write
 						write_state		<= WRITE_DATA;
 					end
 					else begin
-						write_state		<= IDLE;	
+						//read
+						write_state	<= IDLE;
 					end
 				end
 			end
