@@ -96,6 +96,11 @@ class GenTop(Gen):
 		#self.wires.append("clk_in")
 		wr_buf = wr_buf + "\tinput\t\t\trst;\n"
 		self.wires.append("rst")
+		if ("invert_reset" in tags["CONSTRAINTS"] and tags["CONSTRAINTS"]["invert_reset"] == True):
+			print "found invert reset!"
+			wr_buf += "\twire\t\t\trst_n;\n"
+			self.wires.append("rst_n")
+
 		wr_buf = wr_buf + "\twire\t[31:0]\tin_command;\n"
 		self.wires.append("in_command")
 		wr_buf = wr_buf + "\twire\t[31:0]\tin_address;\n"
@@ -245,7 +250,10 @@ class GenTop(Gen):
 		wi_buf = "\twishbone_interconnect wi (\n"
 
 		wi_buf = wi_buf + "\t\t.clk(clk),\n"
-		wi_buf = wi_buf + "\t\t.rst(rst),\n\n"
+		if ("invert_reset" in tags["CONSTRAINTS"] and tags["CONSTRAINTS"]["invert_reset"] == True):
+			wi_buf = wi_buf + "\t\t.rst(rst_n),\n\n"
+		else: 
+			wi_buf = wi_buf + "\t\t.rst(rst),\n\n"
 
 		wi_buf = wi_buf + "\t\t//master\n"
 		wi_buf = wi_buf + "\t\t.m_we_i(wbm_we_o),\n"
@@ -289,7 +297,11 @@ class GenTop(Gen):
 			wmi_buf = "\twishbone_mem_interconnect wmi (\n"
 
 			wmi_buf = wmi_buf + "\t\t.clk(clk),\n"
-			wmi_buf = wmi_buf + "\t\t.rst(rst),\n\n"
+
+			if ("invert_reset" in tags["CONSTRAINTS"] and tags["CONSTRAINTS"]["invert_reset"] == True):
+				wmi_buf = wmi_buf + "\t\t.rst(rst_n),\n\n"
+			else:
+				wmi_buf = wmi_buf + "\t\t.rst(rst),\n\n"
 
 			wmi_buf = wmi_buf + "\t\t//master\n"
 			wmi_buf = wmi_buf + "\t\t.m_we_i(mem_we_o),\n"
@@ -333,7 +345,11 @@ class GenTop(Gen):
 		#instantiate the master
 		wm_buf = wm_buf + "\twishbone_master wm (\n"
 		wm_buf = wm_buf + "\t\t.clk(clk),\n"
-		wm_buf = wm_buf + "\t\t.rst(rst),\n\n"
+
+		if ("invert_reset" in tags["CONSTRAINTS"] and tags["CONSTRAINTS"]["invert_reset"] == True):
+			wm_buf = wm_buf + "\t\t.rst(rst_n),\n\n"
+		else:
+			wm_buf = wm_buf + "\t\t.rst(rst),\n\n"
 
 		wm_buf = wm_buf + "\t\t//input handler signals\n"
 		wm_buf = wm_buf + "\t\t.in_ready(ih_ready),\n"
@@ -431,6 +447,10 @@ class GenTop(Gen):
 					buf_bind = buf_bind + "\tassign\t" + key + "\t=\t" + self.bindings[key]["port"] + ";\n"
 				elif (self.bindings[key]["direction"] == "output"):
 					buf_bind = buf_bind + "\tassign\t" + self.bindings[key]["port"] + "\t=\t" + key + ";\n"
+
+
+		if ("invert_reset" in tags["CONSTRAINTS"] and tags["CONSTRAINTS"]["invert_reset"] == True):
+			buf_bind += "\tassign\trst_n\t\t=\t~rst;\n"
 
 
 		
@@ -598,7 +618,14 @@ class GenTop(Gen):
 							out_buf = out_buf + name + str(index) + port.partition(name)[2]
 						else:
 							if (port == "clk" or port == "rst"):
-								out_buf = out_buf + port
+								if (port == "rst"):
+									if ("CONSTRAINTS" in self.tags.keys() and "invert_reset" in self.tags["CONSTRAINTS"] and self.tags["CONSTRAINTS"]["invert_reset"] == True):
+										out_buf += "rst_n"
+									else:
+										out_buf += "rst"
+								else:
+									out_buf += port
+
 							else:
 								if (self.is_wishbone_port(port)):
 									out_buf = out_buf + pre_name +  port
@@ -607,7 +634,13 @@ class GenTop(Gen):
 							
 					else:
 						if (port == "clk" or port == "rst"):
-							out_buf = out_buf + port
+							if (port == "rst"):
+								if ("CONSTRAINTS" in self.tags.keys() and "invert_reset" in self.tags["CONSTRAINTS"] and self.tags["CONSTRAINTS"]["invert_reset"] == True):
+									out_buf += "rst_n"
+								else:
+									out_buf += "rst"
+							else:
+								out_buf += port
 						else:
 							if (self.is_wishbone_port(port)):
 								out_buf = out_buf + pre_name +  port
@@ -771,7 +804,10 @@ class GenTop(Gen):
 
 			result += "\t" + arb_module + " " + arb_name + "(\n"
 			result += "\t\t.clk(clk),\n"
-			result += "\t\t.rst(rst),\n"
+			if ("invert_reset" in self.tags["CONSTRAINTS"] and self.tags["CONSTRAINTS"]["invert_reset"] == True):
+				result += "\t\t.rst(rst_n),\n"
+			else: 
+				result += "\t\t.rst(rst),\n"
 			result += "\n"
 			result += "\t\t//masters\n"
 

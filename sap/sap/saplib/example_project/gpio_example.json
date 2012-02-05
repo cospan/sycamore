@@ -7,7 +7,7 @@
 	"INTERFACE":"uart_io_handler.v",
 	"SLAVES":{
 		"gpio1":{
-			"filename":"simple_gpio.v"
+			"filename":"wb_gpio.v"
 		}
 	},
 

@@ -17,6 +17,7 @@
 		],
 		"board":"sycamore1",
 		"device":"xc6slx9tqg144-3",
+		"invert_reset":true,
 		"bind": {
 			"ftdi_clk":{
 				"port":"FTDI_CLK",

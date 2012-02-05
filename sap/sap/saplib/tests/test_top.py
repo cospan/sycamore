@@ -73,6 +73,35 @@ class Test (unittest.TestCase):
 		result = self.gen.is_wishbone_port("wbs_stb_i")
 		self.assertEqual(result, True)
 
+	def test_invert_reset(self):
+		result = False
+		#generate a top file
+		tags = {}
+		top_buffer = ""
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/syc1_gpio_interrupts.json"
+			filein = open(filename)
+			filestr = filein.read()
+			tags = json.loads(filestr)
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/wishbone_top.v"
+			filein = open(filename)
+			top_buffer = filein.read()
+			filein.close()
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+
+		result = self.gen.gen_script(tags, buf = top_buffer, debug= self.dbg)
+		if (True):
+			print "Top File: \n" + result
+
+		self.assertEqual(len(result) > 0, True)
+
 	def test_gen_top(self):
 		"""generate a top.v file"""
 		
@@ -109,7 +138,7 @@ class Test (unittest.TestCase):
 
 	def test_generate_buffer_slave(self):
 		
-		absfilepath = saputils.find_rtl_file_location("simple_gpio.v")
+		absfilepath = saputils.find_rtl_file_location("wb_gpio.v")
 		#print "simple_gpio.v location: " + absfilepath
 		slave_keywords = [
 			"DRT_ID",
@@ -124,6 +153,7 @@ class Test (unittest.TestCase):
 			"clk",
 			"rst"
 		]
+
 		tags = {}
 		try:
 			filename = os.getenv("SAPLIB_BASE") + "/example_project/mem_example.json"

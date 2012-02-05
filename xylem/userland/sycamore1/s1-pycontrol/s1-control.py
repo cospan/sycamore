@@ -12,6 +12,14 @@ from fifo.fifo import FifoController
 
 from spi_flash import numonyx_flash
 
+
+"""
+	Changelog
+	02/04/2012
+		added the feature to change to FIFO mode '-c'
+		added the feature to change to config mode '-x'
+"""
+
 """
 	Features:
 		
@@ -39,6 +47,8 @@ def usage():
 	print "-d\t--debug\t\t\t: enables debug settings"
 	print "-r\t--soft_reset\t\t: resets the internal state machine"
 	print "-p\t--program\t\t: resets the FPGA an initiate a configuration"
+	print "-c\t--comm\t\t\t: changes comm mode to highspeed fifo"
+	print "-x\t--config\t\t: change the comm to configuration mdoe"
 	print "-z\t--read_back\t\t: readback the .bin image to the filename given"
 	print ""
 	print "Examples:"
@@ -168,7 +178,7 @@ def main(argv):
 	opts = None
 	args = None
 	try:
-		opts, args = getopt.getopt(argv, "hvdrpz:", ["help", "verbose", "debug", "soft_reset", "program", "read_back"])
+		opts, args = getopt.getopt(argv, "hvdrpcxz:", ["help", "verbose", "debug", "soft_reset", "program", "comm", "config", "read_back"])
 
 	except getopt.GetoptError, err:
 		print err
@@ -199,6 +209,16 @@ def main(argv):
 		elif opt in ("-p", "--program"):
 			print "send a program signal to the FPGA"
 			s1.program_FPGA()
+			sys.exit()
+
+		elif opt in ("-c", "--comm"):
+			print "change the comm mode to high speed FIFO"
+			s1.set_sync_fifo_mode()
+			sys.exit()
+
+		elif opt in ("-x", "--config"):
+			print "change the comm mode to allow configuration"
+			s1.set_debug_mode()
 			sys.exit()
 
 		elif opt in ("-z", "--read_back"):
