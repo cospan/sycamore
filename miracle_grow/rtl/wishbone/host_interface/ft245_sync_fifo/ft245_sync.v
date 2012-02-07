@@ -197,7 +197,6 @@ always @ (posedge ftdi_clk) begin
 				//need to constantly check to see if the FIFO is empty, if so raise the RD	
 //might need to hold the next byte in a temporary buffer cause the FIFO might be one step behind
 				if (ftdi_rde_n) begin
-//if this is a command that doesn't require address and/or data, then we might have to enable the ih_ready from here
 //for example PING or READ
 					//were done
 					ftdi_state	<=	WAIT_RD;
