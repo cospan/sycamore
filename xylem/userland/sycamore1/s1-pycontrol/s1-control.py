@@ -91,6 +91,7 @@ class Sycamore1():
 #		print "Found: ", str(flash)
 
 #		flash.erase(0x00, len(flash))
+		print "Erasing the flash device"
 		flash.bulk_erase()
 		#write data to the output
 		flash.write(0x00, binf)
@@ -233,6 +234,7 @@ def main(argv):
 		sys.exit(1)
 
 
+	s1.set_debug_mode()
 	print "uploading FPGA config file...",
 	if (not s1.write_bin_file(args[0])):
 		print "Failed!"
@@ -244,10 +246,10 @@ def main(argv):
 	print "Sending program signal"
 	s1.program_FPGA()
 
-	print "Wait for 6 seconds before setting the FIFO"
-	print "just in case this is the reason why the FPGA"
-	print "isn't programming"
-	time.sleep(6)
+#	print "Wait for 6 seconds before setting the FIFO"
+#	print "just in case this is the reason why the FPGA"
+#	print "isn't programming"
+#	time.sleep(6)
 
 	print "Change to highspeed Synchronous FIFO mode"
 	s1.set_sync_fifo_mode()
