@@ -108,6 +108,8 @@ ft245_sync_fifo sync_fifo(
 );
 parameter	IDLE		=	4'h0;
 
+//parameter	READ_S1		=	
+//parameter	READ_S2		= 
 parameter	READ_D1		=	4'h1;
 parameter	READ_CMD	=	4'h2;
 
