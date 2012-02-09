@@ -22,30 +22,31 @@ class Sycamore (object):
 
 	def ping(self):
 
-		s1 = self.dev.modem_status()
-		print "S1: " + str(s1)
+#		s1 = self.dev.modem_status()
+#		print "S1: " + str(s1)
 
-		response = self.dev.read_data(2)
-		rsp = Array('B')
-		rsp.fromstring(response)
+#		response = self.dev.read_data(2)
+#		rsp = Array('B')
+#		rsp.fromstring(response)
+#		time.sleep(1);
 
-		print "rsp: " + str(rsp)
+#		print "rsp: " + str(rsp)
 
-		print "getting dtr..."
-		response = self.dev.get_dsr()
-		print "dsr: " + str(response)
+#		print "getting dtr..."
+#		response = self.dev.get_dsr()
+#		print "dsr: " + str(response)
 
-		print "getting cts..."
-		response = self.dev.get_cts()
-		print "cts: " + str(response)
+#		print "getting cts..."
+#		response = self.dev.get_cts()
+#		print "cts: " + str(response)
 
-		print "getting cd..."
-		response = self.dev.get_cd()
-		print "cd: " + str(response)
+#		print "getting cd..."
+#		response = self.dev.get_cd()
+#		print "cd: " + str(response)
 
-		print "getting ring indicator..."
-		response = self.dev.get_ri()
-		print "ri: " + str(response)
+#		print "getting ring indicator..."
+#		response = self.dev.get_ri()
+#		print "ri: " + str(response)
 
 
 
@@ -53,11 +54,13 @@ class Sycamore (object):
 		#		for a in rsp:
 #			print "Data: %02X" % (a)
 
-		response = self.dev.read_data(4)
+#		response = self.dev.read_data(4)
 
 
 
-		data = Array('B', "0000000000000000".decode('hex'))
+		data = Array('B')
+		data.extend([0x02, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01])
+		print "to device: " + str(data)
 
 
 		#print "writing"
@@ -66,30 +69,30 @@ class Sycamore (object):
 
 #		self.dev.write_data("0000000000000000")
 		self.dev.write_data(data)
-		self.dev.set_dtr_rts(True, True)
-		s1 = self.dev.modem_status()
-		print "S1: " + str(s1)
+#		self.dev.set_dtr_rts(True, True)
+#		s1 = self.dev.modem_status()
+#		print "S1: " + str(s1)
 
 
-		print "reading"
+#		print "reading"
 
+
+#		response = self.dev.read_data(4)
+
+#		rsp = Array('B')
+#		rsp.fromstring(response)
+#		print "rsp: " + str(rsp)
+#		for a in rsp:
+#			print "Data: %02X" % (a)
 		time.sleep(.1)
-
-		response = self.dev.read_data(4)
-
-		rsp = Array('B')
-		rsp.fromstring(response)
-		print "rsp: " + str(rsp)
-#		for a in rsp:
-#			print "Data: %02X" % (a)
-		response = self.dev.read_data(4)
+		response = self.dev.read_data(32)
 
 
 		rsp = Array('B')
 		rsp.fromstring(response)
 		print "rsp: " + str(rsp)
-#		for a in rsp:
-#			print "Data: %02X" % (a)
+		for a in rsp:
+			print "Data: %02X" % (a)
 		s1 = self.dev.modem_status()
 		print "S1: " + str(s1)
 
