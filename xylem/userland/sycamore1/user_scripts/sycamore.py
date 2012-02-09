@@ -57,7 +57,7 @@ class Sycamore (object):
 
 
 
-		data = Array('B', "00000000000000000000000000000000".decode('hex'))
+		data = Array('B', "0000000000000000".decode('hex'))
 
 
 		#print "writing"
