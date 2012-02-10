@@ -47,7 +47,7 @@
 				"port":"oe_n",
 				"direction":"output"
 			},
-			"ftdi_siwua":{
+			"ftdi_siwu":{
 				"port":"siwua",
 				"direction":"output"
 			},

@@ -37,12 +37,12 @@ input				rst;
 input				in_fifo_rst;
 input				in_fifo_rd;
 output				in_fifo_empty;
-output	[31:0]		in_fifo_data;
+output	[7:0]		in_fifo_data;
 
 //out fifo
 input				out_fifo_wr;
 output				out_fifo_full;
-input	[31:0]		out_fifo_data;
+input	[7:0]		out_fifo_data;
 
 
 //ftdi
@@ -58,31 +58,30 @@ input				ftdi_suspend_n;
 
 
 
-reg		[7:0]		data_out;
+wire		[7:0]		data_out;
 
 assign ftdi_data	=	(ftdi_oe_n) ? data_out:8'hZ;
 
-wire	[31:0]		ft_data_out;
+wire	[7:0]		ft_data_out;
 
 
 //wires
 
 reg					in_command_ready;
 
-reg		[31:0]		in_fifo_data_in;
+//reg		[7:0]		in_fifo_data_in;
 reg					in_fifo_wr;
 wire				in_fifo_full;
 
 
 wire 			out_fifo_full;
-wire	[31:0]	out_fifo_data_out;
 wire			out_fifo_empty;
 reg				out_fifo_rd;
 wire			out_fifo_wr;
 
 //data that will be read from the FTDI chip (in)
 afifo 
-	#(		.DATA_WIDTH(32),
+	#(		.DATA_WIDTH(8),
 			.ADDRESS_WIDTH(9)
 	)
 fifo_in (
@@ -91,7 +90,7 @@ fifo_in (
 	.din_clk(ftdi_clk),
 	.dout_clk(clk),
 
-	.data_in(in_fifo_data_in),
+	.data_in(ftdi_data),
 	.data_out(in_fifo_data),
 	.full(in_fifo_full),
 	.empty(in_fifo_empty),
@@ -102,7 +101,7 @@ fifo_in (
 );
 //data that will be sent to the FTDI chip (out)
 afifo 
-	#(		.DATA_WIDTH(32),
+	#(		.DATA_WIDTH(8),
 			.ADDRESS_WIDTH(9)
 	)
 	fifo_out (
@@ -112,7 +111,7 @@ afifo
 	.dout_clk(ftdi_clk),
 
 	.data_in(out_fifo_data),
-	.data_out(out_fifo_data_out),
+	.data_out(data_out),
 	.full(out_fifo_full),
 	.empty(out_fifo_empty),
 
@@ -138,7 +137,6 @@ reg	[31:0]	read_count;
 always @ (posedge ftdi_clk) begin
 	
 	if (rst) begin
-		data_out		<=	8'h0;
 		ftdi_wr_n		<=	1;
 		ftdi_rd_n		<=	1;
 		ftdi_oe_n		<=	1;
@@ -147,7 +145,7 @@ always @ (posedge ftdi_clk) begin
 
 		read_count		<=	0;
 
-		in_fifo_data_in	<=	32'h0;
+		//in_fifo_data_in	<=	8'h0;
 		in_fifo_wr		<=	0;
 		out_fifo_rd		<=	0;
 
@@ -165,11 +163,10 @@ always @ (posedge ftdi_clk) begin
 				ftdi_oe_n	<=	1;
 				ftdi_wr_n	<=	1;
 				ftdi_rd_n	<=	1;
-				data_out	<=	8'h0;
 				read_count	<= 	0;
-				in_fifo_data_in	<= 32'h0;
+				//in_fifo_data_in	<= 8'h0;
 
-				if (~ftdi_rde_n) begin
+				if (~ftdi_rde_n & ~in_fifo_full) begin
 					//new data from the host
 //if the FIFO is not full we can read data into the FIFO, but for this first version don't worry about FIFO
 					$display ("core: new data available from the FTDI chip");
@@ -186,7 +183,6 @@ always @ (posedge ftdi_clk) begin
 					out_fifo_rd		<= 1;
 //					ftdi_wr_n		<= 0;
 
-//I might need to setup the first byte in here
 				end
 			end
 			READ_OE: begin
@@ -194,88 +190,48 @@ always @ (posedge ftdi_clk) begin
 				//need to allow for one clock cycle between the oe_n goes down and rd_n going down
 				ftdi_rd_n		<= 0;
 				ftdi_state		<= READ;
+				in_fifo_wr		<= 1;
 			end
 			READ: begin
-				//need to constantly check to see if the FIFO is empty, if so raise the RD	
-//might need to hold the next byte in a temporary buffer cause the FIFO might be one step behind
-				if (ftdi_rde_n) begin
-//if this is a command that doesn't require address and/or data, then we might have to enable the ih_ready from here
-//for example PING or READ
+				if (ftdi_rde_n | in_fifo_full) begin
 					//were done
 					ftdi_state	<=	IDLE;
 					ftdi_oe_n	<=	1;
 					ftdi_rd_n	<=	1;
 				end
 				else begin
-//					$display ("core: Read %02X, count = %d", ftdi_data, read_count);
+					
+						$display ("core: Read %02X", ftdi_data);
+						//ftdi_data is going to the write buffer
+						in_fifo_wr	<= 1;
 
-					in_fifo_data_in	<= {in_fifo_data_in[24:0], ftdi_data};
-					if ((read_count & 31'h00000003) == 3) begin
-//							$display ("core: new data, send this off to the FIFO");
-							in_fifo_wr	<= 1;
-							//tell the host we are ready
-
-					end
-					read_count <= read_count + 1;
-
-
-//XXX: if the rxe_n went high it doesn't mean that I should should return to IDLE there might be a gap in the data, I should
-// code for this contingency... this does lead to the possiblity that there might be a misalignment of data... maybe all
-//continuing packet should have one header 32 bit to indicate that this is a continuing packet... or simply just a byte
 
 				end
 //all packets should be 4 byte aligned (or 32 bits aligned)
 			end
 			DELAY1: begin
-				ftdi_state	<= WRITE0;
+				ftdi_state <= WRITE0;
+//				if (~out_fifo_empty && out_fifo_rd) begin
+//					out_fifo_rd <= 1;
+//					ftdi_state	<= WRITE0;
+//				end
+//				else if (~out_fifo_empty) begin
+//					out_fifo_rd <= 1;
+//				end
 			end
 			WRITE0: begin
 				//$display ("core: sending: %h", out_fifo_data_out[31:24]);
-				data_out	<= out_fifo_data_out[31:24];
+//				data_out	<= out_fifo_data_out[31:24];
 				//hang out till the FTDI chip is free
-				if (~ftdi_txe_n) begin
+				if (~ftdi_txe_n & ~out_fifo_empty) begin
 					//were done
 					out_fifo_rd <= 1;
 					ftdi_wr_n	<=	0;
-					ftdi_state	<=	WRITE1;
+					ftdi_state	<=	WRITE0;
 				end
 				else begin
 					$display ("host is full");	
-				end
-			end
-			WRITE1: begin
-				//$display ("core: sending: %h", out_fifo_data_out[23:16]);
-				data_out	<= out_fifo_data_out[23:16];
-				if (~ftdi_txe_n) begin
-					ftdi_wr_n	<= 0;
-					ftdi_state	<= WRITE2;
-				end
-				else begin
-					$display ("host is full");
-				end
-
-			end
-			WRITE2: begin
-				//$display ("core: sending: %h", out_fifo_data_out[15:8]);
-				data_out	<= out_fifo_data_out[15:8];
-				if (~ftdi_txe_n) begin
-					ftdi_wr_n	<= 0;
-					ftdi_state	<= WRITE3;
-				end
-				else begin
-					$display ("host is full");
-				end
-
-			end
-			WRITE3: begin
-				//$display ("core: sending: %h", out_fifo_data_out[7:0]);
-				data_out	<= out_fifo_data_out[7:0];
-				if (~ftdi_txe_n) begin
-					ftdi_wr_n	<= 0;
 					ftdi_state	<= IDLE;
-				end
-				else begin
-					$display ("host is full");
 				end
 			end
 			WAIT_RD: begin

@@ -368,12 +368,13 @@ always @ (negedge ftdi_clk) begin
 				if (~rd_n) begin
 					$display("tb: rd_n LOW, start writing data to the core");
 					ftdi_state	<= FTDI_RX_WRITING;					
-				end
-//				$display ("tb: sending %h", syc_command[31:24]);
-				ftdi_in_data			<= syc_command[31:24];
-				syc_command		<= {syc_command[24:0], 8'h0};
-				if (write_count < ftdi_write_size) begin
-					write_count	<= write_count + 1;
+	//				$display ("tb: sending %h", syc_command[31:24]);
+					//ftdi_in_data			<= syc_command[31:24];
+					ftdi_in_data		<= 8'hCD;
+					//syc_command		<= {syc_command[24:0], 8'h0};
+					if (write_count < ftdi_write_size) begin
+						write_count	<= write_count;
+					end
 				end
 			end
 			FTDI_RX_WRITING: begin
@@ -381,9 +382,9 @@ always @ (negedge ftdi_clk) begin
 					ftdi_state	<= FTDI_RX_STOP;
 					rde_n		<= 1;
 				end
-				if (write_count < ftdi_write_size) begin
+				else if (write_count < ftdi_write_size) begin
 					//hacky way of sending all the data down
-					if (write_count > 0 && write_count <= 3) begin
+					if (write_count >= 0 && write_count <= 3) begin
 						//already sent the first byte of the command
 //						$display ("tb: sending %h", syc_command[31:24]);
 						ftdi_in_data	<= syc_command[31:24];
