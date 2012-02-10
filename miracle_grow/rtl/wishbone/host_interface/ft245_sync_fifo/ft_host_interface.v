@@ -31,7 +31,9 @@ module ft_host_interface (
 	ftdi_rde_n,
 	ftdi_rd_n,
 	ftdi_oe_n,
-	ftdi_siwu
+	ftdi_siwu,
+	ftdi_suspend_n
+
 );
 
 
@@ -66,6 +68,7 @@ input				ftdi_rde_n;
 output 				ftdi_rd_n;
 output 				ftdi_oe_n;
 output 				ftdi_siwu;
+input				ftdi_suspend_n;
 
 
 
@@ -103,13 +106,12 @@ ft245_sync_fifo sync_fifo(
 	.ftdi_rde_n(ftdi_rde_n),
 	.ftdi_rd_n(ftdi_rd_n),
 	.ftdi_oe_n(ftdi_oe_n),
-	.ftdi_siwu(ftdi_siwu)
+	.ftdi_siwu(ftdi_siwu),
+	.ftdi_suspend_n(ftdi_suspend_n)
 
 );
 parameter	IDLE		=	4'h0;
 
-//parameter	READ_S1		=	
-//parameter	READ_S2		= 
 parameter	READ_D1		=	4'h1;
 parameter	READ_CMD	=	4'h2;
 
@@ -160,7 +162,8 @@ always @ (posedge clk) begin
 			IDLE: begin
 				if (~in_fifo_empty) begin
 					$display ("FT_HI: Found data in the FIFO!");
-					read_state	<= READ_D1; in_fifo_rd	<= 1;
+					read_state	<= READ_D1; 
+					in_fifo_rd	<= 1;
 				end
 			end
 			READ_D1: begin

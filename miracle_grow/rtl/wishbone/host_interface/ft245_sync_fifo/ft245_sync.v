@@ -25,7 +25,8 @@ module ft245_sync_fifo (
 	ftdi_rde_n,
 	ftdi_rd_n,
 	ftdi_oe_n,
-	ftdi_siwu
+	ftdi_suspend_n,
+	ftdi_siwu,
 
 
 );
@@ -53,6 +54,7 @@ input				ftdi_rde_n;
 output reg			ftdi_rd_n;
 output reg			ftdi_oe_n;
 output reg			ftdi_siwu;
+input				ftdi_suspend_n;
 
 
 
@@ -61,6 +63,7 @@ reg		[7:0]		data_out;
 assign ftdi_data	=	(ftdi_oe_n) ? data_out:8'hZ;
 
 wire	[31:0]		ft_data_out;
+
 
 //wires
 
@@ -134,14 +137,13 @@ reg	[31:0]	read_count;
 
 always @ (posedge ftdi_clk) begin
 	
-
 	if (rst) begin
 		data_out		<=	8'h0;
 		ftdi_wr_n		<=	1;
 		ftdi_rd_n		<=	1;
 		ftdi_oe_n		<=	1;
 		ftdi_state		<= 	IDLE;
-		ftdi_siwu		<=	0;
+		ftdi_siwu		<=	1;
 
 		read_count		<=	0;
 
@@ -197,9 +199,10 @@ always @ (posedge ftdi_clk) begin
 				//need to constantly check to see if the FIFO is empty, if so raise the RD	
 //might need to hold the next byte in a temporary buffer cause the FIFO might be one step behind
 				if (ftdi_rde_n) begin
+//if this is a command that doesn't require address and/or data, then we might have to enable the ih_ready from here
 //for example PING or READ
 					//were done
-					ftdi_state	<=	WAIT_RD;
+					ftdi_state	<=	IDLE;
 					ftdi_oe_n	<=	1;
 					ftdi_rd_n	<=	1;
 				end
@@ -232,11 +235,12 @@ always @ (posedge ftdi_clk) begin
 				//hang out till the FTDI chip is free
 				if (~ftdi_txe_n) begin
 					//were done
+					out_fifo_rd <= 1;
 					ftdi_wr_n	<=	0;
 					ftdi_state	<=	WRITE1;
 				end
 				else begin
-					$display ("host is full");
+					$display ("host is full");	
 				end
 			end
 			WRITE1: begin
@@ -276,7 +280,7 @@ always @ (posedge ftdi_clk) begin
 			end
 			WAIT_RD: begin
 				//drain the incomming buffer
-				ftdi_rd_n	<= 0;
+				//ftdi_rd_n	<= 0;
 				if (ftdi_rde_n) begin
 					
 					ftdi_state	<= IDLE;

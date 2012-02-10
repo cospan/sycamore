@@ -97,7 +97,7 @@ class GenTop(Gen):
 		wr_buf = wr_buf + "\tinput\t\t\trst;\n"
 		self.wires.append("rst")
 		if ("invert_reset" in tags["CONSTRAINTS"] and tags["CONSTRAINTS"]["invert_reset"] == True):
-			print "found invert reset!"
+			#print "found invert reset!"
 			wr_buf += "\twire\t\t\trst_n;\n"
 			self.wires.append("rst_n")
 
@@ -569,6 +569,30 @@ class GenTop(Gen):
 								out_buf += name + "_" + port
 						out_buf = out_buf + ";\n"
 				out_buf = out_buf + "\n\n"
+
+		#generate all wires for an IO module
+		else:
+			for io in io_types:
+				for port in module_tags["ports"][io].keys():
+					pdict = module_tags["ports"][io][port]
+					if (port == "clk" or port == "rst"):
+						continue
+						
+					if (port in self.wires):
+						continue
+
+					self.wires.append(port)
+					out_buf = out_buf + "\twire"
+					#if the size if greater than one add it
+					if (pdict["size"] > 1):
+						out_buf = out_buf + "\t[" + str(pdict["max_val"]) + ":" + str(pdict["min_val"]) + "]\t\t"
+					else:
+						out_buf = out_buf + "\t\t\t"
+
+					out_buf += port + ";\n"
+
+			out_buf = out_buf + "\n\n"
+			
 			
 		#Finished Generating the Wires
 

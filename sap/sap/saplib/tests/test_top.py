@@ -97,7 +97,7 @@ class Test (unittest.TestCase):
 			self.assertEqual(False, True)
 
 		result = self.gen.gen_script(tags, buf = top_buffer, debug= self.dbg)
-		if (True):
+		if (self.dbg):
 			print "Top File: \n" + result
 
 		self.assertEqual(len(result) > 0, True)
@@ -297,7 +297,8 @@ class Test (unittest.TestCase):
 
 		result = self.gen.generate_buffer(slave_name, index = 0, module_tags = module_tags)
 
-		print result
+		if (self.dbg):
+			print result
 
 		#there are parameters, generate a slave
 		self.assertEqual(len(result) > 0, True)
