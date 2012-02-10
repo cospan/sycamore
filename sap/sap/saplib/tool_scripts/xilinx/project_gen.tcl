@@ -159,6 +159,7 @@ wait_on_run impl_1
 
 #or generate a bit file
 set_property add_step Bitgen [get_runs impl_1]
+config_run impl_1 -program bitgen -option {More Options} -value {-g Binary:yes}
 launch_runs impl_1
 
 #launch_impact
