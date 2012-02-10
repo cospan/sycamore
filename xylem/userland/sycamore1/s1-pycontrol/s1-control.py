@@ -133,12 +133,14 @@ class Sycamore1():
 		bbc = BitBangController(self.vendor, self.product, 2)	
 		bbc.set_pins_to_input()
 		#I don't know if this works
-		bbc.set_program_to_output()
+#		bbc.set_program_to_output()
+		bbc.set_pins_to_output()
 		bbc.program_high()
 		time.sleep(.5)
 		bbc.program_low()
 		time.sleep(.2)
 		bbc.program_high()
+		bbc.pins_on()
 		bbc.set_pins_to_input()
 
 
@@ -150,6 +152,9 @@ class Sycamore1():
 		bbc.soft_reset_low()
 		time.sleep(.2)
 		bbc.soft_reset_high()
+		bbc.pins_on()
+		bbc.set_pins_to_input()
+
 
 
 	def set_sync_fifo_mode(self):
