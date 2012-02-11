@@ -41,6 +41,7 @@ module afifo
     //Data ports logic:
     //(Uses a dual-port RAM).
     //'data_out' logic:
+//	assign data_out	= mem[p_next_word_to_read];
     always @ (posedge dout_clk)
         if (rd_en & !empty)
             data_out <= mem[p_next_word_to_read];
@@ -58,7 +59,7 @@ module afifo
     //Addreses (Gray counters) logic:
     GrayCounter 
 		#(
-			.COUNTER_WIDTH(9)
+			.COUNTER_WIDTH(ADDRESS_WIDTH)
 		)GrayCounter_pWr
        (.gray_count_out(p_next_word_to_write),
        
@@ -70,7 +71,7 @@ module afifo
        
     GrayCounter 
 		#(
-			.COUNTER_WIDTH(9)
+			.COUNTER_WIDTH(ADDRESS_WIDTH)
 		)GrayCounter_pRd
        (.gray_count_out(p_next_word_to_read),
         .en(NextReadAddressEn),

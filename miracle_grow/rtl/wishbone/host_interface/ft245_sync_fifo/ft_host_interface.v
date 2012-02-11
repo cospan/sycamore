@@ -119,7 +119,7 @@ parameter	IDLE				=	8'h0;
 parameter	READ_WAIT_1			=	8'h1;
 parameter	READ_WAIT_2			=	8'h2;			
 
-parameter	WRITE_ID		=	8'h1;
+parameter	WRITE_ID			=	8'h1;
 
 
 parameter	READ_ID				=	8'h3;
@@ -428,13 +428,14 @@ always @ (posedge clk) begin
 				end
 			end
 			READ_D4: begin
-				read_state		<= IDLE;
+				read_state		<=	IDLE;
 			end
 			BAD_ID: begin
 				//need to wait unilt the rde_n goes low
 				if (~ftdi_rde_n) begin
 					in_fifo_rst	<= 1;
 					$display ("FT_HI: BAD ID, I should send a response to the host that something went wrong here"); 
+					read_state	<=	READ_D4;
 				end
 			end
 			default: begin

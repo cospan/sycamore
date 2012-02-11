@@ -246,9 +246,9 @@ reg		ftdi_ready_to_read;
 
 
 //make the ftdi clock 3X faster than the regular clock
-always #1		ftdi_clk	= ~ftdi_clk;
+always #5		ftdi_clk	= ~ftdi_clk;
 
-always #3		clk			= ~clk;
+always #2		clk			= ~clk;
 
 
 
@@ -274,7 +274,7 @@ initial begin
 	$dumpvars (0, ft245_sync_top_tb);
 	fd_in = $fopen ("fsync_input_data.txt", "r");
 
-	#10
+	#20
 	rst						<= 1;
 	ftdi_new_data_available <= 0;
 	ftdi_ready_to_read		<= 0;
@@ -285,9 +285,9 @@ initial begin
 	syc_data				<= 32'h0;
 
 
-	#10
+	#20
 	rst 					<= 0;
-	#10
+	#20
 
 	//testing input
 	if (fd_in == 0) begin
@@ -303,7 +303,7 @@ initial begin
 			ftdi_ready_to_read		<= 1;
 
 			while (ftdi_state	!=	FTDI_RX_STOP) begin
-				#2
+				#10
 				temp_state	<= ftdi_state;
 			end
 			ftdi_ready_to_read		<= 0;
@@ -414,7 +414,7 @@ always @ (negedge ftdi_clk) begin
 			FTDI_RX_STOP:	begin
 				$display ("Wating for core to acknowledge my stop");
 				//the core signaled that it is finished transmitting
-				if (oe_n & rd_n) begin
+				if (oe_n & rd_n & ~ftdi_ready_to_read) begin
 					$display ("Core acknowledged my empty, going to IDLE");
 					ftdi_state	<= FTDI_IDLE;
 				end

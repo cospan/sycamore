@@ -160,6 +160,7 @@ always @ (posedge ftdi_clk) begin
 		in_fifo_wr		<= 0;
 		out_fifo_rd		<= 0;
 		ftdi_wr_n		<= 1;
+		ftdi_rd_n		<= 1;
 
 //check if the txe_n or rxe_n unexpectedy went high, if so we need to gracefully return to IDLE
 		case (ftdi_state)
@@ -204,10 +205,11 @@ always @ (posedge ftdi_clk) begin
 					ftdi_rd_n	<=	1;
 				end
 				else begin
+					ftdi_rd_n	<=	0;
 					
 //						$display ("core: Read %02X", ftdi_data);
 						//ftdi_data is going to the write buffer
-						in_fifo_wr	<= 1;
+					in_fifo_wr	<= 1;
 
 
 				end
