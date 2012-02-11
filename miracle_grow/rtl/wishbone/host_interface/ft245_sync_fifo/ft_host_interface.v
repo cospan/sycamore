@@ -85,6 +85,9 @@ reg					out_fifo_wr;
 wire				out_fifo_full;	
 reg		[7:0]		out_fifo_data;
 
+reg		[7:0]		next_read_state;
+reg		[7:0]		next_write_state;
+
 //instantiate the ft245_sync core
 ft245_sync_fifo sync_fifo(
 	.clk(clk),
@@ -112,16 +115,20 @@ ft245_sync_fifo sync_fifo(
 );
 parameter	IDLE				=	8'h0;
 
-parameter	READ_D0				=	8'h1;
-parameter	READ_ID				=	8'h2;
 
-parameter	READ_D1				=	8'h3;
+parameter	READ_WAIT_1			=	8'h1;
+parameter	READ_WAIT_2			=	8'h2;			
+
+parameter	WRITE_ID		=	8'h1;
+
+
+parameter	READ_ID				=	8'h3;
+
 parameter	READ_CMD			=	8'h4;
+parameter	PROCESS_CMD			=	8'h5;
 
-parameter	READ_D2				=	8'h5;
 parameter	READ_ADDR			=	8'h6;
-
-parameter	READ_D3				=	8'h7;
+parameter	PROCESS_ADDR		=	8'h7;
 parameter	READ_DATA			=	8'h8;
 parameter	READ_DATA_TO_MASTER	=	8'h9;
 
@@ -130,15 +137,16 @@ parameter	BAD_ID				=	8'hB;
 
 parameter	WAIT_FIFO			=	8'hC;
 
-parameter	WRITE_COMMAND		=	8'hD;
-parameter	WRITE_ADDR			=	8'hE;
-parameter	WRITE_DATA			=	8'hF;
-parameter	WAIT_FOR_MASTER		=	8'h10;
+parameter	WRITE_COMMAND		=	8'h3;
+parameter	WRITE_ADDR			=	8'h4;
+parameter	WRITE_DATA			=	8'h5;
+parameter	WAIT_FOR_MASTER		=	8'h6;
 
 
 
 reg [31:0]	read_count;
 reg [1:0]	read_byte_count;
+reg			prev_rd;
 
 
 reg	[7:0]	read_state	=	IDLE;
@@ -160,9 +168,12 @@ always @ (posedge clk) begin
 		in_fifo_rst		<=	1;
 
 		read_byte_count	<=	0;
+		next_read_state	<= 	IDLE;
+		prev_rd			<=	0;
 	end
 	else begin
 		//read should only be pulsed
+		prev_rd			<=	in_fifo_rd;
 		in_fifo_rd		<=	0;
 		ih_ready		<=	0;
 		in_fifo_rst		<=	0;
@@ -171,33 +182,48 @@ always @ (posedge clk) begin
 			IDLE: begin
 				if (~in_fifo_empty) begin
 					$display ("FT_HI: Found data in the FIFO!");
-					read_state	<= READ_D0; 
+					in_fifo_rd	<= 1;
+					read_state	<= READ_WAIT_2; 
+					next_read_state	<= READ_ID;
+				end
+			end
+//universal wait here
+			READ_WAIT_1: begin
+				if (~in_fifo_empty) begin
+					read_state	<= READ_WAIT_2;
 					in_fifo_rd	<= 1;
 				end
 			end
-			READ_D0: begin
-				read_state	<= READ_ID;
+			READ_WAIT_2: begin
+				read_state	<= next_read_state;
+				if (~in_fifo_empty) begin
+					if (read_byte_count != 2) begin	
+						in_fifo_rd	<= 1;
+					end
+				end
 			end
 			READ_ID: begin
-
 				//make sure the ID byte is correct
 				if (in_fifo_data == 8'hCD) begin
-					read_state <= READ_D1;
 					read_byte_count <= 0;
-					in_fifo_rd	<= 1;
+					if (~in_fifo_empty & prev_rd) begin
+						in_fifo_rd	<= 1;
+						//flow right through
+						read_state <= READ_CMD;
+					end
+					else if (~in_fifo_empty) begin
+						in_fifo_rd	<= 1;
+						read_state	<= READ_WAIT_2;
+					end
+					else begin
+						read_state	<= READ_WAIT_1;
+					end
+					next_read_state	<= READ_CMD;
 				end
 				else begin
 					//incomming data is bad wait till the rde_n goes high
 					$display("ID byte was not read, data is not correct");
 					read_state <= BAD_ID;
-				end
-			end
-			READ_D1: begin
-				if (~in_fifo_empty && in_fifo_rd) begin
-					read_state	<= READ_CMD;	
-				end
-				else if (~in_fifo_empty) begin
-					in_fifo_rd	<= 1;
 				end
 			end
 			READ_CMD: begin
@@ -206,23 +232,34 @@ always @ (posedge clk) begin
 					in_data_count	<= 28'h0;
 				end
 				else begin
-					in_data_count <= {in_data_count[27:8], in_fifo_data};
+					in_data_count <= {in_data_count[19:0], in_fifo_data};
 				end
-				if (read_byte_count < 3) begin
-					read_byte_count 	<= read_byte_count + 1;
-					if (~in_fifo_empty) begin
-						in_fifo_rd	<= 1;
-					end
-					else begin
-						read_state	<= READ_D1;
-					end
+				if (read_byte_count == 3) begin
+					//done reading the command and data count
+					read_state		<= PROCESS_CMD;
 				end
 				else begin
-					read_state		<= READ_D2;
-					read_byte_count	<= 0;
+					if (~in_fifo_empty & prev_rd) begin
+						if (read_byte_count != 2) begin	
+							in_fifo_rd	<= 1;
+						end
+						read_state	<= READ_CMD;
+					end
+					else if (~in_fifo_empty) begin
+						//need to wait one cycle for the data to get
+						//ready
+						in_fifo_rd	<= 1;
+						read_state	<= READ_WAIT_2;
+					end
+					else begin
+						//the fifo isn't even ready
+						read_state		<= READ_WAIT_1;
+					end
+					next_read_state	<= READ_CMD;
 				end
+				read_byte_count 	<= read_byte_count + 1;
 			end
-			READ_D2: begin
+			PROCESS_CMD: begin
 				if (in_command == 0) begin
 					$display ("FT_HI: in command = %h", in_command);
 					$display ("FT_HI: data count = %d", in_data_count);
@@ -234,41 +271,54 @@ always @ (posedge clk) begin
 					end
 				end
 				else begin
-					$display ("FT_HI: in command = %h", in_fifo_data);
-					if (~in_fifo_empty && in_fifo_rd) begin
-						read_state <= READ_ADDR;
+					$display ("FT_HI: in command = %h", in_command);
+					if (~in_fifo_empty) begin
+						read_state <= READ_WAIT_2;
+						in_fifo_rd	<= 1;
 					end
-					else if (~in_fifo_empty) begin
-						if (read_byte_count == 0) begin
-							//the first data is included in this first transmition
-							read_count		<= in_data_count;
-							if (in_fifo_data > 0) begin
-								//for writes the first data byte is included in the first in_ready high, so reduce the count by one
-								in_data_count	<= in_data_count - 1;
-							end
-						end
-						in_fifo_rd	<= 	1;
+					else begin
+						read_state	<= READ_WAIT_1;
+					end
+					next_read_state	<= READ_ADDR;
+
+					//process in data count
+					read_byte_count	<= 0;
+
+					//the first data is included in this 
+					//first transmition
+					if (in_data_count > 0) begin
+						//for writes the first data byte is 
+						//included in the first in_ready high,
+						//so reduce the count by one
+						read_count		<= in_data_count - 1;
+						in_data_count	<= in_data_count - 1;
 					end
 				end
 			end
 			READ_ADDR: begin
-				in_address		<= {in_address[31:8], in_fifo_data};
+				in_address		<= {in_address[23:0], in_fifo_data};
 				if (read_byte_count == 3) begin
 					read_byte_count <= 0;
-					read_state	<= READ_D3;
+					read_state	<= PROCESS_ADDR;
 				end
 				else begin
-					if (in_fifo_empty) begin
-						$display ("FT_HI: In FIFO empty, wait for more data to come in");
-						read_state	<= READ_D2;
+					if (~in_fifo_empty & prev_rd) begin
+						if (read_byte_count != 2) begin	
+							in_fifo_rd	<= 1;
+						end
+					end
+					else if (~in_fifo_empty) begin
+						in_fifo_rd	<= 1;
+						read_state	<= READ_WAIT_2;
 					end
 					else begin
-						in_fifo_rd	<= 1;
+						read_state	<= READ_WAIT_1;
 					end
-					read_byte_count <= read_byte_count + 1;
+					next_read_state	<= READ_ADDR;
 				end
+				read_byte_count <= read_byte_count + 1;
 			end
-			READ_D3: begin
+			PROCESS_ADDR: begin
 				if (in_command[3:0] == 2) begin
 					$display ("FT_HI: Read command");
 					//read
@@ -283,14 +333,14 @@ always @ (posedge clk) begin
 				else if (in_command[3:0] == 1) begin
 					$display ("FT_HI: Write command");
 					//write
-					if (read_count > 0) begin
-						if (~in_fifo_empty && in_fifo_rd) begin
-							read_state	<= READ_DATA;
-						end
-						else if (~in_fifo_empty) begin
-							in_fifo_rd	<= 1;
-						end
+					if (~in_fifo_empty) begin
+						read_state	 <= READ_WAIT_2;
+						in_fifo_rd	<= 1;
 					end
+					else begin
+						read_state	<= READ_WAIT_1;
+					end
+					next_read_state <= READ_DATA;	
 				end
 				else begin
 					//don't know this command
@@ -306,23 +356,51 @@ always @ (posedge clk) begin
 			READ_DATA: begin
 
 //if the read_count == in_data_count + 1 then we are sending the first byte
-				in_data <= {in_data[31:8], in_fifo_data};
+				in_data <= {in_data[24:0], in_fifo_data};
 				if (read_byte_count == 3) begin
 					//send data off to the master
-					read_state	<= READ_DATA_TO_MASTER;
-					read_count	<= read_count - 1;
-				end
-				else begin
-					if (in_fifo_empty) begin
-						$display ("FT_HI: In FIFO empty, wait for more data to come in");
-						read_state	<= READ_D3;
+					if (master_ready) begin
+						ih_ready <= 1;
+						if (read_count > 0) begin
+							read_count <= read_count - 1;
+							if (~in_fifo_empty & prev_rd) begin
+								if (read_byte_count != 2) begin	
+									in_fifo_rd	<= 1;
+								end
+								read_state	<= READ_DATA;
+							end
+							else if (~in_fifo_empty) begin
+								in_fifo_rd	<= 1;
+								read_state	<= READ_WAIT_2;
+							end
+							else begin
+								read_state	<= READ_WAIT_1;
+							end
+							next_read_state	<= READ_DATA;
+						end
+						else begin
+							read_state	<= READ_D4;
+						end
 					end
 					else begin
-						in_fifo_rd	<= 1;
+						read_state	<= READ_DATA_TO_MASTER;
 					end
-					read_byte_count <= read_byte_count + 1;
-
 				end
+				else begin
+					if (~in_fifo_empty & prev_rd) begin
+						in_fifo_rd	<= 1;
+						read_state	<= READ_DATA;
+					end
+					else if (~in_fifo_empty) begin
+						in_fifo_rd	<= 1;
+						read_state	<= READ_WAIT_2;						
+					end
+					else begin
+						read_state	<= READ_WAIT_1;
+					end
+					next_read_state	<= READ_DATA;
+				end
+				read_byte_count <= read_byte_count + 1;
 				//need to send off the data to the master when the master
 				//is ready for it
 			end
@@ -332,9 +410,18 @@ always @ (posedge clk) begin
 					ih_ready <= 1;
 					read_byte_count <= 0;
 					if (read_count > 0) begin
-						read_state <= READ_D3;
+						read_count <= read_count - 1;
+						if (~in_fifo_empty) begin
+							in_fifo_rd	<= 1;
+							read_state	<= READ_WAIT_2;
+						end
+						else begin
+							read_state <= READ_WAIT_1;
+						end
+						next_read_state	<= READ_DATA;
 					end
 					else begin
+						//DONE!
 						read_state <= READ_D4;
 						in_fifo_rst	<= 1;
 					end
@@ -366,12 +453,25 @@ reg	[31:0]	write_count;
 
 reg [1:0]	write_byte_count;
 
+reg	[31:0]	local_status;
+reg [31:0]	local_address;
+reg	[31:0]	local_data_count;
+reg	[31:0]	local_data;
+
+
 always @ (posedge clk) begin
 	if (rst) begin
 		oh_ready			<=	0;
 		write_count			<=	0;
-		write_byte_count	<= 0;
+		write_byte_count	<=	0;
 		out_fifo_wr			<=	0;
+		next_write_state	<=	0;
+
+		local_status		<=	0;
+		local_address		<=	0;
+		local_data_count	<=	0;
+		local_data			<=	0;
+
 	end
 	else begin
 		out_fifo_wr			<= 	0;
@@ -379,6 +479,8 @@ always @ (posedge clk) begin
 			IDLE: begin
 				oh_ready	<= 1;
 				if (oh_en) begin
+					oh_ready	<= 0;
+
 					$display ("FT_OH: Send the identification byte");
 					out_fifo_data	<= 8'hDC;
 					write_byte_count <= 0;
@@ -388,53 +490,45 @@ always @ (posedge clk) begin
 					//tell the master to kick back for a sec
 					write_count	<= out_data_count;
 	//				out_fifo_data	<= {out_status[7:0], out_data_count[23:0]};
-					if (~out_fifo_full) begin
-						oh_ready	<= 0;
-						//ready to progress
-						//put the data into the FIFO	
-						out_fifo_wr	<= 1;
-						write_state	<= WRITE_COMMAND;
-					end
+					local_status		<= out_status;
+					local_address		<= out_address;
+					local_data_count	<= out_data_count;
+					local_data			<= out_data;
+
+					write_state	<= WRITE_ID;
+
+				end
+			end
+			WRITE_ID: begin
+				if (~out_fifo_full)	begin
+					out_fifo_wr	<= 1;
+					write_state	<= WRITE_COMMAND;
+					write_byte_count	<= 0;
 				end
 			end
 			WRITE_COMMAND: begin
 				if (~out_fifo_full) begin
-					if (write_byte_count == 0) begin
-						out_fifo_data <= out_status[31:24];
-					end
-					else if (write_byte_count == 1) begin
-						out_fifo_data <= out_status[23:16];
-					end
-					else if (write_byte_count == 2) begin
-						out_fifo_data <= out_status[15:8];
-					end
-					else begin
-						out_fifo_data <= out_status[7:0];
+					out_fifo_data	<= local_status[31:24];
+					local_status	<= {local_status[23:0], 8'h0};
+					out_fifo_wr 	<= 1;
+					if (write_byte_count == 3) begin
 						if (out_status[3:0] == 4'hF) begin
 							write_state <= IDLE;
 						end
 						else begin
 							write_state <= WRITE_ADDR;
 						end
-						//the write byte count should roll over to 0
 					end
+					//the write byte count should roll over to 0
 					write_byte_count <= write_byte_count + 1;
-					out_fifo_wr <= 1;
 				end
 			end
 			WRITE_ADDR: begin
 				if (~out_fifo_full) begin
-					if (write_byte_count == 0) begin
-						out_fifo_data <= out_address[31:24];
-					end
-					else if (write_byte_count == 1) begin
-						out_fifo_data <= out_address[23:16];
-					end
-					else if (write_byte_count == 2) begin
-						out_fifo_data <= out_address[15:8];
-					end
-					else begin
-						out_fifo_data <= out_address[7:0];
+					out_fifo_data	<= local_address[31:24];
+					local_address	<= {local_address[23:0], 8'h0};
+					out_fifo_wr		<= 1;
+					if (write_byte_count == 3) begin
 						if (out_status[3:0] == 4'hD) begin
 							//write
 							write_state		<= WRITE_DATA;
@@ -445,23 +539,14 @@ always @ (posedge clk) begin
 						end
 					end
 					write_byte_count <=	write_byte_count + 1;
-					out_fifo_wr		<= 1;
 				end
 			end
 			WRITE_DATA: begin
 				if (~out_fifo_full) begin
-					if (write_byte_count == 0) begin
-						out_fifo_data <= out_data[31:24];
-					end
-					else if (write_byte_count == 1) begin
-						out_fifo_data <= out_data[23:16];
-					end
-					else if (write_byte_count == 2) begin
-						out_fifo_data <= out_data[15:8];
-					end
-					else begin
-						out_fifo_data <= out_data[7:0];
-
+					out_fifo_wr		<= 1;
+					out_fifo_data	<= local_data[31:24];
+					local_data	<= {local_data[23:0], 8'h0};
+					if (write_byte_count == 3) begin
 						oh_ready <= 1;
 						if (write_count > 0) begin
 							write_count <= write_count - 1;
@@ -471,7 +556,7 @@ always @ (posedge clk) begin
 							write_state	<= IDLE;
 						end
 					end
-					out_fifo_wr		<= 1;
+					write_byte_count <= write_byte_count + 1;
 				end
 			end
 			WAIT_FOR_MASTER: begin
@@ -481,6 +566,7 @@ always @ (posedge clk) begin
 					write_state	<= WRITE_DATA;
 					write_byte_count <= 0;
 					oh_ready <= 0;
+					local_data	<= out_data;
 				end
 				//probably need a timeout
 			end

@@ -388,18 +388,18 @@ always @ (negedge ftdi_clk) begin
 						//already sent the first byte of the command
 //						$display ("tb: sending %h", syc_command[31:24]);
 						ftdi_in_data	<= syc_command[31:24];
-						syc_command <= {syc_command[24:0], 8'h0};
+						syc_command <= {syc_command[23:0], 8'h0};
 					end
 					if (write_count > 3 && write_count <= 7) begin 
 //						$display ("tb: sending %h", syc_address[31:24]);
 						ftdi_in_data <= syc_address[31:24];
-						syc_address <= {syc_address[24:0], 8'h0};
+						syc_address <= {syc_address[23:0], 8'h0};
 					end
 					if (write_count > 7) begin
 //could possible read data from a file if we need to send multiple 32 bits
 //						$display ("tb: sending %h", syc_data[31:24]);
 						ftdi_in_data <= syc_data[31:24];
-						syc_data <= {syc_data[24:0], 8'h0};
+						syc_data <= {syc_data[23:0], 8'h0};
 
 					end
 					write_count	<= write_count + 1;
@@ -428,6 +428,7 @@ end
 
 reg			new_data;
 reg	[1:0]	data_read_count;
+reg			new_transaction;
 
 //reading interface
 always @ (posedge ftdi_clk) begin
@@ -441,27 +442,33 @@ always @ (posedge ftdi_clk) begin
 	else begin
 		//not in reset
 		txe_n			<= 0;
-		if (~wr_n) begin
-			
-			if (data_read_count[1:0] == 0) begin
-				read_data[31:24]	<= data; 
-			end
-			else if (data_read_count[1:0] == 1) begin
-				read_data[23:16]	<= data; 
-			end
-			else if (data_read_count[1:0] == 2) begin
-				read_data[15:8]		<= data;
-			end
-			else begin
-				new_data			<= 1;
-				read_data[7:0]		<= data;
-
-			end
-			data_read_count <= data_read_count + 1;
+		if (~rd_n) begin
+			//this is a good place to see if the core is readinga command
+			new_transaction			<= 1;
+			data_read_count[1:0]	<= 3;
+			read_data				<= 0;
 		end
+
 		if (new_data) begin
 			new_data	<= 0;
-			$display ("tb: Read: %h", read_data);
+			if (new_transaction) begin
+				new_transaction	<= 0;
+				data_read_count <= 0;
+			end
+			$display ("\tTB READ : %h", read_data);
+			read_data	<= 0;
+			new_data	<= 0;
+
+		end
+		if (~wr_n) begin
+//			$display ("tb: incomming byte: %2h", data);
+			
+			read_data	<= {read_data[23:0], data};
+			if (data_read_count == 3) begin
+				new_data	<= 1;
+			end
+			data_read_count <= data_read_count + 1;
+			
 		end
 	end
 end

@@ -124,7 +124,7 @@ parameter	IDLE	=	4'h0;
 parameter	READ_OE	=	4'h1;
 parameter	READ	=	4'h2;
 parameter	DELAY1	=	4'h3;
-parameter	WRITE0	=	4'h4;
+parameter	WRITE_DATA	=	4'h4;
 parameter	WRITE1	=	4'h5;
 parameter	WRITE2	=	4'h6;
 parameter	WRITE3	=	4'h7;
@@ -133,6 +133,7 @@ parameter	WAIT_RD	=	4'h8;
 reg	[3:0]	ftdi_state;	
 
 reg	[31:0]	read_count;
+reg			prev_rd;
 
 always @ (posedge ftdi_clk) begin
 	
@@ -148,14 +149,17 @@ always @ (posedge ftdi_clk) begin
 		//in_fifo_data_in	<=	8'h0;
 		in_fifo_wr		<=	0;
 		out_fifo_rd		<=	0;
+		prev_rd			<=	0;
 
 
 		
 	end
 	else begin
 		//pulses 
+		prev_rd			<= out_fifo_rd;
 		in_fifo_wr		<= 0;
 		out_fifo_rd		<= 0;
+		ftdi_wr_n		<= 1;
 
 //check if the txe_n or rxe_n unexpectedy went high, if so we need to gracefully return to IDLE
 		case (ftdi_state)
@@ -201,7 +205,7 @@ always @ (posedge ftdi_clk) begin
 				end
 				else begin
 					
-						$display ("core: Read %02X", ftdi_data);
+//						$display ("core: Read %02X", ftdi_data);
 						//ftdi_data is going to the write buffer
 						in_fifo_wr	<= 1;
 
@@ -210,35 +214,41 @@ always @ (posedge ftdi_clk) begin
 //all packets should be 4 byte aligned (or 32 bits aligned)
 			end
 			DELAY1: begin
-				ftdi_state <= WRITE0;
-//				if (~out_fifo_empty && out_fifo_rd) begin
-//					out_fifo_rd <= 1;
-//					ftdi_state	<= WRITE0;
-//				end
-//				else if (~out_fifo_empty) begin
-//					out_fifo_rd <= 1;
-//				end
+				ftdi_state <= WRITE_DATA;
+				
+				if (~out_fifo_empty) begin
+					out_fifo_rd	<= 1;	
+				end
+				ftdi_wr_n	<=	0;
 			end
-			WRITE0: begin
-				//$display ("core: sending: %h", out_fifo_data_out[31:24]);
-//				data_out	<= out_fifo_data_out[31:24];
+			WRITE_DATA: begin
 				//hang out till the FTDI chip is free
 				if (~ftdi_txe_n & ~out_fifo_empty) begin
-					//were done
-					out_fifo_rd <= 1;
+					out_fifo_rd <=	1;
 					ftdi_wr_n	<=	0;
-					ftdi_state	<=	WRITE0;
+					if (prev_rd) begin
+						ftdi_state	<= WRITE_DATA;
+					end
+					else begin
+						ftdi_state	<=	DELAY1;
+					end
 				end
 				else begin
-					$display ("host is full");	
+					if (out_fifo_empty) begin
+						$display ("core: out fifo is empty");	
+					end
+					else begin
+						$display ("core: ftdi chip is not ready");
+					end
 					ftdi_state	<= IDLE;
 				end
 			end
 			WAIT_RD: begin
 				//drain the incomming buffer
 				//ftdi_rd_n	<= 0;
+				ftdi_rd_n		<= 0;
+				ftdi_oe_n		<= 0;
 				if (ftdi_rde_n) begin
-					
 					ftdi_state	<= IDLE;
 				end
 			end
