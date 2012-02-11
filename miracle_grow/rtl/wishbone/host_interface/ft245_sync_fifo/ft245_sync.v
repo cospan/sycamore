@@ -207,7 +207,7 @@ always @ (posedge ftdi_clk) begin
 				else begin
 					ftdi_rd_n	<=	0;
 					
-//						$display ("core: Read %02X", ftdi_data);
+					$display ("core: Read %02X", ftdi_data);
 						//ftdi_data is going to the write buffer
 					in_fifo_wr	<= 1;
 

@@ -428,15 +428,16 @@ always @ (posedge clk) begin
 				end
 			end
 			READ_D4: begin
-				read_state		<=	IDLE;
+				in_fifo_rst	<= 1;
+				if (ftdi_rde_n) begin
+					read_state		<=	IDLE;
+				end	
 			end
 			BAD_ID: begin
+				in_fifo_rst	<= 1;
 				//need to wait unilt the rde_n goes low
-				if (~ftdi_rde_n) begin
-					in_fifo_rst	<= 1;
-					$display ("FT_HI: BAD ID, I should send a response to the host that something went wrong here"); 
-					read_state	<=	READ_D4;
-				end
+				$display ("FT_HI: BAD ID, I should send a response to the host that something went wrong here"); 
+				read_state	<=	READ_D4;
 			end
 			default: begin
 				$display ("FT_HI: How did we get here!?");
