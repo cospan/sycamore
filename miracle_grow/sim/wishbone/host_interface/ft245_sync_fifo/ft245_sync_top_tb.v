@@ -248,7 +248,7 @@ reg		ftdi_ready_to_read;
 //make the ftdi clock 3X faster than the regular clock
 always #5		ftdi_clk	= ~ftdi_clk;
 
-always #2		clk			= ~clk;
+always #4		clk			= ~clk;
 
 
 

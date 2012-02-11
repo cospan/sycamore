@@ -133,9 +133,10 @@ parameter	READ_DATA			=	8'h8;
 parameter	READ_DATA_TO_MASTER	=	8'h9;
 
 parameter	READ_D4				=	8'hA;
-parameter	BAD_ID				=	8'hB;
+parameter	RESET_DELAY			=	8'hB;
+parameter	BAD_ID				=	8'hC;
 
-parameter	WAIT_FIFO			=	8'hC;
+parameter	WAIT_FIFO			=	8'hD;
 
 parameter	WRITE_COMMAND		=	8'h3;
 parameter	WRITE_ADDR			=	8'h4;
@@ -197,7 +198,7 @@ always @ (posedge clk) begin
 			READ_WAIT_2: begin
 				read_state	<= next_read_state;
 				if (~in_fifo_empty) begin
-					if (read_byte_count != 2) begin	
+					if (read_byte_count < 2) begin	
 						in_fifo_rd	<= 1;
 					end
 				end
@@ -240,9 +241,9 @@ always @ (posedge clk) begin
 				end
 				else begin
 					if (~in_fifo_empty & prev_rd) begin
-						if (read_byte_count != 2) begin	
+//						if (read_byte_count < 2) begin	
 							in_fifo_rd	<= 1;
-						end
+//						end
 						read_state	<= READ_CMD;
 					end
 					else if (~in_fifo_empty) begin
@@ -303,9 +304,9 @@ always @ (posedge clk) begin
 				end
 				else begin
 					if (~in_fifo_empty & prev_rd) begin
-						if (read_byte_count != 2) begin	
+//						if (read_byte_count < 2) begin	
 							in_fifo_rd	<= 1;
-						end
+//						end
 					end
 					else if (~in_fifo_empty) begin
 						in_fifo_rd	<= 1;
@@ -364,9 +365,9 @@ always @ (posedge clk) begin
 						if (read_count > 0) begin
 							read_count <= read_count - 1;
 							if (~in_fifo_empty & prev_rd) begin
-								if (read_byte_count != 2) begin	
+//								if (read_byte_count < 2) begin	
 									in_fifo_rd	<= 1;
-								end
+//								end
 								read_state	<= READ_DATA;
 							end
 							else if (~in_fifo_empty) begin
@@ -430,8 +431,12 @@ always @ (posedge clk) begin
 			READ_D4: begin
 				in_fifo_rst	<= 1;
 				if (ftdi_rde_n) begin
-					read_state		<=	IDLE;
+					read_state		<=	RESET_DELAY;
 				end	
+			end
+			RESET_DELAY: begin
+				in_fifo_rst	<= 1;
+				read_state			<=	IDLE;
 			end
 			BAD_ID: begin
 				in_fifo_rst	<= 1;

@@ -207,11 +207,9 @@ always @ (posedge ftdi_clk) begin
 				else begin
 					ftdi_rd_n	<=	0;
 					
-					$display ("core: Read %02X", ftdi_data);
-						//ftdi_data is going to the write buffer
+				//	$display ("core: Read %02X", ftdi_data);
+					//ftdi_data is going to the write buffer
 					in_fifo_wr	<= 1;
-
-
 				end
 //all packets should be 4 byte aligned (or 32 bits aligned)
 			end
