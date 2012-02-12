@@ -124,10 +124,7 @@ parameter	IDLE	=	4'h0;
 parameter	READ_OE	=	4'h1;
 parameter	READ	=	4'h2;
 parameter	DELAY1	=	4'h3;
-parameter	WRITE_DATA	=	4'h4;
-parameter	WRITE1	=	4'h5;
-parameter	WRITE2	=	4'h6;
-parameter	WRITE3	=	4'h7;
+parameter	WRITE	=	4'h4;
 parameter	WAIT_RD	=	4'h8;
 
 reg	[3:0]	ftdi_state;	
@@ -174,7 +171,7 @@ always @ (posedge ftdi_clk) begin
 				if (~ftdi_rde_n & ~in_fifo_full) begin
 					//new data from the host
 //if the FIFO is not full we can read data into the FIFO, but for this first version don't worry about FIFO
-					$display ("core: new data available from the FTDI chip");
+					//$display ("core: new data available from the FTDI chip");
 					ftdi_state		<=	READ_OE;
 					ftdi_oe_n		<= 0;
 					read_count		<= 32'h0;
@@ -183,15 +180,16 @@ always @ (posedge ftdi_clk) begin
 //XXX: this might not be the correct choice specificially in case the data from the user is over 512 bytes
 				end
 				else if (~ftdi_txe_n & ~out_fifo_empty) begin
-					$display ("core: FTDI chip is ready to be written to");
+					//$display ("core: FTDI chip is ready to be written to");
 					ftdi_state		<= DELAY1;
+//					ftdi_state		<= WRITE;
 					out_fifo_rd		<= 1;
 //					ftdi_wr_n		<= 0;
 
 				end
 			end
 			READ_OE: begin
-				$display ("core: read oe");
+				//$display ("core: read oe");
 				//need to allow for one clock cycle between the oe_n goes down and rd_n going down
 				ftdi_rd_n		<= 0;
 				ftdi_state		<= READ;
@@ -207,40 +205,33 @@ always @ (posedge ftdi_clk) begin
 				else begin
 					ftdi_rd_n	<=	0;
 					
-				//	$display ("core: Read %02X", ftdi_data);
+				//	//$display ("core: Read %02X", ftdi_data);
 					//ftdi_data is going to the write buffer
 					in_fifo_wr	<= 1;
 				end
 //all packets should be 4 byte aligned (or 32 bits aligned)
 			end
 			DELAY1: begin
-				ftdi_state <= WRITE_DATA;
-				
+				ftdi_state <= WRITE;
 				if (~out_fifo_empty) begin
 					out_fifo_rd	<= 1;	
 				end
 				ftdi_wr_n	<=	0;
 			end
-			WRITE_DATA: begin
+			WRITE: begin
 				//hang out till the FTDI chip is free
-				if (~ftdi_txe_n & ~out_fifo_empty) begin
-					out_fifo_rd <=	1;
-					ftdi_wr_n	<=	0;
-					if (prev_rd) begin
-						ftdi_state	<= WRITE_DATA;
+				$display ("Sending data: %h", ftdi_data);
+				if (~ftdi_txe_n) begin
+					if (~out_fifo_empty) begin
+						$display ("core: continue reading");	
+						ftdi_state	<= WRITE;
+						ftdi_wr_n	<=	0;
+						out_fifo_rd <=	1;
 					end
 					else begin
-						ftdi_state	<=	DELAY1;
-					end
-				end
-				else begin
-					if (out_fifo_empty) begin
 						$display ("core: out fifo is empty");	
+						ftdi_state	<= IDLE;
 					end
-					else begin
-						$display ("core: ftdi chip is not ready");
-					end
-					ftdi_state	<= IDLE;
 				end
 			end
 			WAIT_RD: begin

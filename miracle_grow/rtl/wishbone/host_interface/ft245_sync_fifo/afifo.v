@@ -12,30 +12,30 @@
 `timescale 1ns/1ps
 
 module afifo
-  #(parameter    DATA_WIDTH    = 8,
-                 ADDRESS_WIDTH = 4,
-                 FIFO_DEPTH    = (1 << ADDRESS_WIDTH))
-     //Reading port
-    (output reg  [DATA_WIDTH-1:0]        data_out, 
-     output reg                          empty,
-     input wire                          rd_en,
-     input wire                          dout_clk,        
-     //Writing port.	 
-     input wire  [DATA_WIDTH-1:0]        data_in,  
-     output reg                          full,
-     input wire                          wr_en,
-     input wire                          din_clk,
-	 
-     input wire                          rst);
-
-    /////Internal connections & variables//////
-    reg   [DATA_WIDTH-1:0]              mem [FIFO_DEPTH-1:0];
-    wire  [ADDRESS_WIDTH-1:0]           p_next_word_to_write, p_next_word_to_read;
-    wire                                equal_addresses;
-    wire                                NextWriteAddressEn, NextReadAddressEn;
-    wire                                set_status, rst_status;
-    reg                                 status;
-    wire                                preset_full, preset_empty;
+	#(parameter		DATA_WIDTH    = 8,
+					ADDRESS_WIDTH = 4,
+					FIFO_DEPTH    = (1 << ADDRESS_WIDTH))
+	//Reading port
+	(output reg  [DATA_WIDTH-1:0]        data_out, 
+	
+	output reg                          empty,
+	input wire                          rd_en,
+	input wire                          dout_clk,        
+	//Writing port.	 
+	input wire  [DATA_WIDTH-1:0]        data_in,  
+	output reg                          full,
+	input wire                          wr_en,
+	input wire                          din_clk,
+	input wire                          rst);
+	
+	/////Internal connections & variables//////
+	reg   [DATA_WIDTH-1:0]              mem [FIFO_DEPTH-1:0];
+	wire  [ADDRESS_WIDTH-1:0]           p_next_word_to_write, p_next_word_to_read;
+	wire                                equal_addresses;
+	wire                                NextWriteAddressEn, NextReadAddressEn;
+	wire                                set_status, rst_status;
+	reg                                 status;
+	wire                                preset_full, preset_empty;
     
     //////////////Code///////////////
     //Data ports logic:

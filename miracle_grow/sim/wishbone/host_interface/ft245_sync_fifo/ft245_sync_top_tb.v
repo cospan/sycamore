@@ -246,9 +246,9 @@ reg		ftdi_ready_to_read;
 
 
 //make the ftdi clock 3X faster than the regular clock
-always #5		ftdi_clk	= ~ftdi_clk;
+always #2		ftdi_clk	= ~ftdi_clk;
 
-always #4		clk			= ~clk;
+always #5		clk			= ~clk;
 
 
 
@@ -291,7 +291,7 @@ initial begin
 
 	//testing input
 	if (fd_in == 0) begin
-		$display("fsync_input_data.txt was not found");
+		//$display("fsync_input_data.txt was not found");
 	end	
 	else begin
 		//process data from a file
@@ -299,7 +299,7 @@ initial begin
 			read_count = $fscanf (fd_in, "%h:%h:%h\n", syc_command, syc_address, syc_data);
 			$display ("tb: data from file: %h:%h:%h", syc_command, syc_address, syc_data);
 
-			$display ("tb: sending data down to core");
+			//$display ("tb: sending data down to core");
 			ftdi_ready_to_read		<= 1;
 
 			while (ftdi_state	!=	FTDI_RX_STOP) begin
@@ -307,15 +307,15 @@ initial begin
 				temp_state	<= ftdi_state;
 			end
 			ftdi_ready_to_read		<= 0;
-			#200
+			#500
 			temp_state		<= ftdi_state;
 
 		end
 	end
 
 	$fclose (fd_in);
-	$display ("Finished tests");
-	#100
+	//$display ("Finished tests");
+	#300
 	$finish;
 end
 
@@ -352,7 +352,7 @@ always @ (negedge ftdi_clk) begin
 
 				//read always gets priority
 				if (~rde_n & ~oe_n) begin
-					$display("tb: rde_n and oe_n LOW, wait for rd_n to go LOW");
+					//$display("tb: rde_n and oe_n LOW, wait for rd_n to go LOW");
 					ftdi_state	<=	FTDI_RX_ENABLE_OUTPUT;
 					//count is given in 32 bits, so need to multiply it by 4 to send all bytes
 					//add eight for the address and control data
@@ -362,13 +362,13 @@ always @ (negedge ftdi_clk) begin
 
 			end
 			FTDI_RX_ENABLE_OUTPUT: begin
-				$display ("tb: total number of bytes to send: %d", ftdi_write_size);
-				$display ("tb: waiting for rd_n to go low");
+				//$display ("tb: total number of bytes to send: %d", ftdi_write_size);
+				//$display ("tb: waiting for rd_n to go low");
 				//enable is high, now wait for the read to go low
 				if (~rd_n) begin
-					$display("tb: rd_n LOW, start writing data to the core");
+					//$display("tb: rd_n LOW, start writing data to the core");
 					ftdi_state	<= FTDI_RX_WRITING;					
-	//				$display ("tb: sending %h", syc_command[31:24]);
+	//				//$display ("tb: sending %h", syc_command[31:24]);
 					//ftdi_in_data			<= syc_command[31:24];
 					ftdi_in_data		<= 8'hCD;
 					//syc_command		<= {syc_command[24:0], 8'h0};
@@ -386,18 +386,18 @@ always @ (negedge ftdi_clk) begin
 					//hacky way of sending all the data down
 					if (write_count >= 0 && write_count <= 3) begin
 						//already sent the first byte of the command
-//						$display ("tb: sending %h", syc_command[31:24]);
+//						//$display ("tb: sending %h", syc_command[31:24]);
 						ftdi_in_data	<= syc_command[31:24];
 						syc_command <= {syc_command[23:0], 8'h0};
 					end
 					if (write_count > 3 && write_count <= 7) begin 
-//						$display ("tb: sending %h", syc_address[31:24]);
+//						//$display ("tb: sending %h", syc_address[31:24]);
 						ftdi_in_data <= syc_address[31:24];
 						syc_address <= {syc_address[23:0], 8'h0};
 					end
 					if (write_count > 7) begin
 //could possible read data from a file if we need to send multiple 32 bits
-//						$display ("tb: sending %h", syc_data[31:24]);
+//						//$display ("tb: sending %h", syc_data[31:24]);
 						ftdi_in_data <= syc_data[31:24];
 						syc_data <= {syc_data[23:0], 8'h0};
 
@@ -406,16 +406,16 @@ always @ (negedge ftdi_clk) begin
 				end
 				//can't wait an entire clock cycle to see if we have reached the max count
 				else begin
-					$display("Sent last byte, telling the core that I've sent all my data");
+					//$display("Sent last byte, telling the core that I've sent all my data");
 					ftdi_state	<= FTDI_RX_STOP;
 					rde_n		<= 1;
 				end
 			end
 			FTDI_RX_STOP:	begin
-				$display ("Wating for core to acknowledge my stop");
+				//$display ("Wating for core to acknowledge my stop");
 				//the core signaled that it is finished transmitting
 				if (oe_n & rd_n & ~ftdi_ready_to_read) begin
-					$display ("Core acknowledged my empty, going to IDLE");
+					//$display ("Core acknowledged my empty, going to IDLE");
 					ftdi_state	<= FTDI_IDLE;
 				end
 			end
@@ -461,7 +461,7 @@ always @ (posedge ftdi_clk) begin
 
 		end
 		if (~wr_n) begin
-//			$display ("tb: incomming byte: %2h", data);
+//			//$display ("tb: incomming byte: %2h", data);
 			
 			read_data	<= {read_data[23:0], data};
 			if (data_read_count == 3) begin
