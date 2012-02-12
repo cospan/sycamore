@@ -305,7 +305,7 @@ always @ (posedge clk) begin
 				else begin
 					if (~in_fifo_empty & prev_rd) begin
 //						if (read_byte_count < 2) begin	
-							in_fifo_rd	<= 1;
+						in_fifo_rd	<= 1;
 //						end
 					end
 					else if (~in_fifo_empty) begin
