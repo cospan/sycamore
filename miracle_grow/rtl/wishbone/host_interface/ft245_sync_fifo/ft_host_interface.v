@@ -243,7 +243,8 @@ always @ (posedge clk) begin
 				read_byte_count <= 0;
 			end
 			PROCESS_CMD: begin
-				in_command[7:0]	<=	temp_data[31:24];
+				in_command[19:16] <= temp_data[31:28];
+				in_command[3:0]	<=	temp_data[27:24];
 				in_data_count	<= {8'h0, temp_data[23:0]};
 				local_data_count	<= temp_data[23:0];
 				if (temp_data[23:0] > 0) begin
