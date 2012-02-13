@@ -8,7 +8,7 @@ NET led<0> LOC = P134 | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
 NET led<1> LOC = P137 | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
 
 #Button
-NET button LOC = P60	|	IOSTANDARD = LVTTL	|	SLEW = SLOW	|	DRIVE = 4;
+NET button LOC = P60	|	IOSTANDARD = LVTTL;
 ###Record=Constraint | TargetKind=Port | TargetId=BUTTON1 | FPGA_PINNUM=P138
 
 
