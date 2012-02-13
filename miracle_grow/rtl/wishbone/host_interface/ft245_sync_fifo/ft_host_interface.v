@@ -388,7 +388,13 @@ always @ (posedge clk) begin
 					//tell the master to kick back for a sec
 					write_count	<= out_data_count;
 	//				out_fifo_data	<= {out_status[7:0], out_data_count[23:0]};
-					local_status		<= out_status;
+					if (out_status[3:0] == 4'hF) begin
+						local_status	<= {out_status[7:0], 24'h0};
+					end
+					else begin
+						local_status		<= {out_status[7:0], out_data_count[23:0]} + 1;
+					end
+
 					local_address		<= out_address;
 					local_data			<= out_data;
 
