@@ -2,8 +2,10 @@
 
 
 import time
+import sys
 from pyftdi.ftdi import Ftdi
 from array import array as Array
+import getopt 
 
 
 class Sycamore (object):
@@ -21,6 +23,7 @@ class Sycamore (object):
 
 	def __del__(self):
 		self.dev.close()
+
 
 	def set_read_timeout(self, read_timeout):
 		self.read_timeout = read_timeout
@@ -126,20 +129,55 @@ class Sycamore (object):
 		return read_data
 		
 
+	def debug(self):
+		data = Array('B')
+		data.extend([0XCD, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xFF])
+		print "to device: " + str(data)
 
-#		data = Array('B')
-#		data.extend([0XCD, 0x02, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF])
-#		print "to device: " + str(data)
-
-#		self.dev.write_data(data)
-
-
-#		self.dev.set_dtr_rts(True, True)
-#		s1 = self.dev.modem_status()
-#		print "S1: " + str(s1)
+		self.dev.write_data(data)
 
 
-#		print "reading"
+		self.dev.set_dtr_rts(True, True)
+		s1 = self.dev.modem_status()
+		print "S1: " + str(s1)
+
+
+		print "reading"
+
+
+		time.sleep(.2)
+		response = self.dev.read_data(64)
+
+		rsp = Array('B')
+		rsp.fromstring(response)
+		print "rsp: " + str(rsp) 
+		for a in rsp:
+			print "Data: %02X" % (a)
+		s1 = self.dev.modem_status()
+		print "S1: " + str(s1)
+
+
+
+
+		data = Array('B')
+		data.extend([0XCD, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF])
+
+		self.dev.write_data(data)
+		response = self.dev.read_data(32)
+
+		data = Array('B')
+		data.extend([0XCD, 0x02, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF])
+		print "to device: " + str(data)
+
+		self.dev.write_data(data)
+
+
+		self.dev.set_dtr_rts(True, True)
+		s1 = self.dev.modem_status()
+		print "S1: " + str(s1)
+
+
+		print "reading"
 
 
 #		response = self.dev.read_data(4)
@@ -149,21 +187,20 @@ class Sycamore (object):
 #		print "rsp: " + str(rsp)
 #		for a in rsp:
 #			print "Data: %02X" % (a)
-#		time.sleep(.1)
-#		response = self.dev.read_data(32)
-
-
-#		rsp = Array('B')
-#		rsp.fromstring(response)
-#		print "rsp: " + str(rsp)
-
-
-#		for a in rsp:
 #			print "Data: %02X" % (a)
-#		s1 = self.dev.modem_status()
-#		print "S1: " + str(s1)
+		time.sleep(.1)
+		response = self.dev.read_data(16)
 
 
+		rsp = Array('B')
+		rsp.fromstring(response)
+		print "rsp: " + str(rsp) 
+		for a in rsp:
+			print "Data: %02X" % (a)
+		s1 = self.dev.modem_status()
+		print "S1: " + str(s1)
+
+	
 
 
 	def open_dev(self):
@@ -197,23 +234,50 @@ class Sycamore (object):
 		self.dev.purge_buffers()
 	
 
-
-
+def usage():
+	"""prints out a helpful message to the user"""
+	print ""
+	print "usage: sycamore.py [options]"
+	print ""
+	print "-h\t--help\t\t\t: displays this help"
+	print "-d\t--debug\t\t\t: runs the debug analysis"
+	print ""
+	
 
 if __name__ == '__main__':
 	print "starting..."
+	argv = sys.argv[1:]
+
 	try:
 		syc = Sycamore(0x0403, 0x8530)
-		print "ping..."
-		syc.ping()
-		print "done..."
+		if (len(argv) == 0):
+			print "ping..."
+			syc.ping()
+		else:
+			opts = None
+			opts, args = getopt.getopt(argv, "hd", ["help", "debug"])
+			for opt, arg in opts:
+				if opt in ("-h", "--help"):
+					usage()
+					sys.exit()
+				elif opt in ("-d", "--debug"):
+					print "Debug mode"
+					syc.debug()
+
 
 	except IOError, ex:
 		print "PyFtdi IOError: " + str(ex)
 	except AttributeError, ex:
 		print "PyFtdi AttributeError: " + str(ex)
+	except getopt.GetoptError, err:
+		print (err)
+		usage()
+"""
 	except ex:
 		print "PyFtdi Unknown Error: " + str(ex)
 
-	print "finished"
+"""
 
+
+
+	
