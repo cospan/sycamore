@@ -150,6 +150,7 @@ parameter	WAIT_FOR_MASTER		=	8'h6;
 reg [31:0]	read_count;
 reg [1:0]	read_byte_count;
 reg			prev_rd;
+reg	[31:0]	local_data_count;
 
 
 reg	[7:0]	read_state	=	IDLE;
@@ -354,7 +355,6 @@ reg [1:0]	write_byte_count;
 
 reg	[31:0]	local_status;
 reg [31:0]	local_address;
-reg	[31:0]	local_data_count;
 reg	[31:0]	local_data;
 
 
@@ -368,7 +368,6 @@ always @ (posedge clk) begin
 
 		local_status		<=	0;
 		local_address		<=	0;
-		local_data_count	<=	0;
 		local_data			<=	0;
 
 	end
