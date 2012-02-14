@@ -228,7 +228,7 @@ always @ (posedge clk) begin
 						read_state	<= READ_DW_WAIT_2;	
 					end
 				end
-				read_byte_count = read_byte_count + 1;
+				read_byte_count <= read_byte_count + 1;
 			end
 
 			PROCESS_ID: begin
