@@ -15,9 +15,12 @@ class Sycamore (object):
 
 	read_timeout = 3
 
-	def __init__(self, idVendor, idProduct):
+	def __init__(self, idVendor, idProduct, dbg = False):
 		self.vendor = idVendor
 		self.product = idProduct
+		self.dbg = dbg
+		if self.dbg:
+			print "Debug enabled"
 		self.dev = Ftdi()
 		self.open_dev()
 
@@ -32,25 +35,30 @@ class Sycamore (object):
 		return self.read_timeout
 
 	def ping(self):
+		self.dev.purge_buffers()
 		data = Array('B')
 		data.extend([0XCD, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 		print "Sending ping...",
 		self.dev.write_data(data)
 		time.sleep(.1)
 		rsp = Array('B')
+		temp = Array('B')
 
 		timeout = time.time() + self.read_timeout
 
 		while time.time() < timeout:
 			response = self.dev.read_data(3)
+			print ".",
 			rsp = Array('B')
 			rsp.fromstring(response)
+			temp.extend(rsp)
 			if 0xDC in rsp:
 				print "Got a response"	
 				break
 
 		if not 0xDC in rsp:
 			print "Response not found"	
+			print "temp: " + str(temp)
 			return rsp
 
 		index  = rsp.index(0xDC) + 1
@@ -64,12 +72,28 @@ class Sycamore (object):
 			
 
 	def write(self, data = Array('B')):
-		length = str(len(data))
-		data_out = Array('B', [0x01])	
+		length = str(len(data) / 4)
+
+		# ID 01 NN NN NN OO AA AA AA DD DD DD DD
+			# ID = ID BYTE (0xCD)
+			# 01 = Write Command
+			# NN = Size of write (3 bytes)
+			# OO = Offset of device
+			# AA = Address (4 bytes)
+			# DD = Data (4 bytes)
+
+
+		#create an array with the identification byte (0xCD)
+		#and code for write (0x01)
+		data_out = Array('B', [0xCD, 0x01])	
+		
+		#append the length into the frist 32 bits
 		fmt_string = "%06X" % (length) 
 		data_out.fromstring(fmt_string.decode['hex'])
-
 		data_out.extend(data)
+
+		#avoid the akward stale bug
+		self.dev.purge_buffers()
 
 		self.dev.write_data(data_out)
 
@@ -98,7 +122,7 @@ class Sycamore (object):
 	def read(self, length, device_offset, address):
 		read_data = Array('B')
 
-		write_data = Array('B', [0x02])	
+		write_data = Array('B', [0xCD, 0x02])	
 		fmt_string = "%06X" % (length) 
 		write_data.fromstring(fmt_string.decode('hex'))
 
@@ -107,7 +131,10 @@ class Sycamore (object):
 
 		addr_string = "%06X" % address
 		write_data.fromstring(addr_string.decode('hex'))
+		if (self.dbg):
+			print "data read string: " + str(write_data)
 
+		self.dev.purge_buffers()
 		self.dev.write_data(write_data)
 
 		timeout = time.time() + self.read_timeout
@@ -124,39 +151,49 @@ class Sycamore (object):
 			return read_data
 
 		#I need to watch out for the modem status bytes
-		response = self.dev.read_data(8)
+		response = self.dev.read_data(length * 4)
 		rsp = Array('B')
 		rsp.fromstring(response)
 
 		#I need to watch out for hte modem status bytes
-		read_string = self.dev.read_data(length * 4)
-		read_data.fromstring(read_string.decode('hex'))
-		return read_data
+#		read_string = self.dev.read_data(length * 4)
+#		print "read_string: " + read_string.decode('hex')
+		#read_data.fromstring(read_string.decode('hex'))
+		return rsp
 		
 
 	def debug(self):
+		self.dev.set_dtr_rts(True, True)
+		s1 = self.dev.modem_status()
+		print "S1: " + str(s1)
+
+
 		print "sending ping...", 
 		data = Array('B')
 		data.extend([0XCD, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 		self.dev.write_data(data)
-		time.sleep(.1)
+		time.sleep(.01)
 #		response = self.dev.read_data(7)
 		rsp = Array('B')
 #		rsp.fromstring(response)
 #		print "rsp: " + str(rsp) 
+		temp = Array ('B')
 
 		timeout = time.time() + self.read_timeout
 
 		while time.time() < timeout:
+
 			response = self.dev.read_data(3)
 			rsp = Array('B')
 			rsp.fromstring(response)
+			temp.extend(rsp)
 			if 0xDC in rsp:
 				print "Got a response"	
 				break
 
 		if not 0xDC in rsp:
 			print "Response not found"	
+			print "temp: " + str(temp)
 			return rsp
 
 		index  = rsp.index(0xDC) + 1
@@ -169,7 +206,6 @@ class Sycamore (object):
 
 		print "read data: " + str(read_data)
 		
-		print "found!"
 #
 #		data = Array('B')
 #		data.extend([0XCD, 0x02, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00])
@@ -178,10 +214,6 @@ class Sycamore (object):
 #		self.dev.write_data(data)
 #
 #
-#		self.dev.set_dtr_rts(True, True)
-#		s1 = self.dev.modem_status()
-#		print "S1: " + str(s1)
-
 
 #		print "reading"
 
@@ -242,6 +274,10 @@ class Sycamore (object):
 #		print "S1: " + str(s1)
 
 	
+	def read_drt(self):
+		data = Array('B')
+		data = self.read(8, 0, 0)
+		print "data: " + str(data)
 
 
 	def open_dev(self):
@@ -264,14 +300,7 @@ class Sycamore (object):
 		self.dev.write_data_set_chunksize(0x10000)
 		self.dev.read_data_set_chunksize(0x10000)
 
-#		self.dev.write_data_set_chunksize(64)
-#		self.dev.read_data_set_chunksize(64)
-		
-#		self.dev.set_line_property(8, 1, 'N')
 		self.dev.set_flowctrl('hw')
-
-		# Configure I/O
-		# Drain input buffer
 		self.dev.purge_buffers()
 	
 
@@ -291,10 +320,7 @@ if __name__ == '__main__':
 
 	try:
 		syc = Sycamore(0x0403, 0x8530)
-		if (len(argv) == 0):
-			print "ping..."
-			syc.ping()
-		else:
+		if (len(argv) > 0):
 			opts = None
 			opts, args = getopt.getopt(argv, "hd", ["help", "debug"])
 			for opt, arg in opts:
@@ -303,7 +329,13 @@ if __name__ == '__main__':
 					sys.exit()
 				elif opt in ("-d", "--debug"):
 					print "Debug mode"
+					syc = Sycamore(0x0403, 0x8530, dbg=True)
 					syc.debug()
+
+		if (syc.ping()):
+			print "Ping responded successfully"
+			print "Retrieving DRT"
+			syc.read_drt()
 
 
 	except IOError, ex:
