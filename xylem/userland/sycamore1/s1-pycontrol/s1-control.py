@@ -145,7 +145,7 @@ class Sycamore1():
 
 
 	def reset_internal_state_machine(self):
-		bbc = BitBangController(self.vendor, self, product, 2)
+		bbc = BitBangController(self.vendor, self.product, 2)
 		bbc.set_soft_reset_to_output()
 		bbc.soft_reset_high()
 		time.sleep(.2)

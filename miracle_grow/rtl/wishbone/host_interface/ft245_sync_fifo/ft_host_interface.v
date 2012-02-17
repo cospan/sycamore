@@ -249,8 +249,15 @@ always @ (posedge clk) begin
 				in_data_count	<= {8'h0, temp_data[23:0]};
 				local_data_count	<= temp_data[23:0];
 				if (temp_data[23:0] > 0) begin
-					in_data_count	<= {8'h0, temp_data[23:0]} - 1;
-					local_data_count	<= temp_data[23:0] - 1;
+//XXX: if we are reading -1 the count... this is a bit hacky :( need to change the write protocol
+					if (temp_data[27:24] == 1) begin
+						in_data_count	<= {8'h0, temp_data[23:0]} - 1;
+						local_data_count	<= temp_data[23:0] - 1;
+					end
+					else begin
+						in_data_count	<= {8'h0, temp_data[23:0]};
+						local_data_count	<= temp_data[23:0];
+					end
 				end
 				if (temp_data[27:24] == 0) begin
 			//		$display ("PING");
