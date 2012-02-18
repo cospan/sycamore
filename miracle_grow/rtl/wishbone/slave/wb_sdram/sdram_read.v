@@ -5,9 +5,10 @@ module sdram_read (
 	rst,
 	//sdram clock
 	clk,
-	ras_n,
-	cas_n,
-	we_n,
+	command,
+//	ras_n,
+//	cas_n,
+//	we_n,
 
 	addr,
 	bank,
@@ -31,9 +32,10 @@ module sdram_read (
 
 input				rst;
 input				clk;
-output				ras_n;
-output				cas_n;
-output				we_n;
+//output				ras_n;
+//output				cas_n;
+//output				we_n;
+output	reg [2:0]	command;
 output	reg	[11:0]	addr;
 output	reg	[1:0]	bank;
 input		[15:0]	data_in;
@@ -65,7 +67,6 @@ parameter	PRECHARGE		=	8'h4;
 
 reg	[7:0]			state;
 
-reg	[2:0]			command;
 reg	[23:0]			lread_count;
 
 reg	[1:0]			lbank;
@@ -78,11 +79,12 @@ reg	[7:0]			delay;
 reg	[31:0]			tfifo_data;
 reg					lauto_rfrsh;
 
-assign	ras_n			=	command[0];
-assign	cas_n			=	command[1];
-assign	we_n			=	command[2];
+//assign	ras_n			=	command[0];
+//assign	cas_n			=	command[1];
+//assign	we_n			=	command[2];
 
 //HOW DO i HANDLE A FULL FIFO??
+	//introduce wait states, and don't write till the FIFO is not full
 //SHOULD THE AUTO_REFERESH be handled in here? or should the main interrupt me?
 	//the auto refresh should happen in here cause then I'll know exactly where it is
 
