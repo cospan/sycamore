@@ -28,7 +28,7 @@ input				rst;
 input				clk;
 output	reg [2:0]	command;
 output	reg	[11:0]	addr;
-output	reg	[1:0]	bank;
+output		[1:0]	bank;
 input		[15:0]	data_in;
 output	reg	[1:0]	data_str;
 input				auto_refresh;
@@ -58,9 +58,8 @@ parameter	PRECHARGE			=	8'h5;
 
 reg	[7:0]			state;
 
-reg	[1:0]			lbank;
-reg	[11:0]			lrow;
-reg	[7:0]			lcoloumn;
+reg	[11:0]			row;
+reg	[7:0]			coloumn;
 
 reg	[7:0]			delay;
 
@@ -68,8 +67,13 @@ reg	[7:0]			delay;
 reg	[31:0]			tfifo_data;
 reg					lauto_rfrsh;
 reg					len;
+reg	[21:0]			lread_address;
 
 assign	ready		=	(delay == 0);
+
+assign	bank		=	lread_address[21:20];
+assign	row			=	lread_address[19:12];
+assign	column		=	lread_address[11:0];
 
 //HOW DO i HANDLE A FULL FIFO??
 	//introduce wait states, and don't write
@@ -126,47 +130,27 @@ always @ (posedge clk) begin
 
 						//store variables into local registers so
 						//I can modify them
-						lcolumn		<= read_address[7:0];
-						lrow		<= read_address[19:8] + 1;
-						lbank		<= read_address[21:20] + 1;
-
-						bank		<= read_address[21:20];
-
-
-						//address 19 - 8 contains the ROW address 
-						//for 16bit data
-						addr		<= read_address[19:8];
-
-						command		<= `SDRAM_CMD_ACT;
-						state		<= READ_COMMAND;
-
-						delay		<= `T_RCD; 
-
+						lread_address	<= read_address;
+						state		<= ACTIVE;
+					end
+					else if (lauto_rfrsh) begin
 					end
 				end
 				ACTIVE: begin
 					$display ("sdram_read: ACTIVE");
 					command			<=	`SDRAM_CMD_ACT;
-					delay			<=	`T_RCD;
-					addr			<=	lrow; 
+					addr			<=	row; 
 					//have rolled over the row?
-					if (lrow == 12'hFFF) begin
-						//only if we roll over a row do
-						//we need to update the bank
-						bank		<=	lbank;
-						lbank 		<=	lbank + 1;
-					end
-
-					lrow			<=	lrow + 1;
+					//the bank will automatically be updated too
 					delay			<=	`T_RCD; 
 				end
 				READ_COMMAND: begin
 					$display ("sdram_read: READ_COMMAND");
 					command			<=	`SDRAM_CMD_READ;
 					state			<=	READ_TOP_WORD;
-					addr			<=	{4'b0000, lcolumn};
-					lcolumn			<=	lcolumn + 1;
+					addr			<=	{4'b0000, column};
 					delay			<=	`T_CAS;
+					lread_address	<= lread_address + 1;
 				end
 				READ_TOP_WORD: begin
 					$display ("sdram_read: READ");
@@ -178,14 +162,12 @@ always @ (posedge clk) begin
 					//here is where I can issue the next
 					//READ_COMMAND for consecutive reads
 					fifo_data[31:16]	<= data_in;
-					if (fifo_full) begin
-						lfifo_full	<= fifo_full;
-					end
+					lfifo_full	<= fifo_full;
 					//check if this is the end of a column, 
 					//if so I need to activate a new ROW
 					if (en & !fifo_full & !auto_rfrsh) begin
 						//check if this is the end of a column
-						if (lcolumn	== 8'hFF) begin
+						if (column	== 8'h00) begin
 							//need to activate a new row to 
 							//start reading from there
 							//close this row with a precharge
@@ -220,7 +202,7 @@ always @ (posedge clk) begin
 					//not done continue on with our reading
 					if (len & !lfifo_full & !lauto_rfrsh) begin
 						//check if this is the end of a column
-						if (lcolumn	== 8'hFF) begin
+						if (column	== 8'h00) begin
 							//next state will activate a new row
 							state	<= ACTIVE;
 							delay	<= `T_RP;
@@ -255,10 +237,18 @@ always @ (posedge clk) begin
 						state	<= IDLE;
 					end
 					else if (!fifo_full) begin
-						$display ("\tdone waiting for the FIFO"
+						$display ("\tdone waiting for the FIFO");
 						$display ("\tstart a new read cycle");
 						fifo_wr		<= 1;
 						state		<= ACTIVATE;
+					end
+				end
+				RESTART: begin
+					if (!en) begin
+						state	<= IDLE;
+					end
+					else
+						state	<= ACTIVE;
 					end
 				end
 				default: begin
