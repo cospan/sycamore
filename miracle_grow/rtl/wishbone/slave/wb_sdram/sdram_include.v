@@ -83,6 +83,7 @@
 `define T_CAS	2			//	READ -> DATA READY 2 clock cycles for CAS latency
 `define T_RP	2			//	PRECHARGE -> finished	
 `define T_CCD	1			//	READ -> READ
+`define T_RFC	7			//	AUTO REFRESH to ready
 
 //----------------------------------------------------------------------------
 // Buffer Cache 
