@@ -1,11 +1,8 @@
 ../../interconnect/example_2port_interconnect/wishbone_interconnect.v
 rtl/wb_sdram.v
 rtl/sdram.v
-rtl/sdram_clkgen.v
+rtl/read_sdram.v
 ../../../../rtl/wishbone/slave/device_rom_table/device_rom_table.v
 ../../../../rtl/wishbone/master/wishbone_master.v
 wishbone_master_tb.v
-unisims/BUFG.v
-unisims/DCM_SP.v
-unisims/FDDRRSE.v
 

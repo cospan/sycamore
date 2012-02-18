@@ -113,6 +113,7 @@ class Sycamore (object):
 		self.dev.purge_buffers()
 
 		self.dev.write_data(data_out)
+		rsp = Array('B')
 
 		timeout = time.time() + self.read_timeout
 		while time.time() < timeout:
@@ -124,10 +125,14 @@ class Sycamore (object):
 					print "Got a response"	
 					break
 
-		if rsp[0] != 0xDC:
-			print "Response not found"	
-			return False
+		if (len(rsp) > 0):
+			if rsp[0] != 0xDC:
+				print "Response not found"	
+				return False
 
+		else:
+			print "No Response"
+			return False
 
 		response = self.dev.read_data(8)
 		rsp = Array('B')
@@ -161,6 +166,7 @@ class Sycamore (object):
 		self.dev.write_data(write_data)
 
 		timeout = time.time() + self.read_timeout
+		rsp = Array('B')
 		while time.time() < timeout:
 			response = self.dev.read_data(1)
 			if len(response) > 0:
@@ -170,9 +176,13 @@ class Sycamore (object):
 					print "Got a response"	
 					break
 
-		if rsp[0] != 0xDC:
-			print "Response not found"	
-			return read_data
+		if len(rsp) > 0:
+			if rsp[0] != 0xDC:
+				print "Response not found"	
+				return read_data
+		else:
+			print "No Response found"
+			return None
 
 		#I need to watch out for the modem status bytes
 		response = self.dev.read_data(length * 4 + 8 )
@@ -187,7 +197,9 @@ class Sycamore (object):
 		
 
 	def debug(self):
-		self.dev.set_dtr_rts(True, True)
+		#self.dev.set_dtr_rts(True, True)
+		#self.dev.set_dtr(False)
+		print "DSR: " + str(self.dev.get_dsr())
 		s1 = self.dev.modem_status()
 		print "S1: " + str(s1)
 
@@ -195,6 +207,7 @@ class Sycamore (object):
 		print "sending ping...", 
 		data = Array('B')
 		data.extend([0XCD, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+	#	self.dev.set_dtr(True)
 		self.dev.purge_buffers()
 		self.dev.write_data(data)
 		#time.sleep(.01)
@@ -208,6 +221,8 @@ class Sycamore (object):
 
 		while time.time() < timeout:
 
+#			if not self.dev.get_dsr():
+#				print "DSR low"
 			response = self.dev.read_data(3)
 			rsp = Array('B')
 			rsp.fromstring(response)
@@ -323,7 +338,8 @@ class Sycamore (object):
 
 		num = 3 - index
 		read_data.fromstring(self.dev.read_data(num))
-		self.interrupts = read_data[0] << 24 | read_data[1] << 16 | read_data[2] << 8 | read_data[3]
+		if (len (read_data) >= 4):
+			self.interrupts = read_data[0] << 24 | read_data[1] << 16 | read_data[2] << 8 | read_data[3]
 		
 		if (self.dbg):
 			print "interrupts: " + str(self.interrupts)
@@ -396,7 +412,7 @@ class Sycamore (object):
 		self.dev.write_data_set_chunksize(0x10000)
 		self.dev.read_data_set_chunksize(0x10000)
 
-		self.dev.set_flowctrl('hw')
+		self.dev.set_flowctrl('hw2')
 		self.dev.purge_buffers()
 	
 
@@ -426,10 +442,9 @@ def sycamore_unit_test(syc = None):
 			print "read buttons in 1 second..."
 			time.sleep(1)
 			grd = syc.read(1, dev_index, 0)
-			print "gpios: " + str(grd)
-			print "low bits: " + str(grd[3])
-			gpio_read = grd[0] << 24 | grd[1] << 16 | grd[2] << 8 | grd[3] 
-			print "gpio read: " + hex(gpio_read)
+			if len(grd) > 0:
+				gpio_read = grd[0] << 24 | grd[1] << 16 | grd[2] << 8 | grd[3] 
+				print "gpio read: " + hex(gpio_read)
 
 			print "testing interrupts, setting interrupts up for postivie edge detect"
 			#positive edge detect

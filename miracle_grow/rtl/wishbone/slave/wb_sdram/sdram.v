@@ -35,6 +35,22 @@ reg		[15:0]		data_out;
 assign data	=		(we_n) ? 16'hZ:data_out;
 
 
+wire				read_cs_n;
+wire				read_ras_n;
+wire				read_cas_n;
+wire				read_we_n;
+wire	[11:0]		read_addr_n;
+wire	[1:0]		read_bank;
+
+
+wire				write_cs_n;
+wire				write_ras_n;
+wire				write_cas_n;
+wire				write_we_n;
+wire	[11:0]		write_addr_n;
+wire	[1:0]		write_bank;
+
+
 always @ (posedge sdram_clk) begin
 	if (rst) begin
 		cke			<= 0;
