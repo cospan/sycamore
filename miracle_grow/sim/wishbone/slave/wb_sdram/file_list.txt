@@ -1,7 +1,8 @@
+rtl/sdram_include.v
 ../../interconnect/example_2port_interconnect/wishbone_interconnect.v
 rtl/wb_sdram.v
 rtl/sdram.v
-rtl/read_sdram.v
+rtl/sdram_read.v
 ../../../../rtl/wishbone/slave/device_rom_table/device_rom_table.v
 ../../../../rtl/wishbone/master/wishbone_master.v
 wishbone_master_tb.v
