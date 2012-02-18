@@ -1,7 +1,7 @@
 `include "sdram_include.v"
 
 
-module read_sdram (
+module sdram_read (
 	rst,
 	//sdram clock
 	clk,
