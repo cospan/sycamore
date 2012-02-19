@@ -91,6 +91,37 @@ always @ (posedge clk) begin
 					
 					end
 				end
+				CKE_HIGH: begin
+					cke	<=	1;
+					//the nops will continue to be send through
+					//but just in case
+					delay	<= 1;
+					state	<= PRECHARGE;
+				end
+				PRECHARGE: begin
+					command		<=	SDRAM_CMD_PRE;
+					//precharge all
+					addr[10]	<=	1;
+					delay		<=	`T_RP;
+					state		<=	AUTO_PRECHARGE_1;
+
+				end
+				AUTO_PRECHARGE_1: begin
+					command		<=	SDRAM_CMD_AR;
+					delay		<=	`T_RFC;
+					state		<= 	AUTO_PRECHARGE_2;
+				end
+				AUTO_PRECHARGE_2: begin
+					command		<= SDRAM_CMD_AR;
+					delay		<=	`T_RFC;
+					state		<=	LOAD_MODE_REGISTER;
+				end
+				LOAD_MODE_REGISTER: begin
+					command		<=	SDRAM_CMD_MRS;
+					state		<=	READY;
+					addr		<=	`SDRAM_INIT_LMR;
+					delay		<=	`T_MRD;
+				end
 				READY: begin
 					ready	<=	1;
 				end
