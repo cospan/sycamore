@@ -8,12 +8,12 @@ module sdram_write (
 	addr,
 	bank,
 	data_out,
-	data_str,
+	data_mask,
 
 
 	//sdram controller
 	en,
-	finished,
+	ready,
 	write_address,
 	auto_rfrsh,
 
@@ -31,11 +31,11 @@ output	reg	[2:0]	command;
 output	reg	[11:0]	addr;
 output	reg	[1:0]	bank;
 output	reg	[15:0]	data_out;
-output	reg	[1:0]	data_str;
+output	reg	[1:0]	data_mask;
 
 //sdram controller
 input				en;
-output	reg			finished;
+output				ready;
 input	reg	[21:0]	write_address;
 input				auto_rfrsh;
 
@@ -52,11 +52,12 @@ parameter	WRITE_TOP_WORD		=	8'h3;
 parameter	WRITE_BOTTOM_WORD	=	8'h4;
 parameter	FIFO_EMPTY_WAIT		=	8'h5;	
 parameter	RESTART				=	8'h6;
-parameter	FINISH				=	8'h7;
 
 reg	[7:0]			state;
 
 reg					lauto_rfrsh;
+
+assign		ready	=	((delay == 0) & (state == IDLE));
 
 always @ (posedge clk) begin
 	if (rst) begin
@@ -64,7 +65,7 @@ always @ (posedge clk) begin
 		addr		<=	12'h0;
 		bank		<=	2'h0;
 		data_out	<=	16'h0;
-		data_str	<=	2'h0;
+		data_mask	<=	2'h0;
 
 		state		<=	IDLE;
 
@@ -121,6 +122,7 @@ always @ (posedge clk) begin
 
 					state			<=	WRITE_BOTTOM_WORD;
 					data_out		<=	fifo_data[31:16];
+					data_mask		<=	fifo_data[33:32];
 					if (en & !fifo_empty & !auto_rfrsh) begin
 						if (column	==	8'h00) begin
 							command	<=	`SDRAM_CMD_PRE;
@@ -136,6 +138,7 @@ always @ (posedge clk) begin
 				WRITE_BOTTOM_WORD: begin
 					$display ("sdram_write: WRITE_BOTTOM_WORD");
 					data_out		<=	fifo_data[15:0];
+					data_mask		<=	fifo_data[35:34];
 					if (len & !lfifo_empty & !lauto_rfrsh) begin
 						if (column	==	8'h00) begin
 							state	<= ACTIVE;

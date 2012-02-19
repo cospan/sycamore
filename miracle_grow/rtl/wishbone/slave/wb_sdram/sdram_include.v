@@ -78,13 +78,18 @@
 `define ADR_ROW_RNG   23:11
 `define ADR_COL_RNG   10:4
 
-
-`define T_RCD	2			//	ACTIVE -> READ 2 clock cycles 7E
-`define T_CAS	2			//	READ -> DATA READY 2 clock cycles for CAS latency
-`define T_RP	2			//	PRECHARGE -> finished	
-`define T_CCD	1			//	READ -> READ
-`define T_RFC	7			//	AUTO REFRESH to ready
-
+//ACTIVE -> READ 2 clock cycles 7E
+`define T_RCD	2			
+//READ -> DATA READY 2 clock cycles for CAS latency
+`define T_CAS	2			
+//PRECHARGE -> finished	
+`define T_RP	2			
+//READ -> READ
+`define T_CCD	1			
+//AUTO REFRESH to ready
+`define T_RFC	7		
+//160uS delay (100uS + 60uS)
+`define T_PLL	16000
 //----------------------------------------------------------------------------
 // Buffer Cache 
 //----------------------------------------------------------------------------

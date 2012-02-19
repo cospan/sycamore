@@ -69,7 +69,7 @@ reg					lauto_rfrsh;
 reg					len;
 reg	[21:0]			lread_address;
 
-assign	ready		=	(delay == 0);
+assign	ready		=	((delay == 0) & (state == IDLE));
 
 assign	bank		=	lread_address[21:20];
 assign	row			=	lread_address[19:12];
