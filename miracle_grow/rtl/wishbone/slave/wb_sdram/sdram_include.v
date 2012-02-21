@@ -16,7 +16,7 @@
 // Width
 //---------------------------------------------------------------------------
 `define CMD_WIDTH  3
-`define A_WIDTH    11
+`define A_WIDTH    12
 `define BA_WIDTH   2
 `define DQ_WIDTH   16
 `define DQS_WIDTH  2
@@ -96,6 +96,9 @@
 `define T_PLL	16000
 //MODE Register Set
 `define T_MRD	2
+
+//Auto Refresh Timeout
+`define T_AR_TIMEOUT	60000000
 //----------------------------------------------------------------------------
 // Buffer Cache 
 //----------------------------------------------------------------------------

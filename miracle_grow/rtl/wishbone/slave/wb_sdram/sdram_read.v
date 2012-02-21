@@ -14,9 +14,9 @@ module sdram_read (
 
 	//sdram controller
 	en,
-	read_address,
+	address,
 	ready,
-	auto_rfrsh,
+	auto_refresh,
 
 	//FIFO
 	fifo_data,
@@ -41,7 +41,7 @@ output				ready;
 //19:08 = Row		(12)
 //07:00 = Column	(8)
 
-input		[21:0]	read_address;
+input		[21:0]	address;
 
 //FIFO
 output	reg	[31:0]	fifo_data;
@@ -50,30 +50,33 @@ output	reg			fifo_wr;
 
 //states
 parameter	IDLE				=	8'h0;
-parameter	ACTIVE				=	8'h1;
+parameter	ACTIVATE				=	8'h1;
 parameter	READ_COMMAND		=	8'h2;
 parameter	READ_TOP_WORD		=	8'h3;
 parameter	READ_BOTTOM_WORD	=	8'h4;
 parameter	PRECHARGE			=	8'h5;
+parameter	FIFO_FULL_WAIT		=	8'h6;
+parameter	RESTART				=	8'h7;
 
-reg	[7:0]			state;
+reg		[7:0]		state;
 
-reg	[11:0]			row;
-reg	[7:0]			coloumn;
+wire	[11:0]		row;
+wire	[7:0]		coloumn;
 
-reg	[7:0]			delay;
+reg		[7:0]		delay;
 
 //temporary FIFO data when the FIFO is full
-reg	[31:0]			tfifo_data;
-reg					lauto_rfrsh;
+reg		[31:0]		tfifo_data;
+reg					lauto_refresh;
+reg					lfifo_full;
 reg					len;
-reg	[21:0]			lread_address;
+reg		[21:0]			laddress;
 
 assign	ready		=	((delay == 0) & (state == IDLE));
 
-assign	bank		=	lread_address[21:20];
-assign	row			=	lread_address[19:12];
-assign	column		=	lread_address[11:0];
+assign	bank		=	laddress[21:20];
+assign	row			=	laddress[19:12];
+assign	column		=	laddress[11:0];
 
 //HOW DO i HANDLE A FULL FIFO??
 	//introduce wait states, and don't write
@@ -87,29 +90,27 @@ always @ (posedge clk) begin
 	if (rst) begin
 		command		<=	`SDRAM_CMD_NOP; 
 		addr		<= 12'h0;
-		bank		<= 2'h0;
 		data_str	<= 2'h0;
 
 		fifo_data	<= 32'h0;
 		fifo_wr		<= 0;
 
 		state		<= IDLE;
-		lbank		<= 2'h0;
 		laddress	<= 12'h0;
 
 		delay		<= 8'h0;
 
 		lfifo_full	<= 0;
 		tfifo_data	<= 31'h0;
-		lauto_rfrsh	<= 0;
+		lauto_refresh	<= 0;
 		len			<= 0;
 	end
 	else begin
 		//auto refresh only goes high for one clock cycle,
 		//so capture it
-		if (auto_rfrsh & en) begin
+		if (auto_refresh & en) begin
 			//because en is high it is my responsibility
-			lauto_rfrsh	<= 1;
+			lauto_refresh	<= 1;
 		end
 		fifo_wr		<= 0;
 		if (delay > 0) begin
@@ -123,21 +124,21 @@ always @ (posedge clk) begin
 					len	<= en;
 					if (en & ~fifo_full) begin
 						//initiate a read cycle by calling
-						//ACTIVE function here,
+						//ACTIVATE function here,
 						//normally this would be issued in the
-						//ACTIVE state but that would waste a 
+						//ACTIVATE state but that would waste a 
 						//clock cycle
 
 						//store variables into local registers so
 						//I can modify them
-						lread_address	<= read_address;
-						state		<= ACTIVE;
+						laddress	<= address;
+						state		<= ACTIVATE;
 					end
-					else if (lauto_rfrsh) begin
+					else if (lauto_refresh) begin
 					end
 				end
-				ACTIVE: begin
-					$display ("sdram_read: ACTIVE");
+				ACTIVATE: begin
+					$display ("sdram_read: ACTIVATE");
 					command			<=	`SDRAM_CMD_ACT;
 					addr			<=	row; 
 					//have rolled over the row?
@@ -150,7 +151,7 @@ always @ (posedge clk) begin
 					state			<=	READ_TOP_WORD;
 					addr			<=	{4'b0000, column};
 					delay			<=	`T_CAS;
-					lread_address	<= lread_address + 1;
+					laddress		<= laddress + 2;
 				end
 				READ_TOP_WORD: begin
 					$display ("sdram_read: READ");
@@ -165,7 +166,7 @@ always @ (posedge clk) begin
 					lfifo_full	<= fifo_full;
 					//check if this is the end of a column, 
 					//if so I need to activate a new ROW
-					if (en & !fifo_full & !auto_rfrsh) begin
+					if (en & !fifo_full & !auto_refresh) begin
 						//check if this is the end of a column
 						if (column	== 8'h00) begin
 							//need to activate a new row to 
@@ -200,11 +201,11 @@ always @ (posedge clk) begin
 					end
 					//if the FIFO isn't full and were 
 					//not done continue on with our reading
-					if (len & !lfifo_full & !lauto_rfrsh) begin
+					if (len & !lfifo_full & !lauto_refresh) begin
 						//check if this is the end of a column
 						if (column	== 8'h00) begin
 							//next state will activate a new row
-							state	<= ACTIVE;
+							state	<= ACTIVATE;
 							delay	<= `T_RP;
 						end
 						else begin
@@ -214,13 +215,14 @@ always @ (posedge clk) begin
 							//the next incomming word
 							state	<= READ_TOP_WORD;
 						end
+					end
 					else if (lfifo_full) begin
 						//the fifo was full, 
 						//wait for until we see the all clear
 						//from the FIFO
 						state		<= FIFO_FULL_WAIT; 
 					end
-					else if (lauto_rfrsh) begin
+					else if (lauto_refresh) begin
 						state		<= 	RESTART;
 						command		<=	`SDRAM_CMD_AR;
 						delay		<=	`T_RFC;
@@ -247,8 +249,8 @@ always @ (posedge clk) begin
 					if (!en) begin
 						state	<= IDLE;
 					end
-					else
-						state	<= ACTIVE;
+					else begin
+						state	<= ACTIVATE;
 					end
 				end
 				default: begin

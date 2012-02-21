@@ -5,6 +5,7 @@ rtl/sdram_include.v
 rtl/wb_sdram.v
 rtl/sdram.v
 rtl/sdram_read.v
+rtl/sdram_write.v
 ../../../../rtl/wishbone/slave/device_rom_table/device_rom_table.v
 ../../../../rtl/wishbone/master/wishbone_master.v
 wishbone_master_tb.v
