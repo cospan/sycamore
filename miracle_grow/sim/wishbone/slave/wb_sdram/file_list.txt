@@ -1,4 +1,6 @@
 rtl/sdram_include.v
+../../../../rtl/generic/afifo.v
+../../../../rtl/generic/graycounter.v
 ../../interconnect/example_2port_interconnect/wishbone_interconnect.v
 rtl/wb_sdram.v
 rtl/sdram.v
