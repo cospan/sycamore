@@ -142,6 +142,7 @@ always @ (negedge clk) begin
 					//have rolled over the row?
 					//the bank will automatically be updated too
 					delay			<=	`T_RCD; 
+					state			<=	READ_COMMAND;
 				end
 				READ_COMMAND: begin
 					$display ("sdram_read: READ_COMMAND");

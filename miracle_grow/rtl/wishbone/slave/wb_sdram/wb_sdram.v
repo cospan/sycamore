@@ -122,15 +122,12 @@ output		[15:0]	sdram_data;
 output		[1:0]	sdram_data_mask;
 
 
-parameter			ADDR_0	=	32'h00000000;
-parameter			ADDR_1	=	32'h00000001;
-parameter			ADDR_2	=	32'h00000002;
-
 reg					fifo_wr;
 reg					fifo_rd;
 
 wire				wr_fifo_full;
 wire				rd_fifo_empty;
+reg					rd_fifo_reset;
 
 wire				sdram_ready;
 
@@ -147,6 +144,7 @@ sdram ram (
 	.rd_fifo_rd(fifo_rd),
 	.rd_fifo_data(wbs_dat_o),
 	.rd_fifo_empty(rd_fifo_empty),
+	.rd_fifo_reset(rd_fifo_reset),
 
 	.write_en(wbs_we_i & wbs_cyc_i),
 	.read_en(~wbs_we_i & wbs_cyc_i),
@@ -170,19 +168,24 @@ sdram ram (
 //blocks
 always @ (posedge clk) begin
 	if (rst) begin
-		wbs_ack_o	<= 0;
-		wbs_int_o	<= 0;
-		fifo_wr		<= 0;
-		fifo_rd		<= 0;
+		wbs_ack_o		<= 0;
+		wbs_int_o		<= 0;
+		fifo_wr			<= 0;
+		fifo_rd			<= 0;
+		rd_fifo_reset	<=	0;
 	end
 	else begin
 		fifo_wr		<=	0;
 		fifo_rd		<=	0;
+		
+		rd_fifo_reset		<=	1;
+		if (wbs_cyc_i) begin
+			rd_fifo_reset	<=	0;
+		end
 		//when the master acks our ack, then put our ack down
 		if (wbs_ack_o & ~ wbs_stb_i)begin
 			wbs_ack_o <= 0;
 		end
-
 		if (wbs_stb_i & wbs_cyc_i) begin
 			//master is requesting somethign
 			if (wbs_we_i) begin
@@ -191,15 +194,16 @@ always @ (posedge clk) begin
 				if (~wr_fifo_full & ~wbs_ack_o) begin
 					wbs_ack_o <= 1;
 					fifo_wr		<=	1;
-					
-						
 				end
 			end
 
 			else begin 
 				//read request
 				$display("user reading %h from address %h", wbs_dat_o, wbs_adr_i);
-				wbs_ack_o <= 1;
+				if (~rd_fifo_empty) begin
+					fifo_rd	<=	1;
+					wbs_ack_o <= 1;
+				end
 			end
 		end
 	end

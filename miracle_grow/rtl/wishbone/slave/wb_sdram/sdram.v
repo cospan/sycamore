@@ -39,6 +39,7 @@ module sdram (
 	rd_fifo_rd,
 	rd_fifo_data,
 	rd_fifo_empty,
+	rd_fifo_reset,
 
 	//Wishbone command
 	write_en,
@@ -70,6 +71,7 @@ output				wr_fifo_full;
 input				rd_fifo_rd;
 output	[31:0]		rd_fifo_data;
 output				rd_fifo_empty;
+input				rd_fifo_reset;
 
 //XXX: is this implemented inside the state machine?
 input				write_en;
@@ -89,19 +91,19 @@ output	reg	[1:0]	bank;
 inout		[15:0]	data;
 output		[1:0]	data_mask;
 
-wire		[15:0]		data_out;
-reg						sdram_reset;
-reg						init_cke;
-reg						init_cs_n;
+wire		[15:0]	data_out;
+reg					sdram_reset;
+reg					init_cke;
+reg					init_cs_n;
 
 
 
-reg						wr_en;
-reg						rd_en;
+reg					wr_en;
+reg					rd_en;
 
-assign 	data	=		(!write_ready) ? data_out:16'hZZZZ;
-assign	cke		=		(sdram_reset) ? 0 : init_cke;	
-assign	cs_n	=		(sdram_reset) ? 1 : init_cs_n;
+assign 	data	=	(!write_ready) ? data_out:16'hZZZZ;
+assign	cke		=	(sdram_reset) ? 0 : init_cke;	
+assign	cs_n	=	(sdram_reset) ? 1 : init_cs_n;
 
 
 
@@ -236,7 +238,7 @@ afifo
 			.ADDRESS_WIDTH(8)
 	)
 fifo_rd (
-	.rst(sdram_reset),
+	.rst(sdram_reset || rd_fifo_reset),
 
 	.din_clk(sdram_clk),
 	.dout_clk(clk),
@@ -414,20 +416,24 @@ always @ (negedge sdram_clk, rst) begin
 						state	<=	WRITE;
 					end
 					else if (read_en) begin
-//						rd_en	<=	1;
+						rd_en	<=	1;
 						state	<=	READ;
 					end
 				end
 				READ: begin
 					$display ("sdram: READ");
-					rd_en	<=	1;
-					//enable read
-					//wait for the wishbone host to say it's finished
 					//deassert the read state machine
+					rd_en	<=	0;
+					
+					//continue reading if wishbone
+					if (read_en) begin
+						rd_en	<=	1;	
+					end
 					//wait for the ready from the read state machine
-					//change back to ready
-//XXX: this is just a place holder!!
-					state				<= READY;
+					if (read_ready) begin
+						//change back to ready
+						state				<= READY;
+					end
 				end
 				WRITE: begin
 					$display ("sdram: WRITE");
