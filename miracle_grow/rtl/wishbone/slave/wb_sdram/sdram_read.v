@@ -66,7 +66,6 @@ wire	[7:0]		coloumn;
 reg		[7:0]		delay;
 
 //temporary FIFO data when the FIFO is full
-reg		[31:0]		tfifo_data;
 reg					lauto_refresh;
 reg					lfifo_full;
 reg					len;
@@ -86,7 +85,7 @@ assign	column		=	laddress[11:0];
 	//the auto refresh should happen in here cause
 	//then I'll know exactly where it is
 
-always @ (posedge clk) begin
+always @ (negedge clk) begin
 	if (rst) begin
 		command		<=	`SDRAM_CMD_NOP; 
 		addr		<= 12'h0;
@@ -101,7 +100,6 @@ always @ (posedge clk) begin
 		delay		<= 8'h0;
 
 		lfifo_full	<= 0;
-		tfifo_data	<= 31'h0;
 		lauto_refresh	<= 0;
 		len			<= 0;
 	end
@@ -162,7 +160,7 @@ always @ (posedge clk) begin
 					state				<= READ_BOTTOM_WORD;
 					//here is where I can issue the next
 					//READ_COMMAND for consecutive reads
-					fifo_data[31:16]	<= data_in;
+//					fifo_data[31:16]	<= data_in;
 					lfifo_full	<= fifo_full;
 					//check if this is the end of a column, 
 					//if so I need to activate a new ROW
@@ -188,11 +186,13 @@ always @ (posedge clk) begin
 						//issue the precharge command here
 						//after reading the next word and then to  
 						command		<= `SDRAM_CMD_PRE;
+						//the bank select is already selected right now
+						delay		<= `T_RP;
 					end
 				end
 				READ_BOTTOM_WORD: begin
 					$display ("read bottom word");
-					fifo_data[15:0]	<=	data_in;
+//					fifo_data[15:0]	<=	data_in;
 					//tell the FIFO that we have new data
 					//if were not waiting for the fifo then
 					//write the data to the FIFO immediately
@@ -259,6 +259,26 @@ always @ (posedge clk) begin
 				end
 			endcase
 		end
+	end
+end
+
+
+always @ (posedge clk) begin
+	if (rst) begin
+		fifo_data	<=	0;
+
+	end
+	else begin
+		case (state)
+			READ_TOP_WORD: begin
+				fifo_data[31:16]	<=	data_in;
+			end
+			READ_BOTTOM_WORD: begin
+				fifo_data[15:0]		<=	data_in;
+			end
+			default: begin
+			end
+		endcase
 	end
 end
 endmodule

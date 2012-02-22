@@ -1,3 +1,28 @@
+/*
+Distributed under the MIT license.
+Copyright (c) 2011 Dave McCoy (dave.mccoy@cospandesign.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in 
+the Software without restriction, including without limitation the rights to 
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+of the Software, and to permit persons to whom the Software is furnished to do 
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all 
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+SOFTWARE.
+*/
+
+
+
 `include "sdram_include.v"
 
 
@@ -53,8 +78,8 @@ input	[21:0]		address;
 output				sdram_ready;
 
 output				sdram_clk;
-output	reg			cke;
-output 	reg			cs_n;
+output				cke;
+output 				cs_n;
 output				ras_n;
 output				cas_n;
 output				we_n;
@@ -65,20 +90,31 @@ inout		[15:0]	data;
 output		[1:0]	data_mask;
 
 wire		[15:0]		data_out;
-assign 	data	=		(we_n) ? 16'hZ:data_out;
+reg						sdram_reset;
+reg						init_cke;
+reg						init_cs_n;
+
+
+
+reg						wr_en;
+reg						rd_en;
+
+assign 	data	=		(!write_ready) ? data_out:16'hZZZZ;
+assign	cke		=		(sdram_reset) ? 0 : init_cke;	
+assign	cs_n	=		(sdram_reset) ? 1 : init_cs_n;
 
 
 
 parameter			RESET		=	8'h0;
 parameter			INIT		=	8'h1;
-parameter			CKE_HIGH	=	8'h3;
-parameter			PRECHARGE	=	8'h4;
-parameter			AUTO_PCHRG1	=	8'h5;
-parameter			AUTO_PCHRG2	=	8'h6;
-parameter			LMR			=	8'h7;
-parameter			READY		=	8'h8;
-parameter			READ		=	8'h9;
-parameter			WRITE		=	8'hA;
+parameter			CKE_HIGH	=	8'h2;
+parameter			PRECHARGE	=	8'h3;
+parameter			AUTO_PCHRG1	=	8'h4;
+parameter			AUTO_PCHRG2	=	8'h5;
+parameter			LMR			=	8'h6;
+parameter			READY		=	8'h7;
+parameter			READ		=	8'h8;
+parameter			WRITE		=	8'h9;
 
 reg		[7:0]		state;
 reg		[15:0]		delay;
@@ -93,18 +129,26 @@ assign	we_n		=	command[2];
 
 //INIT State Machine variables
 reg		[11:0]		init_addr;
+reg		[1:0]		init_bank;
 
 //asynchronous
 //assign the command to the correct state machine (init, read, write)
-always @ (sdram_ready, read_en, write_en) begin
+always @ (
+	sdram_ready, 
+	read_ready, 
+	write_ready, 
+	init_command, 
+	read_command, 
+	write_command) begin
+
 	if (!sdram_ready) begin
 		command		<=	init_command;
 	end
 	else begin
-		if (read_en) begin
+		if (!read_ready) begin
 			command	<=	read_command;
 		end
-		else if (write_en) begin
+		else if (!write_ready) begin
 			command	<= write_command;
 		end
 		else begin
@@ -113,31 +157,50 @@ always @ (sdram_ready, read_en, write_en) begin
 	end
 end
 
-always @ (sdram_ready, read_en, write_en) begin
+always @ (
+	sdram_ready, 
+	read_en, 
+	write_en, 
+	read_phy_addr, 
+	read_phy_bank,
+	write_phy_addr, 
+	write_phy_bank, 
+	init_addr, 
+	init_bank) begin
+
 	if (!sdram_ready) begin
 		addr	<=	init_addr;
 	end
 	else begin
 		if (read_en) begin
 			addr	<=	read_phy_addr;
+			bank	<=	read_phy_bank;
+			
 		end
 		else if (write_en) begin
-			addr	<= write_phy_addr;
+			addr	<=	write_phy_addr;
+			bank	<=	write_phy_bank;
 		end
 		else begin
-			addr	<= init_addr;
+			addr	<=	init_addr;
+			bank	<=	init_bank;
 		end
 	end
 end
 
 
 
-wire				clock_ready;
 
-
-//need an enable clock buffer
+wire					clock_ready;
 
 //instantiate the digital clock manager
+sdram_clkgen clkgen (
+	.rst(rst),
+	.clk(clk),
+
+	.locked(clock_ready),
+	.out_clk(sdram_clk)
+);
 
 //instantiate the write fifo (36 bits)
 wire	[35:0]		wr_data;
@@ -152,7 +215,7 @@ afifo
 			.ADDRESS_WIDTH(8)
 	)
 fifo_wr (
-	.rst(rst),
+	.rst(sdram_reset),
 
 	.din_clk(clk),
 	.dout_clk(sdram_clk),
@@ -173,7 +236,7 @@ afifo
 			.ADDRESS_WIDTH(8)
 	)
 fifo_rd (
-	.rst(rst),
+	.rst(sdram_reset),
 
 	.din_clk(sdram_clk),
 	.dout_clk(clk),
@@ -195,8 +258,8 @@ wire	[1:0]		write_phy_bank;
 
 //instantiate the write state machine
 sdram_write sdram_wr (
-	.rst(rst),
-	.clk(clk),
+	.rst(sdram_reset),
+	.clk(sdram_clk),
 
 	//SDRAM PHY I/O
 	.command(write_command),
@@ -207,7 +270,7 @@ sdram_write sdram_wr (
 	.data_mask(data_mask),
 
 	//sdram_controller
-	.en(write_en),
+	.en(wr_en),
 	.ready(write_ready),
 	.address(address),
 	.auto_refresh(auto_refresh),
@@ -227,8 +290,8 @@ wire	[31:0]		rd_data;
 wire	[1:0]		read_bank;
 
 sdram_read sdram_rd (
-	.rst(rst),
-	.clk(clk),
+	.rst(sdram_reset),
+	.clk(sdram_clk),
 
 	//SDRAM PHY I/O
 	.command(read_command),
@@ -237,7 +300,7 @@ sdram_read sdram_rd (
 	.data_in(data),
 
 	//READ State Machine interface
-	.en(read_en),
+	.en(rd_en),
 	.ready(read_ready),
 	.auto_refresh(auto_refresh),
 	.address(address),
@@ -249,10 +312,8 @@ sdram_read sdram_rd (
 );
 
 //XXX: ATTACH THIS TO THE DCM!!
-wire				dcm_locked;
-reg					sdram_reset;
 
-assign	sdram_ready	=	(!sdram_reset & (delay == 0) & (state == READY));
+assign	sdram_ready	=	(!sdram_reset & (delay == 0) & (state == READY || state == READ || state == WRITE));
 
 
 
@@ -262,7 +323,7 @@ always @ (posedge clk) begin
 	end
 	else begin
 		//wait till the DCM has stabalized
-		if (dcm_locked) begin
+		if (clock_ready) begin
 			//when it does then keep SDRAM_reset high for one more clock cycle
 			sdram_reset	<=	0;
 		end
@@ -271,103 +332,124 @@ end
 
 
 
-always @ (posedge sdram_clk) begin
-	if (sdram_reset) begin
-		cke				<= 0;
-		cs_n			<= 1;
+//XXX: SHOULD THIS BE ON THE NEGATIVE EDGE????
+always @ (negedge sdram_clk, rst) begin
+	if (sdram_reset || rst) begin
+		init_cke		<= 0;
+		init_cs_n		<= 1;
 		init_command	<= `SDRAM_CMD_NOP;
 		init_addr		<= 12'h0;
+		init_bank		<= 2'h0;
 		bank			<= 2'h0;
+		state			<= RESET;
+		delay			<= 0;
+		wr_en			<=	0;
+		rd_en			<=	0;
 	end
 	else begin
 		if (delay > 0) begin
 			delay <= delay - 1;
 			init_command	<= `SDRAM_CMD_NOP;
 		end
-		case (state)
-			RESET: begin
-				$display ("sdram: RESET");
-				cke		<=	0;
-				cs_n	<=	1;
-				//wait for the digital clock manager to settle
-				//once settled then kick off an INIT
+		else begin
+			case (state)
+				RESET: begin
+					$display ("sdram: RESET");
+					init_cke			<=	0;
+					init_cs_n			<=	1;
+					//wait for the digital clock manager to settle
+					//once settled then kick off an INIT
+					state				<=	INIT;
 
-			end
-			INIT: begin
-				$display ("sdram: INIT");
-				cs_n				<=	0;
-				cke					<=	0;
-				delay				<=	`T_PLL;
-				state				<=	CKE_HIGH;
-			end
-			CKE_HIGH: begin
-				$display ("sdram: CKE_HIGH");
-				cke					<=	1;
-				delay				<=	5;
-				state				<=	PRECHARGE;
-			end
-			PRECHARGE: begin
-				$display ("sdram: PRECHARGE");
-				init_command		<= `SDRAM_CMD_PRE;
-				//precharge all
-				init_addr[10]		<=	1;
-				delay				<=	`T_RP;
-				state				<=	AUTO_PCHRG1;
-			end
-			AUTO_PCHRG1: begin
-				$display ("sdram: AUTO_PCHRG1");
-				init_command		<=	`SDRAM_CMD_AR;
-				delay				<=	`T_RFC;
-				state				<=	AUTO_PCHRG2;
-			end
-			AUTO_PCHRG2: begin
-				$display ("sdram: AUTO_PCHRG2");
-				init_command		<=	`SDRAM_CMD_AR;
-				delay				<=	`T_RFC;
-				state				<=	LMR;
-			end
-			LMR: begin
-				$display ("sdram: LMR");
-				init_command		<=	`SDRAM_CMD_MRS;
-				state				<=	READY;
-				init_addr			<=	`SDRAM_INIT_LMR;
-				delay				<=	`T_MRD;
-			end
-			READY: begin
-				$display ("sdram: READY");
-				//listen from a init_command from the wishbone bus
-				if (auto_refresh) begin
-					init_command	<=	`SDRAM_CMD_AR;
-					delay			<=	`T_RFC;
 				end
-			end
-			READ: begin
-				$display ("sdram: READ");
-				//enable read
-				//wait for the wishbone host to say it's finished
-				//deassert the read state machine
-				//wait for the ready from the read state machine
-				//change back to ready
+				INIT: begin
+					$display ("sdram: INIT");
+					init_cs_n			<=	0;
+					init_cke			<=	0;
+					delay				<=	`T_PLL;
+					state				<=	CKE_HIGH;
+				end
+				CKE_HIGH: begin
+					$display ("sdram: CKE_HIGH");
+					init_cke			<=	1;
+					delay				<=	5;
+					state				<=	PRECHARGE;
+				end
+				PRECHARGE: begin
+					$display ("sdram: PRECHARGE");
+					init_command		<= `SDRAM_CMD_PRE;
+					//precharge all
+					init_addr[10]		<=	1;
+					delay				<=	`T_RP;
+					state				<=	AUTO_PCHRG1;
+				end
+				AUTO_PCHRG1: begin
+					$display ("sdram: AUTO_PCHRG1");
+					init_command		<=	`SDRAM_CMD_AR;
+					delay				<=	`T_RFC;
+					state				<=	AUTO_PCHRG2;
+				end
+				AUTO_PCHRG2: begin
+					$display ("sdram: AUTO_PCHRG2");
+					init_command		<=	`SDRAM_CMD_AR;
+					delay				<=	`T_RFC;
+					state				<=	LMR;
+				end
+				LMR: begin
+					$display ("sdram: LMR");
+					init_command		<=	`SDRAM_CMD_MRS;
+					state				<=	READY;
+					init_addr			<=	`SDRAM_INIT_LMR;
+					delay				<=	`T_MRD;
+				end
+				READY: begin
+					$display ("sdram: READY");
+					//listen from a init_command from the wishbone bus
+					if (auto_refresh) begin
+						init_command	<=	`SDRAM_CMD_AR;
+						delay			<=	`T_RFC;
+					end
+					if (write_en || !wr_fifo_empty) begin
+						wr_en	<=	1;
+						state	<=	WRITE;
+					end
+					else if (read_en) begin
+//						rd_en	<=	1;
+						state	<=	READ;
+					end
+				end
+				READ: begin
+					$display ("sdram: READ");
+					rd_en	<=	1;
+					//enable read
+					//wait for the wishbone host to say it's finished
+					//deassert the read state machine
+					//wait for the ready from the read state machine
+					//change back to ready
 //XXX: this is just a place holder!!
-				state				<= INIT;
-			end
-			WRITE: begin
-				$display ("sdram: WRITE");
-				//enable write
-				//wait for wishbone to say it's finished
-				//wait for the write FIFO to be empty
-				//deassert the en
-				//wait for the ready signal
-				//change back to READY state
-//XXX: this is just a place holder!!
-				state				<= INIT;
-			end
-			default: begin
-				$display ("sdram: in undefined state");
-				state				<= INIT;
-			end
-		endcase
-
+					state				<= READY;
+				end
+				WRITE: begin
+					$display ("sdram: WRITE");
+					wr_en	<=	0;
+					if (write_en || !wr_fifo_empty) begin
+						wr_en	<=	1;
+					end
+					//wait for wishbone to say it's finished
+					//wait for the ready signal
+					//wait for the write FIFO to be empty
+					if (write_ready && wr_fifo_empty) begin
+						//deassert the en
+						//change back to READY state
+						state	<= READY;
+					end
+				end
+				default: begin
+					$display ("sdram: in undefined state");
+					state				<= INIT;
+				end
+			endcase
+		end
 
 	end
 end
@@ -380,7 +462,7 @@ end
 		machine
 */
 reg	[31:0]			ar_timeout;
-always @ (posedge sdram_clk) begin
+always @ (negedge sdram_clk) begin
 	if (sdram_reset) begin
 		ar_timeout		<= `T_AR_TIMEOUT;
 	end

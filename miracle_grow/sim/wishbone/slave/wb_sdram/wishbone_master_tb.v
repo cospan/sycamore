@@ -31,47 +31,7 @@ SOFTWARE.
 		-added interrupt support
 */
 
-/**
- * 	excersize the wishbone master by executing all the commands and observing
- *	the output
- *
- *	Commands to test
- *
- *	COMMAND_PING
- *		-send a ping request, and observe the response
- *			-response
- *				- S: 0xFFFFFFFF
- *				- A: 0x00000000
- *				- D: 0x00001EAF
- *	COMMAND_WRITE
- *		-send a request to write to address 0x00000000, the output wb 
- *		signals should correspond to a the wirte... 
- *		I might need a simulated slave for this to work
- *			-response
- *				- S: 0xFFFFFFFE
- *				- A: 0x00000000
- *	COMMAND_READ
- *		-send a reqeust to read from address 0x00000000, the output wb signals
- *		should correspond to a read. a simulated slave might be required for 
- *		this
- *		to work
- *			-response
- * 				- S: 0xFFFFFFFD
- *				- A: 0x00000000
- *	COMMAND_RW_FLAGS
- *		-send a request to write all flags to 0x00000000
- *		-sned a request to read all the flags (confirm 0x00000000)
- *		-send a request to write all the flags, but mask half of them
- *		-send a request to read all the flags, and verify that only half of
- *		the flags were written to
- *	COMMAND_INTERRUPTS
- *		-send a request to write all interrupt to 0x00000000
- *		-send a request to read all the flags (confirm 0x00000000)
- *		-send a request to write all the flags, but mask half of them
- *		-send a request to reall all the flags, and verify that only half of
- *		the flags were written to
- */
-`define TIMEOUT_COUNT 40
+`define TIMEOUT_COUNT 200
 `define INPUT_FILE "master_input_test_data.txt"  
 `define OUTPUT_FILE "master_output_test_data.txt"
 
@@ -156,6 +116,23 @@ wire [31:0]	wbs1_dat_i;
 wire [31:0]	wbs1_adr_o;
 wire		wbs1_int_i;
 
+
+wire		sdram_clk;
+wire		sdram_cke;
+wire		sdram_cs_n;
+wire		sdram_ras_n;
+wire		sdram_cas_n;
+wire		sdram_we_n;
+
+wire	[11:0]	sdram_addr;
+wire	[1:0]	sdram_bank;
+wire	[15:0]	sdram_data;
+wire	[1:0]	sdram_data_mask;
+
+wire		sdram_ready;
+
+assign		sdram_data = (in_command == 2) ? 16'hABCD : 16'hZZZZ;
+
 //slave 1
 wb_sdram s1 (
 
@@ -166,10 +143,23 @@ wb_sdram s1 (
 	.wbs_cyc_i(wbs1_cyc_o),
 	.wbs_dat_i(wbs1_dat_o),
 	.wbs_stb_i(wbs1_stb_o),
+	.wbs_sel_i(wbs1_sel_o),
 	.wbs_ack_o(wbs1_ack_i),
 	.wbs_dat_o(wbs1_dat_i),
 	.wbs_adr_i(wbs1_adr_o),
-	.wbs_int_o(wbs1_int_i)
+	.wbs_int_o(wbs1_int_i),
+
+	.sdram_clk(sdram_clk ),
+	.sdram_cke(sdram_cke ),
+	.sdram_cs_n(sdram_cs_n ),
+	.sdram_ras_n(sdram_ras_n ),
+	.sdram_cas_n(sdram_cas_n ),
+	.sdram_we_n(sdram_we_n ),
+
+	.sdram_addr(sdram_addr ),
+	.sdram_bank(sdram_bank ),
+	.sdram_data(sdram_data ),
+	.sdram_data_mask(sdram_data_mask )
 
 );
 
@@ -185,6 +175,7 @@ wishbone_interconnect wi (
     .m_dat_i(wbm_dat_o),
     .m_dat_o(wbm_dat_i),
     .m_adr_i(wbm_adr_o),
+	.m_sel_i(wbm_sel_o),
     .m_int_o(wbm_int_i),
 
     .s0_we_o(wbs0_we_o),
@@ -199,6 +190,7 @@ wishbone_interconnect wi (
     .s1_we_o(wbs1_we_o),
     .s1_cyc_o(wbs1_cyc_o),
     .s1_stb_o(wbs1_stb_o),
+	.s1_sel_o(wbs1_sel_o),
     .s1_ack_i(wbs1_ack_i),
     .s1_dat_o(wbs1_dat_o),
     .s1_dat_i(wbs1_dat_i),
@@ -254,6 +246,8 @@ initial begin
 	rst				<= 0;
 	out_ready 		<= 1;
 
+	#200
+
 	if (fd_in == 0) begin
 		$display ("TB: input stimulus file was not found");
 	end
@@ -290,7 +284,7 @@ initial begin
 					#1
 					execute_command <= 0;
 				end
-				#10
+				#200
 				$display ("TB: finished command");
 				//if (!$feof(fd_in)) begin
 				//	ch = $fgetc(fd_in);

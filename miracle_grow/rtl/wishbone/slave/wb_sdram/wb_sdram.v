@@ -76,7 +76,21 @@ module wb_sdram (
 	wbs_ack_o,
 	wbs_dat_o,
 	wbs_adr_i,
-	wbs_int_o
+	wbs_int_o,
+
+
+	sdram_clk,
+	sdram_cke,
+	sdram_cs_n,
+	sdram_ras_n,
+	sdram_cas_n,
+	sdram_we_n,
+
+	sdram_addr,
+	sdram_bank,
+	sdram_data,
+	sdram_data_mask,
+
 );
 
 input 				clk;
@@ -89,23 +103,81 @@ input 				wbs_cyc_i;
 input		[3:0]	wbs_sel_i;
 input		[31:0]	wbs_adr_i;
 input  		[31:0]	wbs_dat_i;
-output reg  [31:0]	wbs_dat_o;
+output		[31:0]	wbs_dat_o;
 output reg			wbs_ack_o;
 output reg			wbs_int_o;
+
+
+//SDRAM signals
+output				sdram_clk;
+output				sdram_cke;
+output				sdram_cs_n;
+output				sdram_ras_n;
+output				sdram_cas_n;
+output				sdram_we_n;
+
+output		[11:0]	sdram_addr;
+output		[1:0]	sdram_bank;
+output		[15:0]	sdram_data;
+output		[1:0]	sdram_data_mask;
+
 
 parameter			ADDR_0	=	32'h00000000;
 parameter			ADDR_1	=	32'h00000001;
 parameter			ADDR_2	=	32'h00000002;
 
+reg					fifo_wr;
+reg					fifo_rd;
+
+wire				wr_fifo_full;
+wire				rd_fifo_empty;
+
+wire				sdram_ready;
+
+
+sdram ram (
+	.clk(clk),
+	.rst(rst),
+
+	.wr_fifo_wr(fifo_wr),
+	.wr_fifo_data(wbs_dat_i),
+	.wr_fifo_mask(wbs_sel_i),
+	.wr_fifo_full(wr_fifo_full),
+
+	.rd_fifo_rd(fifo_rd),
+	.rd_fifo_data(wbs_dat_o),
+	.rd_fifo_empty(rd_fifo_empty),
+
+	.write_en(wbs_we_i & wbs_cyc_i),
+	.read_en(~wbs_we_i & wbs_cyc_i),
+	.sdram_ready(sdram_ready),
+	.address(wbs_adr_i[21:0]),
+	
+	.sdram_clk(sdram_clk),
+	.cke(sdram_cke),
+	.cs_n(sdram_cs_n),
+	.ras_n(sdram_ras_n),
+	.cas_n(sdram_cas_n),
+	.we_n(sdram_we_n),
+
+	.addr(sdram_addr),
+	.bank(sdram_bank),
+	.data(sdram_data),
+	.data_mask(sdram_data_mask)
+
+);
+
 //blocks
 always @ (posedge clk) begin
 	if (rst) begin
-		wbs_dat_o	<= 32'h0;
 		wbs_ack_o	<= 0;
 		wbs_int_o	<= 0;
+		fifo_wr		<= 0;
+		fifo_rd		<= 0;
 	end
-
 	else begin
+		fifo_wr		<=	0;
+		fifo_rd		<=	0;
 		//when the master acks our ack, then put our ack down
 		if (wbs_ack_o & ~ wbs_stb_i)begin
 			wbs_ack_o <= 0;
@@ -115,67 +187,20 @@ always @ (posedge clk) begin
 			//master is requesting somethign
 			if (wbs_we_i) begin
 				//write request
-				case (wbs_adr_i) 
-					ADDR_0: begin
-						//writing something to address 0
-						//do something
-
-						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-						$display("user wrote %h", wbs_dat_i);
-					end
-					ADDR_1: begin
-						//writing something to address 1
-						//do something
-	
-						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-						$display("user wrote %h", wbs_dat_i);
-					end
-					ADDR_2: begin
-						//writing something to address 3
-						//do something
-	
-						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-						$display("user wrote %h", wbs_dat_i);
-					end
-					//add as many ADDR_X you need here
-					default: begin
-					end
-				endcase
+				$display("user wrote %h to address %h", wbs_dat_i, wbs_adr_i);
+				if (~wr_fifo_full & ~wbs_ack_o) begin
+					wbs_ack_o <= 1;
+					fifo_wr		<=	1;
+					
+						
+				end
 			end
 
 			else begin 
 				//read request
-				case (wbs_adr_i)
-					ADDR_0: begin
-						//reading something from address 0
-						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-						$display("user read %h", ADDR_0);
-						wbs_dat_o <= ADDR_0;
-					end
-					ADDR_1: begin
-						//reading something from address 1
-						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-						$display("user read %h", ADDR_1);
-						wbs_dat_o <= ADDR_1;
-					end
-					ADDR_2: begin
-						//reading soething from address 2
-						//NOTE THE FOLLOWING LINE IS AN EXAMPLE
-						//	THIS IS WHAT THE USER WILL READ FROM ADDRESS 0
-						$display("user read %h", ADDR_2);
-						wbs_dat_o <= ADDR_2;
-					end
-					//add as many ADDR_X you need here
-					default: begin
-					end
-				endcase
+				$display("user reading %h from address %h", wbs_dat_o, wbs_adr_i);
+				wbs_ack_o <= 1;
 			end
-			wbs_ack_o <= 1;
 		end
 	end
 end

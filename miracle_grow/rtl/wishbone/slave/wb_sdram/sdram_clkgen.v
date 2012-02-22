@@ -12,7 +12,7 @@ module sdram_clkgen (
 wire clock_out;
 DCM_SP #(
 	.CLKFX_DIVIDE(1),
-	.CLKFX_MULTIPLY(1),
+	.CLKFX_MULTIPLY(2),
 	.CLKIN_DIVIDE_BY_2("FALSE"),
 	.CLKIN_PERIOD(),
 	.CLKOUT_PHASE_SHIFT("NONE"),
@@ -21,7 +21,7 @@ DCM_SP #(
 	.DFS_FREQUENCY_MODE("LOW"),
 	.DLL_FREQUENCY_MODE("LOW"),
 	.DUTY_CYCLE_CORRECTION("TRUE"),
-	.FACTORY(16'hC080),
+	.FACTORY_JF(16'hC080),
 	.PHASE_SHIFT(0),
 	.STARTUP_WAIT("FALSE")
 ) dcm_fx (
@@ -29,11 +29,11 @@ DCM_SP #(
 	.CLK0(),
 	.CLK180(),
 	.CLK270(),
-	.CLK2X(clock_out),
+	.CLK2X(),
 	.CLK2X180(),
 	.CLK90(),
 	.CLKDV(),
-	.CLKFX(),
+	.CLKFX(clock_out),
 	.CLKFX180(),
 	.LOCKED(locked),
 	.PSDONE(),
@@ -49,7 +49,7 @@ DCM_SP #(
 
 BUFG bufg_sdram_clk (
 	.I(clock_out),
-	.O(clk_out)
+	.O(out_clk)
 );
 
 endmodule
