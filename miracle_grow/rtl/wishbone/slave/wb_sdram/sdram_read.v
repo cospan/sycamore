@@ -10,6 +10,7 @@ module sdram_read (
 	addr,
 	bank,
 	data_in,
+	data_mask,
 
 
 	//sdram controller
@@ -28,7 +29,8 @@ input				rst;
 input				clk;
 output	reg [2:0]	command;
 output	reg	[11:0]	addr;
-output		[1:0]	bank;
+output	reg	[1:0]	bank;
+output		[1:0]	data_mask;
 input		[15:0]	data_in;
 output	reg	[1:0]	data_str;
 input				auto_refresh;
@@ -50,7 +52,7 @@ output	reg			fifo_wr;
 
 //states
 parameter	IDLE				=	8'h0;
-parameter	ACTIVATE				=	8'h1;
+parameter	ACTIVATE			=	8'h1;
 parameter	READ_COMMAND		=	8'h2;
 parameter	READ_TOP_WORD		=	8'h3;
 parameter	READ_BOTTOM_WORD	=	8'h4;
@@ -60,8 +62,9 @@ parameter	RESTART				=	8'h7;
 
 reg		[7:0]		state;
 
+wire	[1:0]		r_bank;
 wire	[11:0]		row;
-wire	[7:0]		coloumn;
+wire	[7:0]		column;
 
 reg		[7:0]		delay;
 
@@ -71,11 +74,14 @@ reg					lfifo_full;
 reg					len;
 reg		[21:0]			laddress;
 
+
+//XXX: data mask is always high
+assign	data_mask	=	2'b00;
 assign	ready		=	((delay == 0) & (state == IDLE));
 
-assign	bank		=	laddress[21:20];
-assign	row			=	laddress[19:12];
-assign	column		=	laddress[11:0];
+assign	r_bank		=	laddress[21:20];
+assign	row			=	laddress[19:8];
+assign	column		=	laddress[7:0];
 
 //HOW DO i HANDLE A FULL FIFO??
 	//introduce wait states, and don't write
@@ -87,21 +93,23 @@ assign	column		=	laddress[11:0];
 
 always @ (negedge clk) begin
 	if (rst) begin
-		command		<=	`SDRAM_CMD_NOP; 
-		addr		<= 12'h0;
-		data_str	<= 2'h0;
+		command			<=	`SDRAM_CMD_NOP; 
+		addr			<=	12'h0;
+		bank			<=	2'h0;
+		data_str		<=	2'h0;
 
-		fifo_data	<= 32'h0;
-		fifo_wr		<= 0;
+		fifo_data		<=	32'h0;
+		fifo_wr			<=	0;
 
-		state		<= IDLE;
-		laddress	<= 12'h0;
+		state			<=	IDLE;
+		laddress		<=	12'h0;
 
-		delay		<= 8'h0;
+		delay			<=	8'h0;
 
-		lfifo_full	<= 0;
-		lauto_refresh	<= 0;
-		len			<= 0;
+		lfifo_full		<=	0;
+		lauto_refresh	<=	0;
+		len				<=	0;
+		laddress		<=	22'h0;
 	end
 	else begin
 		//auto refresh only goes high for one clock cycle,
@@ -136,24 +144,26 @@ always @ (negedge clk) begin
 					end
 				end
 				ACTIVATE: begin
-					$display ("sdram_read: ACTIVATE");
+					$display ("sdram_read: ACTIVATE: %b", `SDRAM_CMD_ACT);
 					command			<=	`SDRAM_CMD_ACT;
+					bank			<=	r_bank;
 					addr			<=	row; 
+
 					//have rolled over the row?
 					//the bank will automatically be updated too
-					delay			<=	`T_RCD; 
+					delay			<=	`T_RCD - 1; 
 					state			<=	READ_COMMAND;
 				end
 				READ_COMMAND: begin
-					$display ("sdram_read: READ_COMMAND");
+					$display ("sdram_read: READ_COMMAND: %b", `SDRAM_CMD_READ);
 					command			<=	`SDRAM_CMD_READ;
 					state			<=	READ_TOP_WORD;
 					addr			<=	{4'b0000, column};
-					delay			<=	`T_CAS;
+					delay			<=	`T_CAS - 1;
 					laddress		<= laddress + 2;
 				end
 				READ_TOP_WORD: begin
-					$display ("sdram_read: READ");
+					$display ("sdram_read: READ_TOP_WORD");
 					//because the enable can switch inbetween the
 					//read of the top and the bottom I need to remember
 					//the state of the system here
@@ -167,7 +177,10 @@ always @ (negedge clk) begin
 					//if so I need to activate a new ROW
 					if (en & !fifo_full & !auto_refresh) begin
 						//check if this is the end of a column
+
 						if (column	== 8'h00) begin
+							$display("sdram_read: reached end of column Issue PRECHARGE: %b", `SDRAM_CMD_PRE);
+							
 							//need to activate a new row to 
 							//start reading from there
 							//close this row with a precharge
@@ -180,23 +193,26 @@ always @ (negedge clk) begin
 						else begin
 							//don't need to activate a new row, 
 							//just continue reading
+							//$display ("sdram_read: read command: %b", `SDRAM_CMD_READ);
 							command		<= `SDRAM_CMD_READ;
 						end
 					end
 					else begin
 						//issue the precharge command here
 						//after reading the next word and then to  
+						$display ("sdram_read: precharge: %b", `SDRAM_CMD_PRE);
 						command		<= `SDRAM_CMD_PRE;
 						//the bank select is already selected right now
-						delay		<= `T_RP;
+						delay		<= `T_RP - 1;
 					end
 				end
 				READ_BOTTOM_WORD: begin
-					$display ("read bottom word");
+					$display ("sdram_read: READ_BOTTOM_WORD");
 //					fifo_data[15:0]	<=	data_in;
 					//tell the FIFO that we have new data
 					//if were not waiting for the fifo then
 					//write the data to the FIFO immediately
+					command		<= `SDRAM_CMD_NOP;
 					if (!lfifo_full) begin
 						fifo_wr	<= 1;
 					end
@@ -206,8 +222,8 @@ always @ (negedge clk) begin
 						//check if this is the end of a column
 						if (column	== 8'h00) begin
 							//next state will activate a new row
+							$display ("sdram_read: go to ACTIVATE state");
 							state	<= ACTIVATE;
-							delay	<= `T_RP;
 						end
 						else begin
 							//the command for read has already
@@ -215,6 +231,7 @@ always @ (negedge clk) begin
 							//READ_TOP_WORD we'll be ready for
 							//the next incomming word
 							state	<= READ_TOP_WORD;
+							laddress	<=	laddress + 1;
 						end
 					end
 					else if (lfifo_full) begin
@@ -225,8 +242,9 @@ always @ (negedge clk) begin
 					end
 					else if (lauto_refresh) begin
 						state		<= 	RESTART;
+						$display("sdram_read: auto refresh command: %b", `SDRAM_CMD_AR);
 						command		<=	`SDRAM_CMD_AR;
-						delay		<=	`T_RFC;
+						delay		<=	`T_RFC - 1;
 					end
 					else begin
 						state		<= IDLE;
@@ -272,7 +290,9 @@ always @ (posedge clk) begin
 	else begin
 		case (state)
 			READ_TOP_WORD: begin
-				fifo_data[31:16]	<=	data_in;
+				if (delay == 0) begin
+					fifo_data[31:16]	<=	data_in;
+				end
 			end
 			READ_BOTTOM_WORD: begin
 				fifo_data[15:0]		<=	data_in;

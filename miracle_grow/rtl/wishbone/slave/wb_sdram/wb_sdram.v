@@ -138,7 +138,7 @@ sdram ram (
 
 	.wr_fifo_wr(fifo_wr),
 	.wr_fifo_data(wbs_dat_i),
-	.wr_fifo_mask(wbs_sel_i),
+	.wr_fifo_mask(~wbs_sel_i),
 	.wr_fifo_full(wr_fifo_full),
 
 	.rd_fifo_rd(fifo_rd),
@@ -183,7 +183,7 @@ always @ (posedge clk) begin
 			rd_fifo_reset	<=	0;
 		end
 		//when the master acks our ack, then put our ack down
-		if (wbs_ack_o & ~ wbs_stb_i)begin
+		if (wbs_ack_o & ~wbs_stb_i)begin
 			wbs_ack_o <= 0;
 		end
 		if (wbs_stb_i & wbs_cyc_i) begin
@@ -199,8 +199,8 @@ always @ (posedge clk) begin
 
 			else begin 
 				//read request
-				$display("user reading %h from address %h", wbs_dat_o, wbs_adr_i);
 				if (~rd_fifo_empty) begin
+				//	$display("user reading %h", wbs_dat_o);
 					fifo_rd	<=	1;
 					wbs_ack_o <= 1;
 				end

@@ -148,7 +148,7 @@ module wishbone_master (
     parameter           WRITE               = 32'h00000001;
     parameter           READ                = 32'h00000002;
 
-	parameter			S_PING_RESP			= 32'h00001EAF;
+	parameter			S_PING_RESP			= 32'h0000C594;
 	//private registers
 
 	reg [31:0]			state			= IDLE;
@@ -417,6 +417,9 @@ always @ (posedge clk) begin
 						end
 						`COMMAND_READ: 	begin
 							out_data_count		<= in_data_count;
+//XXX: Don't know if I should be putting in_data_count in the local_data_count
+//this will undermine the hack down at the bottom, but the simulations are not working correctly
+							local_data_count	<= in_data_count;
 							debug_out[2]	<= ~debug_out[2];
 							if (command_flags & `FLAG_MEM_BUS) begin
 								mem_bus_select	<= 1;	

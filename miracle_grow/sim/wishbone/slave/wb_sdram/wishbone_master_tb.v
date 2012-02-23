@@ -131,7 +131,8 @@ wire	[1:0]	sdram_data_mask;
 
 wire		sdram_ready;
 
-assign		sdram_data = (in_command == 2) ? 16'hABCD : 16'hZZZZ;
+reg		[15:0]	sdram_in_data;
+assign		sdram_data = (in_command == 2) ? sdram_in_data : 16'hZZZZ;
 
 //slave 1
 wb_sdram s1 (
@@ -312,6 +313,19 @@ reg	prev_int			= 0;
 //initial begin
 //    $monitor("%t, state: %h", $time, state);
 //end
+
+always @ (negedge sdram_clk, rst) begin
+	if (rst) begin
+		sdram_in_data	<=	16'h0000;
+	end
+	else begin
+		if (in_command == 2) begin
+			//sdram_in_data[15:8]	<=	sdram_in_data[15:8] - 1;
+			//sdram_in_data[7:0]	<=	sdram_in_data[7:0] + 1;
+			sdram_in_data	<=	sdram_in_data + 1;
+		end
+	end
+end
 
 always @ (posedge clk) begin
 	in_ready			<= 0;

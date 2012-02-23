@@ -89,7 +89,7 @@ output				we_n;
 output	reg	[11:0]	addr;
 output	reg	[1:0]	bank;
 inout		[15:0]	data;
-output		[1:0]	data_mask;
+output	reg	[1:0]	data_mask;
 
 wire		[15:0]	data_out;
 reg					sdram_reset;
@@ -111,8 +111,8 @@ parameter			RESET		=	8'h0;
 parameter			INIT		=	8'h1;
 parameter			CKE_HIGH	=	8'h2;
 parameter			PRECHARGE	=	8'h3;
-parameter			AUTO_PCHRG1	=	8'h4;
-parameter			AUTO_PCHRG2	=	8'h5;
+parameter			AUTO_RFRSH1	=	8'h4;
+parameter			AUTO_RFRSH2	=	8'h5;
 parameter			LMR			=	8'h6;
 parameter			READY		=	8'h7;
 parameter			READ		=	8'h8;
@@ -168,24 +168,28 @@ always @ (
 	write_phy_addr, 
 	write_phy_bank, 
 	init_addr, 
-	init_bank) begin
+	init_bank,
+	read_data_mask,
+	write_data_mask) begin
 
 	if (!sdram_ready) begin
 		addr	<=	init_addr;
 	end
 	else begin
 		if (read_en) begin
-			addr	<=	read_phy_addr;
-			bank	<=	read_phy_bank;
-			
+			addr		<=	read_phy_addr;
+			bank		<=	read_phy_bank;
+			data_mask	<=	read_data_mask;
 		end
 		else if (write_en) begin
-			addr	<=	write_phy_addr;
-			bank	<=	write_phy_bank;
+			addr		<=	write_phy_addr;
+			bank		<=	write_phy_bank;
+			data_mask	<=	write_data_mask;
 		end
 		else begin
-			addr	<=	init_addr;
-			bank	<=	init_bank;
+			addr		<=	init_addr;
+			bank		<=	init_bank;
+			data_mask	<=	write_data_mask;
 		end
 	end
 end
@@ -257,6 +261,7 @@ reg					auto_refresh;
 wire	[2:0]		write_command;
 wire	[11:0]		write_phy_addr;
 wire	[1:0]		write_phy_bank;
+wire	[1:0]		write_data_mask;
 
 //instantiate the write state machine
 sdram_write sdram_wr (
@@ -269,7 +274,7 @@ sdram_write sdram_wr (
 	.bank(write_phy_bank),
 	.data_out(data_out),
 
-	.data_mask(data_mask),
+	.data_mask(write_data_mask),
 
 	//sdram_controller
 	.en(wr_en),
@@ -286,6 +291,7 @@ sdram_write sdram_wr (
 wire	[2:0]		read_command;
 wire	[11:0]		read_phy_addr;
 wire	[1:0]		read_phy_bank;
+wire	[1:0]		read_data_mask;
 
 wire				read_ready;
 wire	[31:0]		rd_data;
@@ -300,6 +306,7 @@ sdram_read sdram_rd (
 	.addr(read_phy_addr),
 	.bank(read_phy_bank),
 	.data_in(data),
+	.data_mask(read_data_mask),
 
 	//READ State Machine interface
 	.en(rd_en),
@@ -334,7 +341,6 @@ end
 
 
 
-//XXX: SHOULD THIS BE ON THE NEGATIVE EDGE????
 always @ (negedge sdram_clk, rst) begin
 	if (sdram_reset || rst) begin
 		init_cke		<= 0;
@@ -382,19 +388,19 @@ always @ (negedge sdram_clk, rst) begin
 					init_command		<= `SDRAM_CMD_PRE;
 					//precharge all
 					init_addr[10]		<=	1;
-					delay				<=	`T_RP;
-					state				<=	AUTO_PCHRG1;
+					delay				<=	`T_RP - 1;
+					state				<=	AUTO_RFRSH1;
 				end
-				AUTO_PCHRG1: begin
-					$display ("sdram: AUTO_PCHRG1");
+				AUTO_RFRSH1: begin
+					$display ("sdram: AUTO_RFRSH1");
 					init_command		<=	`SDRAM_CMD_AR;
-					delay				<=	`T_RFC;
-					state				<=	AUTO_PCHRG2;
+					delay				<=	`T_RFC - 1;
+					state				<=	AUTO_RFRSH2;
 				end
-				AUTO_PCHRG2: begin
-					$display ("sdram: AUTO_PCHRG2");
+				AUTO_RFRSH2: begin
+					$display ("sdram: AUTO_RFRSH2");
 					init_command		<=	`SDRAM_CMD_AR;
-					delay				<=	`T_RFC;
+					delay				<=	`T_RFC - 1;
 					state				<=	LMR;
 				end
 				LMR: begin
@@ -402,26 +408,27 @@ always @ (negedge sdram_clk, rst) begin
 					init_command		<=	`SDRAM_CMD_MRS;
 					state				<=	READY;
 					init_addr			<=	`SDRAM_INIT_LMR;
-					delay				<=	`T_MRD;
+					delay				<=	`T_MRD - 1;
 				end
 				READY: begin
-					$display ("sdram: READY");
 					//listen from a init_command from the wishbone bus
+					init_addr			<=	12'h00;
 					if (auto_refresh) begin
 						init_command	<=	`SDRAM_CMD_AR;
-						delay			<=	`T_RFC;
+						delay			<=	`T_RFC - 1;
 					end
 					if (write_en || !wr_fifo_empty) begin
+						$display ("sdram: WRITE");
 						wr_en	<=	1;
 						state	<=	WRITE;
 					end
 					else if (read_en) begin
+						$display ("sdram: READ");
 						rd_en	<=	1;
 						state	<=	READ;
 					end
 				end
 				READ: begin
-					$display ("sdram: READ");
 					//deassert the read state machine
 					rd_en	<=	0;
 					
@@ -430,13 +437,12 @@ always @ (negedge sdram_clk, rst) begin
 						rd_en	<=	1;	
 					end
 					//wait for the ready from the read state machine
-					if (read_ready) begin
+					if (~read_en & read_ready) begin
 						//change back to ready
 						state				<= READY;
 					end
 				end
 				WRITE: begin
-					$display ("sdram: WRITE");
 					wr_en	<=	0;
 					if (write_en || !wr_fifo_empty) begin
 						wr_en	<=	1;
