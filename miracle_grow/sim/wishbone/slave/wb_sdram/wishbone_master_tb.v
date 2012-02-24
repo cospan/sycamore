@@ -373,6 +373,9 @@ always @ (posedge clk) begin
 						//in_command
 						//in_address
 						//in_data
+						if (in_data_count > 0) begin
+							in_data_count = in_data_count - 1;
+						end
 						state	<= TB_WRITE;
 					end
 					else begin
@@ -389,7 +392,7 @@ always @ (posedge clk) begin
 				end
 				else if (master_ready && ~in_ready) begin
 					if (in_data_count == 0) begin
-						$display("TB: finishd write");
+						$display("TB: finished write");
 						//wrote last double word of data
 						command_finished	<= 1;
 						state	<= TB_IDLE;

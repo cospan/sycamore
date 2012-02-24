@@ -171,7 +171,6 @@ always @ (negedge clk) begin
 					state				<= READ_BOTTOM_WORD;
 					//here is where I can issue the next
 					//READ_COMMAND for consecutive reads
-//					fifo_data[31:16]	<= data_in;
 					lfifo_full	<= fifo_full;
 					//check if this is the end of a column, 
 					//if so I need to activate a new ROW
@@ -208,7 +207,6 @@ always @ (negedge clk) begin
 				end
 				READ_BOTTOM_WORD: begin
 					$display ("sdram_read: READ_BOTTOM_WORD");
-//					fifo_data[15:0]	<=	data_in;
 					//tell the FIFO that we have new data
 					//if were not waiting for the fifo then
 					//write the data to the FIFO immediately

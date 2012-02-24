@@ -23,26 +23,6 @@ SOFTWARE.
 */
 
 /*
-	10/29/2011
-		-added an 'else' statement that so either the
-		reset HDL will be executed or the actual code
-		not both
-*/
-
-/*
-	10/23/2011
-		-fixed the wbs_ack_i to wbs_ack_o
-		-added the default entries for read and write
-			to illustrate the method of communication
-		-added license
-*/
-/*
-	9/10/2011
-		-removed the duplicate wbs_dat_i
-		-added the wbs_sel_i port
-*/
-
-/*
 	Use this to tell sycamore how to populate the Device ROM table
 	so that users can interact with your slave
 
@@ -149,7 +129,7 @@ sdram ram (
 	.write_en(wbs_we_i & wbs_cyc_i),
 	.read_en(~wbs_we_i & wbs_cyc_i),
 	.sdram_ready(sdram_ready),
-	.address(wbs_adr_i[21:0]),
+	.address(wbs_adr_i[23:2]),
 	
 	.sdram_clk(sdram_clk),
 	.cke(sdram_cke),
