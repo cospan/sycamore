@@ -394,7 +394,7 @@ always @ (posedge clk) begin
 						`COMMAND_WRITE:	begin
 							out_status	<= ~in_command;
 							debug_out[1]	<= ~debug_out[1];
-							local_data_count	<=	in_data_count;
+							//local_data_count	<=	in_data_count;
 							if (command_flags & `FLAG_MEM_BUS) begin
 								mem_bus_select	<= 1;	
 								mem_adr_o    	<= in_address;
@@ -420,10 +420,12 @@ always @ (posedge clk) begin
 							out_data_count		<= in_data_count;
 //XXX: Don't know if I should be putting in_data_count in the local_data_count
 //this will undermine the hack down at the bottom, but the simulations are not working correctly
+/*
 							local_data_count	<= in_data_count;
 							if (in_data_count > 0) begin
 								local_data_count	<=	in_data_count - 1;
 							end
+*/
 							debug_out[2]	<= ~debug_out[2];
 							if (command_flags & `FLAG_MEM_BUS) begin
 								mem_bus_select	<= 1;	

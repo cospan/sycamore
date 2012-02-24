@@ -93,15 +93,15 @@
 //AUTO REFRESH to ready
 `define T_RFC	7		
 //160uS delay (100uS + 60uS)
-//`define T_PLL	16000
+`define T_PLL	16000
 //XXX: 16 IS ONLY FOR SIMULATION
-`define T_PLL 16
+//`define T_PLL 16
 //MODE Register Set
 `define T_MRD	2
 
 //Auto Refresh Timeout
-//`define T_AR_TIMEOUT	60000000
-`define T_AR_TIMEOUT 25
+`define T_AR_TIMEOUT	60000000
+//`define T_AR_TIMEOUT 25
 //----------------------------------------------------------------------------
 // Buffer Cache 
 //----------------------------------------------------------------------------

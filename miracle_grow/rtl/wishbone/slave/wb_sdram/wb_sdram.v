@@ -69,7 +69,7 @@ module wb_sdram (
 	sdram_addr,
 	sdram_bank,
 	sdram_data,
-	sdram_data_mask,
+	sdram_data_mask
 
 );
 
@@ -131,7 +131,7 @@ sdram ram (
 	.sdram_ready(sdram_ready),
 	.address(wbs_adr_i[23:2]),
 	
-	.sdram_clk(sdram_clk),
+	.sd_clk(sdram_clk),
 	.cke(sdram_cke),
 	.cs_n(sdram_cs_n),
 	.ras_n(sdram_ras_n),

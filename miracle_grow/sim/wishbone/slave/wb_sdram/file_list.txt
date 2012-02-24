@@ -1,6 +1,9 @@
 rtl/sdram_include.v
+unisims/glbl.v
+unisims/STARTUP_FPGACORE.v
 unisims/BUFG.v
 unisims/DCM_SP.v
+unisims/ODDR2.v
 ../../../../rtl/generic/afifo.v
 ../../../../rtl/generic/graycounter.v
 ../../interconnect/example_2port_interconnect/wishbone_interconnect.v

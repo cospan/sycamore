@@ -47,7 +47,7 @@ module sdram (
 	sdram_ready,
 	address,
 
-	sdram_clk,
+	sd_clk,
 	cs_n,
 	cke,
 	ras_n,
@@ -79,7 +79,7 @@ input				read_en;
 input	[21:0]		address;
 output				sdram_ready;
 
-output				sdram_clk;
+output				sd_clk;
 output				cke;
 output 				cs_n;
 output				ras_n;
@@ -100,6 +100,8 @@ reg					init_cs_n;
 
 reg					wr_en;
 reg					rd_en;
+
+wire				sdram_clk;
 
 assign 	data	=	(!write_ready) ? data_out:16'hZZZZ;
 assign	cke		=	(sdram_reset) ? 0 : init_cke;	
@@ -173,7 +175,9 @@ always @ (
 	write_data_mask) begin
 
 	if (!sdram_ready) begin
-		addr	<=	init_addr;
+		addr		<=	init_addr;
+		bank		<=	init_bank;
+		data_mask	<=	write_data_mask;
 	end
 	else begin
 		if (read_en) begin
@@ -205,7 +209,8 @@ sdram_clkgen clkgen (
 	.clk(clk),
 
 	.locked(clock_ready),
-	.out_clk(sdram_clk)
+	.out_clk(sdram_clk),
+	.phy_out_clk(sd_clk)
 );
 
 //instantiate the write fifo (36 bits)
@@ -213,6 +218,7 @@ wire	[35:0]		wr_data;
 wire				wr_fifo_rd;
 wire				wr_fifo_empty;
 
+wire	[31:0]		rd_data;
 wire	[35:0]		wr_data_in;
 assign	wr_data_in	=	{(wr_fifo_mask), (wr_fifo_data)};
 
@@ -294,7 +300,6 @@ wire	[1:0]		read_phy_bank;
 wire	[1:0]		read_data_mask;
 
 wire				read_ready;
-wire	[31:0]		rd_data;
 wire	[1:0]		read_bank;
 
 sdram_read sdram_rd (
@@ -341,14 +346,13 @@ end
 
 
 
-always @ (negedge sdram_clk, rst) begin
+always @ (negedge sdram_clk, posedge rst) begin
 	if (sdram_reset || rst) begin
 		init_cke		<= 0;
 		init_cs_n		<= 1;
 		init_command	<= `SDRAM_CMD_NOP;
 		init_addr		<= 12'h0;
 		init_bank		<= 2'h0;
-		bank			<= 2'h0;
 		state			<= RESET;
 		delay			<= 0;
 		wr_en			<=	0;

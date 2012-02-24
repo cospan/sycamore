@@ -76,8 +76,7 @@ class Sycamore (object):
 		read_data.fromstring(self.dev.read_data(num))
 		return True
 			
-
-	def write(self, dev_index, offset, data = Array('B')):
+	def write(self, dev_index, offset, data = Array('B'), mem_device = False):
 		length = len(data) / 4
 
 		# ID 01 NN NN NN OO AA AA AA DD DD DD DD
@@ -91,7 +90,10 @@ class Sycamore (object):
 
 		#create an array with the identification byte (0xCD)
 		#and code for write (0x01)
+
 		data_out = Array('B', [0xCD, 0x01])	
+		if mem_device:
+			data_out = Array ('B', [0xCD, 0x11])
 		
 		
 		#append the length into the frist 32 bits
@@ -142,10 +144,14 @@ class Sycamore (object):
 		print "Response: " + str(rsp)
 		return True
 
-	def read(self, length, device_offset, address, drt = False):
+	def read(self, length, device_offset, address, mem_device = False, drt = False):
 		read_data = Array('B')
 
 		write_data = Array('B', [0xCD, 0x02])	
+
+		if mem_device:
+			data_out = Array ('B', [0xCD, 0x12])
+	
 		fmt_string = "%06X" % (length) 
 		write_data.fromstring(fmt_string.decode('hex'))
 
@@ -423,10 +429,27 @@ def sycamore_unit_test(syc = None):
 	print "Searching for standard devices..."
 	for dev_index in range (0, (syc.num_of_devices)):
 		device_id = string.atoi(syc.drt_lines[((dev_index + 1) * 8)], 16)
+
+		print "dev id: " + str(device_id)
 		flags = string.atoi(syc.drt_lines[((dev_index + 1) * 8) + 1], 16)
 		address_offset = string.atoi(syc.drt_lines[((dev_index + 1) * 8) + 2], 16)
 		num_of_registers = string.atoi(syc.drt_lines[((dev_index + 1) * 8) + 3], 16)
 		data_list = list()
+		if (device_id == 5):
+			print "found Memory device"
+			mem_bus = False
+			if ((flags & 0x00010000) > 0):
+				print "Memory slave is on Memory bus"
+				mem_bus = True 
+			else:
+				print "Memory slave is on peripheral bus"
+			syc.write(dev_index, 0, [0,1,2,3,4,5,6,7,8,9], mem_bus)
+			print "Burst Read from the 10 locations:"
+			mem_data = syc.read(10, dev_index, 0, False, mem_bus)
+			for i in range (0, len(mem_data)):
+				print "reading " + str(mem_data[i]) + " from " + str(i * 4)
+	
+"""
 		if (device_id == 1):
 			print "found gpio"
 			print "enable all GPIO's"
@@ -473,6 +496,8 @@ def sycamore_unit_test(syc = None):
 					grd = syc.read(1, dev_index, 0)
 					gpio_read = grd[0] << 24 | grd[1] << 16 | grd[2] << 8 | grd[3] 
 					print "gpio read: " + hex(gpio_read)
+"""
+
 
 
 def usage():

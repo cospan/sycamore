@@ -32,7 +32,6 @@ output	reg	[11:0]	addr;
 output	reg	[1:0]	bank;
 output		[1:0]	data_mask;
 input		[15:0]	data_in;
-output	reg	[1:0]	data_str;
 input				auto_refresh;
 
 //sdram controller
@@ -96,9 +95,7 @@ always @ (negedge clk) begin
 		command			<=	`SDRAM_CMD_NOP; 
 		addr			<=	12'h0;
 		bank			<=	2'h0;
-		data_str		<=	2'h0;
 
-		fifo_data		<=	32'h0;
 		fifo_wr			<=	0;
 
 		state			<=	IDLE;
