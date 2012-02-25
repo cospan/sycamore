@@ -121,7 +121,7 @@ parameter			READ		=	8'h8;
 parameter			WRITE		=	8'h9;
 
 reg		[7:0]		state;
-reg		[15:0]		delay;
+reg		[24:0]		delay;
 
 reg		[2:0]		init_command;
 reg		[2:0]		command;
@@ -384,7 +384,7 @@ always @ (negedge sdram_clk, posedge rst) begin
 				CKE_HIGH: begin
 					$display ("sdram: CKE_HIGH");
 					init_cke			<=	1;
-					delay				<=	5;
+					delay				<=	`T_PLL;
 					state				<=	PRECHARGE;
 				end
 				PRECHARGE: begin

@@ -445,7 +445,7 @@ def sycamore_unit_test(syc = None):
 			else:
 				print "Memory slave is on peripheral bus"
 
-			data_out	=	Array('B', [0, 0, 0, 0])
+			data_out	=	Array('B', [0x0A, 0x0B, 0x0C, 0x0D])
 			syc.write(dev_index, 0, data_out)
 			data_out	=	Array('B', [0, 0, 0, 1])
 			syc.write(dev_index, 4, data_out)

@@ -54,7 +54,7 @@
 //Burst Length = 2 (32 bits)
 //CAS Latency = 2
 //Sequential
-`define SDRAM_INIT_LMR	`A_WIDTH'b001000100001
+`define SDRAM_INIT_LMR	`A_WIDTH'b000000100001
 
 //----------------------------------------------------------------------------
 // FML constants
@@ -93,9 +93,9 @@
 //AUTO REFRESH to ready
 `define T_RFC	7		
 //160uS delay (100uS + 60uS)
-`define T_PLL	16000
+//`define T_PLL	160000
 //XXX: 16 IS ONLY FOR SIMULATION
-//`define T_PLL 16
+`define T_PLL 16
 //MODE Register Set
 `define T_MRD	2
 
