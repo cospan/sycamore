@@ -129,6 +129,7 @@ always @ (negedge clk) begin
 					command			<=	`SDRAM_CMD_WRITE;
 					addr			<=	{4'b0000, column};
 					laddress		<=	laddress + 2;
+					//disable auto precharge
 					addr[10]		<=	0;
 
 					lfifo_empty		<=	fifo_empty;
@@ -181,32 +182,37 @@ data_out	<=	16'h5678;
 				PRECHARGE:	 begin
 					command		<=	`SDRAM_CMD_PRE;
 					delay		<=	`T_RP - 1;
+					//precharge all banks (just for the first version)
 					addr[10]	<=	1;
 					if (!fifo_empty) begin
 						state	<=	ACTIVE;
 					end
 					else begin
 						state	<=	FIFO_EMPTY_WAIT;
+						$display("sdram_write: go to FIFO_EMPTY_WAIT");
 					end
 				end
 				FIFO_EMPTY_WAIT: begin
-					$display("sdram_write: FIFO empty wating");
 //					lfifo_empty	<= fifo_empty;
 					if (lauto_refresh) begin
-						state	<=	RESTART;
+						$display("sdram_write: auto refresh");
+						//state	<=	RESTART;
 						command	<=	`SDRAM_CMD_AR;
 						delay	<=	`T_RFC - 1;
 						lauto_refresh	<=	0;
-					end
-					else if (!en) begin
-						state	<= IDLE;
 					end
 					else if (!fifo_empty) begin
 						$display ("\tdone waiting for the FIFO");
 						$display ("\tstart a new write cycle");
 						state	<= ACTIVE;	
 					end
+					else if (!en) begin
+						$display("sdram_write: finished write state machine");
+						state	<= IDLE;
+					end
+
 				end
+/*
 				RESTART: begin
 					if (!fifo_empty & !lauto_refresh) begin
 						state	<= ACTIVE;
@@ -224,6 +230,7 @@ data_out	<=	16'h5678;
 					end
 	
 				end
+*/
 				default: begin
 					$display ("sdram_write: got to an unknown state");
 					state	<= IDLE;
