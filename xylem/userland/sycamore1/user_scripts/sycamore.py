@@ -197,6 +197,7 @@ class Sycamore (object):
 
 		#I need to watch out for hte modem status bytes
 		if self.dbg:
+			print "response length: " + str(length * 4 + 8)
 			print "response: " + str(rsp)
 		#read_data.fromstring(read_string.decode('hex'))
 		return rsp[8:]
@@ -443,11 +444,21 @@ def sycamore_unit_test(syc = None):
 				mem_bus = True 
 			else:
 				print "Memory slave is on peripheral bus"
-			syc.write(dev_index, 0, [0,1,2,3,4,5,6,7,8,9], mem_bus)
+
+			data_out	=	Array('B', [0, 0, 0, 0])
+			syc.write(dev_index, 0, data_out)
+			data_out	=	Array('B', [0, 0, 0, 1])
+			syc.write(dev_index, 4, data_out)
+			data_out	=	Array('B', [0, 0, 0, 2])
+			syc.write(dev_index, 8, data_out)
 			print "Burst Read from the 10 locations:"
-			mem_data = syc.read(10, dev_index, 0, False, mem_bus)
-			for i in range (0, len(mem_data)):
-				print "reading " + str(mem_data[i]) + " from " + str(i * 4)
+			time.sleep(1)
+
+			mem_data = syc.read(1, dev_index, 0)
+			print "mem data: " + str(mem_data);
+#			mem_data = syc.read(10, dev_index, 0, False, mem_bus)
+#			for i in range (0, len(mem_data)):
+#				print "reading " + str(mem_data[i]) + " from " + str(i * 4)
 	
 """
 		if (device_id == 1):
