@@ -145,8 +145,10 @@ always @ (negedge clk) begin
 					command			<=	`SDRAM_CMD_ACT;
 					delay			<=	`T_RCD - 1; 
 
-					addr			<=	row; 
-					bank			<=	r_bank;
+addr	<=	12'h0;
+bank	<=	2'h0;
+//					addr			<=	row; 
+//					bank			<=	r_bank;
 
 					state			<=	READ_COMMAND;
 				end
@@ -154,7 +156,9 @@ always @ (negedge clk) begin
 					$display ("sdram_read: READ_COMMAND: %b", `SDRAM_CMD_READ);
 					command			<=	`SDRAM_CMD_READ;
 					state			<=	READ_TOP_WORD;
-					addr			<=	{4'b0000, column};
+
+addr	<=	12'h0;
+//					addr			<=	{4'b0000, column};
 					delay			<=	`T_CAS - 1;
 					laddress		<= laddress + 2;
 				end

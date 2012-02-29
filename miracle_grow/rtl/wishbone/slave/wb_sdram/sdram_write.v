@@ -118,15 +118,19 @@ always @ (negedge clk) begin
 					$display ("sdram_write: ACTIVE");
 					command 		<=	`SDRAM_CMD_ACT;
 					delay			<=	`T_RCD - 1;
-					addr			<=	row;
-					bank			<=	w_bank;
+addr	<=	12'h0;
+bank	<=	2'h0;
+
+//					addr			<=	row;
+//					bank			<=	w_bank;
 					state			<=	WRITE_CMD;
 					fifo_rd			<=	1;
 				end
 				WRITE_CMD: begin
 					$display ("sdram_write: WRITE_CMD");
 					command			<=	`SDRAM_CMD_WRITE;
-					addr			<=	{4'b0000, column};
+addr	<=	12'h0;
+//					addr			<=	{4'b0000, column};
 					laddress		<=	laddress + 2;
 					//disable auto precharge
 					addr[10]		<=	0;

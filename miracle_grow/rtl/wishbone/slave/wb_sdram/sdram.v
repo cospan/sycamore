@@ -348,13 +348,13 @@ end
 
 always @ (negedge sdram_clk, posedge rst) begin
 	if (sdram_reset || rst) begin
-		init_cke		<= 1;
+		init_cke		<= 0;
 		init_cs_n		<= 1;
 		init_command	<= `SDRAM_CMD_NOP;
 		init_addr		<= 12'h0;
 		init_bank		<= 2'h0;
 		state			<= RESET;
-		delay			<= 0;
+		delay			<= 10000;
 		wr_en			<=	0;
 		rd_en			<=	0;
 	end
@@ -367,7 +367,7 @@ always @ (negedge sdram_clk, posedge rst) begin
 			case (state)
 				RESET: begin
 					$display ("sdram: RESET");
-					init_cke			<=	0;
+//					init_cke			<=	0;
 					init_cs_n			<=	1;
 					//wait for the digital clock manager to settle
 					//once settled then kick off an INIT
@@ -376,13 +376,13 @@ always @ (negedge sdram_clk, posedge rst) begin
 				end
 				INIT: begin
 					$display ("sdram: INIT");
-					init_cke			<=	0;
+					init_cke			<=	1;
 					delay				<=	`T_PLL;
 					state				<=	CKE_HIGH;
 				end
 				CKE_HIGH: begin
 					$display ("sdram: CKE_HIGH");
-					init_cke			<=	1;
+//					init_cke			<=	1;
 					init_cs_n			<=	0;
 					delay				<=	`T_PLL;
 					state				<=	PRECHARGE;
@@ -392,19 +392,19 @@ always @ (negedge sdram_clk, posedge rst) begin
 					init_command		<= `SDRAM_CMD_PRE;
 					//precharge all
 					init_addr[10]		<=	1;
-					delay				<=	`T_RP - 1;
+					delay				<=	`T_RP;
 					state				<=	AUTO_RFRSH1;
 				end
 				AUTO_RFRSH1: begin
 					$display ("sdram: AUTO_RFRSH1");
 					init_command		<=	`SDRAM_CMD_AR;
-					delay				<=	`T_RFC - 1;
+					delay				<=	`T_RFC;
 					state				<=	AUTO_RFRSH2;
 				end
 				AUTO_RFRSH2: begin
 					$display ("sdram: AUTO_RFRSH2");
 					init_command		<=	`SDRAM_CMD_AR;
-					delay				<=	`T_RFC - 1;
+					delay				<=	`T_RFC;
 					state				<=	LMR;
 				end
 				LMR: begin
@@ -412,14 +412,14 @@ always @ (negedge sdram_clk, posedge rst) begin
 					init_command		<=	`SDRAM_CMD_MRS;
 					state				<=	READY;
 					init_addr			<=	`SDRAM_INIT_LMR;
-					delay				<=	`T_MRD - 1;
+					delay				<=	`T_MRD;
 				end
 				READY: begin
 					//listen from a init_command from the wishbone bus
 					init_addr			<=	12'h00;
 					if (auto_refresh) begin
 						init_command	<=	`SDRAM_CMD_AR;
-						delay			<=	`T_RFC - 1;
+						delay			<=	`T_RFC;
 					end
 					if (write_en || !wr_fifo_empty) begin
 						$display ("sdram: WRITE");
