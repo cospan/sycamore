@@ -152,7 +152,7 @@ always @ (posedge clk) begin
 		wbs_int_o		<= 0;
 		fifo_wr			<= 0;
 		fifo_rd			<= 0;
-		rd_fifo_reset	<=	0;
+		rd_fifo_reset	<=	1;
 	end
 	else begin
 		fifo_wr		<=	0;

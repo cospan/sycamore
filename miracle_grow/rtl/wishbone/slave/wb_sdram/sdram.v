@@ -348,7 +348,7 @@ end
 
 always @ (negedge sdram_clk, posedge rst) begin
 	if (sdram_reset || rst) begin
-		init_cke		<= 0;
+		init_cke		<= 1;
 		init_cs_n		<= 1;
 		init_command	<= `SDRAM_CMD_NOP;
 		init_addr		<= 12'h0;
@@ -376,7 +376,6 @@ always @ (negedge sdram_clk, posedge rst) begin
 				end
 				INIT: begin
 					$display ("sdram: INIT");
-					init_cs_n			<=	0;
 					init_cke			<=	0;
 					delay				<=	`T_PLL;
 					state				<=	CKE_HIGH;
@@ -384,6 +383,7 @@ always @ (negedge sdram_clk, posedge rst) begin
 				CKE_HIGH: begin
 					$display ("sdram: CKE_HIGH");
 					init_cke			<=	1;
+					init_cs_n			<=	0;
 					delay				<=	`T_PLL;
 					state				<=	PRECHARGE;
 				end

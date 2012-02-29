@@ -120,7 +120,6 @@ always @ (negedge clk) begin
 					delay			<=	`T_RCD - 1;
 					addr			<=	row;
 					bank			<=	w_bank;
-					//auto precharge
 					state			<=	WRITE_CMD;
 					fifo_rd			<=	1;
 				end
