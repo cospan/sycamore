@@ -1,3 +1,6 @@
+
+
+
 //sdram_include.v
 `ifdef SDRAM_INCLUDE_V
 `else
@@ -108,9 +111,9 @@
 //AUTO REFRESH to ready
 `define T_RFC	7		
 //160uS delay (100uS + 10uS)
-`define T_PLL	10000
+//`define T_PLL	10000
 //XXX: 16 IS ONLY FOR SIMULATION
-//`define T_PLL 16
+`define T_PLL 16
 //MODE Register Set
 `define T_MRD	2
 

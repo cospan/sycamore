@@ -348,13 +348,14 @@ end
 
 always @ (negedge sdram_clk, posedge rst) begin
 	if (sdram_reset || rst) begin
+		$display ("sdram: resetting variables");
 		init_cke		<= 0;
 		init_cs_n		<= 1;
 		init_command	<= `SDRAM_CMD_NOP;
 		init_addr		<= 12'h0;
 		init_bank		<= 2'h0;
 		state			<= RESET;
-		delay			<= 10000;
+		delay			<= 	10;
 		wr_en			<=	0;
 		rd_en			<=	0;
 	end
