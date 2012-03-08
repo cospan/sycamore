@@ -447,14 +447,14 @@ def sycamore_unit_test(syc = None):
 
 			data_out	=	Array('B', [0x0A, 0x0B, 0x0C, 0x0D])
 			syc.write(dev_index, 0, data_out)
-			data_out	=	Array('B', [0, 0, 0, 1])
-			syc.write(dev_index, 4, data_out)
-			data_out	=	Array('B', [0, 0, 0, 2])
-			syc.write(dev_index, 8, data_out)
+#			data_out	=	Array('B', [0, 0, 0, 1])
+#			syc.write(dev_index, 4, data_out)
+#			data_out	=	Array('B', [0, 0, 0, 2])
+#			syc.write(dev_index, 8, data_out)
 			print "Burst Read from the 10 locations:"
 			time.sleep(1)
 
-			mem_data = syc.read(4, dev_index, 0)
+			mem_data = syc.read(1, dev_index, 0)
 			print "mem data: " + str(mem_data);
 #			mem_data = syc.read(10, dev_index, 0, False, mem_bus)
 #			for i in range (0, len(mem_data)):

@@ -114,7 +114,8 @@ always @ (negedge clk) begin
 	else begin
 		//auto refresh only goes high for one clock cycle
 		//so capture it
-		data_out	<=	16'hZZZZ;
+//		data_out	<=	16'hZZZZ;
+data_out	<=	16'h1234;
 
 		if (auto_refresh & en) begin
 			//because en is high it is my responsibility
@@ -166,7 +167,7 @@ addr	<=	12'h0;
 //					data_mask		<=	fifo_data[35:34];
 //					data_out		<= 	fifo_data[31:16];
 data_mask	<=	2'b00;
-data_out	<=	16'h1234;
+//data_out	<=	16'h1234;
 					delay			<=	0;
 
 				end
@@ -185,7 +186,7 @@ data_out	<=	16'h1234;
 //					data_out		<=	fifo_data[15:0];
 //					data_mask		<=	fifo_data[33:32];
 data_mask	<=	2'b00;
-data_out	<=	16'h5678;
+//data_out	<=	16'h5678;
 					state			<=	PRECHARGE;
 					delay			<=	0;
 //					if (!lfifo_empty & !lauto_refresh) begin

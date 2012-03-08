@@ -1,5 +1,5 @@
 all:
-	iverilog -I../../../../rtl -o design -cfile_list.txt
+	iverilog -I../../../../rtl -o design -cfile_list.txt -DSIMULATION
 clean:
 	rm design
 	rm *.vcd

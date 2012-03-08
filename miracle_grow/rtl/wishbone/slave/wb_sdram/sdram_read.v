@@ -1,29 +1,3 @@
-/*
-Distributed under the MIT license.
-Copyright (c) 2011 Dave McCoy (dave.mccoy@cospandesign.com)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in 
-the Software without restriction, including without limitation the rights to 
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
-of the Software, and to permit persons to whom the Software is furnished to do 
-so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all 
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
-SOFTWARE.
-*/
-
-
-
-
 `include "sdram_include.v"
 
 
@@ -98,6 +72,7 @@ reg					lauto_refresh;
 reg					lfifo_full;
 reg					len;
 reg		[21:0]			laddress;
+reg					read_bottom;
 
 
 //XXX: data mask is always high
@@ -133,8 +108,12 @@ always @ (negedge clk) begin
 		lauto_refresh	<=	0;
 		len				<=	0;
 		laddress		<=	22'h0;
+		read_bottom		<=	0;	
 	end
 	else begin
+		if (read_bottom) begin
+			read_bottom <= 0;
+		end
 		//auto refresh only goes high for one clock cycle,
 		//so capture it
 		if (auto_refresh & en) begin
@@ -171,11 +150,8 @@ always @ (negedge clk) begin
 					command			<=	`SDRAM_CMD_ACT;
 					delay			<=	`T_RCD - 1; 
 
-//DEBUG VALUES
-addr	<=	12'h0;
-bank	<=	2'h0;
-//					addr			<=	row; 
-//					bank			<=	r_bank;
+					addr			<=	row; 
+					bank			<=	r_bank;
 
 					state			<=	READ_COMMAND;
 				end
@@ -183,10 +159,7 @@ bank	<=	2'h0;
 					$display ("sdram_read: READ_COMMAND: %b", `SDRAM_CMD_READ);
 					command			<=	`SDRAM_CMD_READ;
 					state			<=	READ_TOP_WORD;
-
-//DEBUG VALUES
-addr	<=	12'h0;
-//					addr			<=	{4'b0000, column};
+					addr			<=	{4'b0000, column};
 					delay			<=	`T_CAS - 1;
 					laddress		<= laddress + 2;
 				end
@@ -278,6 +251,7 @@ command	<=	`SDRAM_CMD_PRE;
 					else begin
 						state		<= IDLE;
 					end
+					read_bottom	<= 1;
 
 				end
 				FIFO_FULL_WAIT: begin
@@ -317,18 +291,12 @@ always @ (posedge clk) begin
 
 	end
 	else begin
-		case (state)
-			READ_TOP_WORD: begin
-				if (delay == 0) begin
+		if (state == READ_BOTTOM_WORD) begin
 					fifo_data[31:16]	<=	data_in;
-				end
-			end
-			READ_BOTTOM_WORD: begin
+		end
+		else if (read_bottom) begin
 				fifo_data[15:0]		<=	data_in;
-			end
-			default: begin
-			end
-		endcase
+		end
 	end
 end
 endmodule

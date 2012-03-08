@@ -25,30 +25,6 @@
 `define DQS_WIDTH  2
 `define DM_WIDTH   2
 
-`define RFIFO_WIDTH  (2 * `DQ_WIDTH )
-`define WFIFO_WIDTH  (2 * (`DQ_WIDTH + `DM_WIDTH))
-`define CBA_WIDTH    (`CMD_WIDTH+`BA_WIDTH+`A_WIDTH)
-
-// Ranges
-`define CMD_RNG      (`CMD_WIDTH-1):0
-`define A_RNG        (`A_WIDTH-1):0
-`define BA_RNG       (`BA_WIDTH-1):0
-`define DQ_RNG       (`DQ_WIDTH-1):0
-`define DQS_RNG      (`DQS_WIDTH-1):0
-`define DM_RNG       (`DM_WIDTH-1):0
-
-`define RFIFO_RNG    (`RFIFO_WIDTH-1):0
-`define WFIFO_RNG    (`WFIFO_WIDTH-1):0
-`define WFIFO_D0_RNG (1*`DQ_WIDTH-1):0
-`define WFIFO_D1_RNG (2*`DQ_WIDTH-1):(`DQ_WIDTH)
-`define WFIFO_M0_RNG (2*`DQ_WIDTH+1*`DM_WIDTH-1):(2*`DQ_WIDTH+0*`DM_WIDTH)
-`define WFIFO_M1_RNG (2*`DQ_WIDTH+2*`DM_WIDTH-1):(2*`DQ_WIDTH+1*`DM_WIDTH)
-`define CBA_RNG      (`CBA_WIDTH-1):0
-`define CBA_CMD_RNG  (`CBA_WIDTH-1):(`CBA_WIDTH-3)
-`define CBA_BA_RNG   (`CBA_WIDTH-4):(`CBA_WIDTH-5)
-`define CBA_A_RNG    (`CBA_WIDTH-6):0
-
-`define ROW_RNG      12:0
 
 //----------------------------------------------------------------------------
 // Configuration registers
@@ -57,7 +33,7 @@
 //Burst Length = 2 (32 bits)
 //CAS Latency = 2
 //Sequential
-`define SDRAM_INIT_LMR	12'b000000100001
+`define SDRAM_INIT_LMR	12'b000000110001
 //A[11:10]	RESERVED: 0, 0
 //A[9]		Write Burst Mode
 //				0: 	Programed burst length
@@ -103,36 +79,29 @@
 //ACTIVE -> READ 2 clock cycles 7E
 `define T_RCD	2			
 //READ -> DATA READY 2 clock cycles for CAS latency
-`define T_CAS	2			
+`define T_CAS	3			
 //PRECHARGE -> finished	
 `define T_RP	2			
 //READ -> READ
 `define T_CCD	1			
 //AUTO REFRESH to ready
 `define T_RFC	7		
-//160uS delay (100uS + 10uS)
-//`define T_PLL	10000
 //XXX: 16 IS ONLY FOR SIMULATION
-`define T_PLL 16
+`ifdef SIMULATION
+	//this is here so that it doesn't take a long time to view the simulation
+	`define T_PLL 16
+`else
+	//160uS delay (100uS + 10uS)
+	`define T_PLL	11000
+`endif
 //MODE Register Set
 `define T_MRD	2
 
 //Auto Refresh Timeout
-`define T_AR_TIMEOUT	6000000
+`ifdef SIMULATION
+	`define T_AR_TIMEOUT 200
+`else
+	`define T_AR_TIMEOUT	6000000
+`endif
 //`define T_AR_TIMEOUT 25
-//----------------------------------------------------------------------------
-// Buffer Cache 
-//----------------------------------------------------------------------------
-`define WAY_WIDTH      (`WB_DAT_WIDTH + `WB_SEL_WIDTH)
-`define WAY_LINE_RNG   (`WAY_WIDTH-1):0
-`define WAY_DAT_RNG    31:0
-`define WAY_VALID_RNG  35:32
-
-`define TAG_LINE_RNG           32:0
-`define TAG_LINE_TAG0_RNG      14:0
-`define TAG_LINE_TAG1_RNG      29:15
-`define TAG_LINE_DIRTY0_RNG    30
-`define TAG_LINE_DIRTY1_RNG    31
-`define TAG_LINE_LRU_RNG       32
-
 `endif
