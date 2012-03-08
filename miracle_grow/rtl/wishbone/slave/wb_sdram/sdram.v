@@ -126,9 +126,9 @@ reg		[24:0]		delay;
 reg		[2:0]		init_command;
 reg		[2:0]		command;
 
-assign	ras_n		=	command[0];
+assign	ras_n		=	command[2];
 assign	cas_n		=	command[1];
-assign	we_n		=	command[2];
+assign	we_n		=	command[0];
 
 
 //INIT State Machine variables
