@@ -87,21 +87,10 @@
 //AUTO REFRESH to ready
 `define T_RFC	7		
 //XXX: 16 IS ONLY FOR SIMULATION
-`ifdef SIMULATION
-	//this is here so that it doesn't take a long time to view the simulation
-	`define T_PLL 16
-`else
-	//160uS delay (100uS + 10uS)
-	`define T_PLL	11000
-`endif
+`define T_PLL	11000
 //MODE Register Set
 `define T_MRD	2
 
 //Auto Refresh Timeout
-`ifdef SIMULATION
-	`define T_AR_TIMEOUT 200
-`else
-	`define T_AR_TIMEOUT	6000000
-`endif
-//`define T_AR_TIMEOUT 25
+`define T_AR_TIMEOUT	6000000
 `endif

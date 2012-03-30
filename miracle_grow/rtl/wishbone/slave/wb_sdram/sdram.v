@@ -21,8 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
-
+`timescale 1 ns/100 ps
 `include "sdram_include.v"
 
 
@@ -92,7 +91,7 @@ inout		[15:0]	data;
 output	reg	[1:0]	data_mask;
 
 wire		[15:0]	data_out;
-reg					sdram_reset;
+reg					sdram_reset = 1;
 reg					init_cke;
 reg					init_cs_n;
 
@@ -345,10 +344,11 @@ always @ (posedge clk) begin
 end
 
 
+reg	lauto_refresh;
 
 always @ (negedge sdram_clk, posedge rst) begin
 	if (sdram_reset || rst) begin
-		$display ("sdram: resetting variables");
+//		$display ("sdram: resetting variables");
 		init_cke		<= 0;
 		init_cs_n		<= 1;
 		init_command	<= `SDRAM_CMD_NOP;
@@ -358,8 +358,12 @@ always @ (negedge sdram_clk, posedge rst) begin
 		delay			<= 	10;
 		wr_en			<=	0;
 		rd_en			<=	0;
+		lauto_refresh	<=	0;
 	end
 	else begin
+		if (state == READY && auto_refresh) begin
+			lauto_refresh	<=	1;
+		end
 		if (delay > 0) begin
 			delay <= delay - 1;
 			init_command	<= `SDRAM_CMD_NOP;
@@ -369,6 +373,7 @@ always @ (negedge sdram_clk, posedge rst) begin
 				RESET: begin
 					$display ("sdram: RESET");
 //					init_cke			<=	0;
+					init_cke			<=	1;
 					init_cs_n			<=	1;
 					//wait for the digital clock manager to settle
 					//once settled then kick off an INIT
@@ -418,9 +423,10 @@ always @ (negedge sdram_clk, posedge rst) begin
 				READY: begin
 					//listen from a init_command from the wishbone bus
 					init_addr			<=	12'h00;
-					if (auto_refresh) begin
+					if (lauto_refresh) begin
 						init_command	<=	`SDRAM_CMD_AR;
 						delay			<=	`T_RFC;
+						lauto_refresh	<=	0;
 					end
 					if (write_en || !wr_fifo_empty) begin
 						$display ("sdram: WRITE");

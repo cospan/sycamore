@@ -1,3 +1,28 @@
+/*
+Distributed under the MIT license.
+Copyright (c) 2011 Dave McCoy (dave.mccoy@cospandesign.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in 
+the Software without restriction, including without limitation the rights to 
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+of the Software, and to permit persons to whom the Software is furnished to do 
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all 
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+SOFTWARE.
+*/
+
+
+`timescale 1 ns/100 ps
 `include "sdram_include.v"
 
 
@@ -108,12 +133,8 @@ always @ (negedge clk) begin
 		lauto_refresh	<=	0;
 		len				<=	0;
 		laddress		<=	22'h0;
-		read_bottom		<=	0;	
 	end
 	else begin
-		if (read_bottom) begin
-			read_bottom <= 0;
-		end
 		//auto refresh only goes high for one clock cycle,
 		//so capture it
 		if (auto_refresh & en) begin
@@ -124,10 +145,7 @@ always @ (negedge clk) begin
 		if (delay > 0) begin
 			delay <= delay - 1;
 			//during delays always send NOP's
-			command	<=	`SDRAM_CMD_NOP;
-		end
-		else begin
-			case (state)
+			command	<=	`SDRAM_CMD_NOP; end else begin case (state)
 				IDLE: begin
 					len	<= en;
 					if (en & ~fifo_full) begin
@@ -161,6 +179,7 @@ always @ (negedge clk) begin
 					state			<=	READ_TOP_WORD;
 					addr			<=	{4'b0000, column};
 					delay			<=	`T_CAS - 1;
+					//delay			<=	`T_CAS;
 					laddress		<= laddress + 2;
 				end
 				READ_TOP_WORD: begin
@@ -185,6 +204,7 @@ always @ (negedge clk) begin
 							//start reading from there
 							//close this row with a precharge
 							command	<= `SDRAM_CMD_PRE;
+							addr[10]	<=	1;
 //							delay		<= `T_RP - 1;
 
 							//next state will activate a new row
@@ -197,6 +217,7 @@ always @ (negedge clk) begin
 							//$display ("sdram_read: read command: %b", `SDRAM_CMD_READ);
 //							command		<= `SDRAM_CMD_READ;
 command	<=	`SDRAM_CMD_PRE;
+							addr[10]	<=	1;
 //						delay		<= `T_RP - 1;
 						end
 					end
@@ -205,6 +226,7 @@ command	<=	`SDRAM_CMD_PRE;
 						//after reading the next word and then to  
 						$display ("sdram_read: precharge: %b", `SDRAM_CMD_PRE);
 						command		<= `SDRAM_CMD_PRE;
+						addr[10]	<=	1;
 						//the bank select is already selected right now
 //						delay		<= `T_RP - 1;
 					end
@@ -215,12 +237,14 @@ command	<=	`SDRAM_CMD_PRE;
 					//if were not waiting for the fifo then
 					//write the data to the FIFO immediately
 					command		<= `SDRAM_CMD_NOP;
-					if (!fifo_full) begin
-						fifo_wr	<= 1;
-					end
 					//if the FIFO isn't full and were 
 					//not done continue on with our reading
-					if (len & !fifo_full & !lauto_refresh) begin
+					if (!read_bottom) begin
+						if (!fifo_full) begin
+							fifo_wr	<= 1;
+						end
+
+						if (len & !fifo_full & !lauto_refresh) begin
 						//check if this is the end of a column
 //						if (column	== 8'h00) begin
 							//next state will activate a new row
@@ -235,23 +259,23 @@ command	<=	`SDRAM_CMD_PRE;
 //							state	<= READ_TOP_WORD;
 //							laddress	<=	laddress + 2;
 //						end
+						end
+						else if (fifo_full) begin
+							//the fifo was full, 
+							//wait for until we see the all clear
+							//from the FIFO
+							state		<= FIFO_FULL_WAIT; 
+						end
+							else if (lauto_refresh) begin
+							state		<= 	RESTART;
+							$display("sdram_read: auto refresh command: %b", `SDRAM_CMD_AR);
+							command		<=	`SDRAM_CMD_AR;
+							delay		<=	`T_RFC - 1;
+						end
+						else begin
+							state		<= IDLE;
+						end
 					end
-					else if (fifo_full) begin
-						//the fifo was full, 
-						//wait for until we see the all clear
-						//from the FIFO
-						state		<= FIFO_FULL_WAIT; 
-					end
-					else if (lauto_refresh) begin
-						state		<= 	RESTART;
-						$display("sdram_read: auto refresh command: %b", `SDRAM_CMD_AR);
-						command		<=	`SDRAM_CMD_AR;
-						delay		<=	`T_RFC - 1;
-					end
-					else begin
-						state		<= IDLE;
-					end
-					read_bottom	<= 1;
 
 				end
 				FIFO_FULL_WAIT: begin
@@ -285,17 +309,28 @@ command	<=	`SDRAM_CMD_PRE;
 end
 
 
+reg	en_read;
 always @ (posedge clk) begin
 	if (rst) begin
 		fifo_data	<=	0;
+		read_bottom	<=	0;
+		en_read		<=	1;
+		fifo_data[31:0]	<=	32'hFFFFFFFF;
+
 
 	end
 	else begin
-		if (state == READ_BOTTOM_WORD) begin
-					fifo_data[31:16]	<=	data_in;
+		if (state == READ_BOTTOM_WORD && en_read && !read_bottom) begin
+			fifo_data[31:16]	<=	data_in;
+			read_bottom			<=	1;
+			en_read	<=	0;
 		end
 		else if (read_bottom) begin
-				fifo_data[15:0]		<=	data_in;
+			fifo_data[15:0]		<=	data_in;
+			read_bottom			<=	0;
+		end
+		if (state != READ_BOTTOM_WORD) begin
+			en_read	<=	1;
 		end
 	end
 end

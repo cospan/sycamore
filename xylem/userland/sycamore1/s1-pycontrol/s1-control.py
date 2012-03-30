@@ -81,6 +81,7 @@ class Sycamore1():
 			f.close()
 		except IOError, err:
 			print "Failed to open file: ", err
+			sys.exit(1)
 
 		
 		#open up the flash device

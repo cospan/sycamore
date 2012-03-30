@@ -456,6 +456,12 @@ def sycamore_unit_test(syc = None):
 
 			mem_data = syc.read(1, dev_index, 0)
 			print "mem data: " + str(mem_data);
+			print "hex: "
+			for i in range (0, len(mem_data)):
+				print str(hex(mem_data[i])) + ", ",
+
+			print " "
+
 #			mem_data = syc.read(10, dev_index, 0, False, mem_bus)
 #			for i in range (0, len(mem_data)):
 #				print "reading " + str(mem_data[i]) + " from " + str(i * 4)

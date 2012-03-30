@@ -8,13 +8,25 @@
 0000_0000
 //RFU
 0000_0000
+0000_0000
+0000_0000
+0000_0000
+0000_0000
 
 //First Device (GPIO) * for now device ID's are in rtl/wishbone/slave/device_rom_table/drt.txt
 0000_0001
 //GPIO flags: standard device
 0000_0001
 //Offset from 0x00: 4 words
-0000_0004
+0100_0000
 //Size of address space for a device: 4
 0000_0004
+0000_0000
+0000_0000
+0000_0000
+0000_0000
+
+
+//Second Device (SDRAM)
+
 

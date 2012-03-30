@@ -22,8 +22,7 @@ SOFTWARE.
 */
 
 
-
-
+`timescale 1 ns/100 ps
 `include "sdram_include.v"
 
 module sdram_write (
@@ -115,8 +114,7 @@ always @ (negedge clk) begin
 		//auto refresh only goes high for one clock cycle
 		//so capture it
 //		data_out	<=	16'hZZZZ;
-data_out	<=	16'h1234;
-
+data_out	<=	16'h0000; 
 		if (auto_refresh & en) begin
 			//because en is high it is my responsibility
 			lauto_refresh	<= 1;
@@ -145,19 +143,19 @@ data_out	<=	16'h1234;
 					$display ("sdram_write: ACTIVE");
 					command 		<=	`SDRAM_CMD_ACT;
 					delay			<=	`T_RCD - 1;
-addr	<=	12'h0;
-bank	<=	2'h0;
+//addr	<=	12'h0;
+//bank	<=	2'h0;
 
-//					addr			<=	row;
-//					bank			<=	w_bank;
+					addr			<=	row;
+					bank			<=	w_bank;
 					state			<=	WRITE_CMD;
 					fifo_rd			<=	1;
 				end
 				WRITE_CMD: begin
 					$display ("sdram_write: WRITE_CMD");
 					command			<=	`SDRAM_CMD_WRITE;
-addr	<=	12'h0;
-//					addr			<=	{4'b0000, column};
+//addr	<=	12'h0;
+					addr			<=	{4'b0000, column};
 					laddress		<=	laddress + 2;
 					//disable auto precharge
 					addr[10]		<=	0;
@@ -165,7 +163,7 @@ addr	<=	12'h0;
 					lfifo_empty		<=	fifo_empty;
 					state			<=	WRITE_BOTTOM_WORD;
 //					data_mask		<=	fifo_data[35:34];
-//					data_out		<= 	fifo_data[31:16];
+					data_out		<= 	fifo_data[31:16];
 data_mask	<=	2'b00;
 //data_out	<=	16'h1234;
 					delay			<=	0;
@@ -183,7 +181,7 @@ data_mask	<=	2'b00;
 				WRITE_BOTTOM_WORD: begin
 					command			<= `SDRAM_CMD_NOP;
 					$display ("sdram_write: WRITE_BOTTOM_WORD");
-//					data_out		<=	fifo_data[15:0];
+					data_out		<=	fifo_data[15:0];
 //					data_mask		<=	fifo_data[33:32];
 data_mask	<=	2'b00;
 //data_out	<=	16'h5678;

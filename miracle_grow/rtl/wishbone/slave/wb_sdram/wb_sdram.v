@@ -69,7 +69,8 @@ module wb_sdram (
 	sdram_addr,
 	sdram_bank,
 	sdram_data,
-	sdram_data_mask
+	sdram_data_mask,
+	sdram_ready
 
 );
 
@@ -100,6 +101,7 @@ output		[11:0]	sdram_addr;
 output		[1:0]	sdram_bank;
 output		[15:0]	sdram_data;
 output		[1:0]	sdram_data_mask;
+output				sdram_ready;
 
 
 reg					fifo_wr;
@@ -109,7 +111,6 @@ wire				wr_fifo_full;
 wire				rd_fifo_empty;
 reg					rd_fifo_reset;
 
-wire				sdram_ready;
 
 
 sdram ram (

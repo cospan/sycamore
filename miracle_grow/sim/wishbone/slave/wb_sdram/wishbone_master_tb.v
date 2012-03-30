@@ -31,7 +31,9 @@ SOFTWARE.
 		-added interrupt support
 */
 
-`define TIMEOUT_COUNT 200
+`timescale 1 ns/100 ps
+
+`define TIMEOUT_COUNT 30000
 `define INPUT_FILE "master_input_test_data.txt"  
 `define OUTPUT_FILE "master_output_test_data.txt"
 
@@ -132,7 +134,55 @@ wire	[1:0]	sdram_data_mask;
 wire		sdram_ready;
 
 reg		[15:0]	sdram_in_data;
-assign		sdram_data = (in_command == 2) ? sdram_in_data : 16'hZZZZ;
+//assign		sdram_data = (in_command == 2) ? sdram_in_data : 16'hZZZZ;
+
+
+mt48lc4m16 
+//#(
+//	tdevice_TRCD = 10
+//)
+ram (
+				.A11	(sdram_addr[11]),
+				.A10	(sdram_addr[10]),
+				.A9		(sdram_addr[9]),
+				.A8		(sdram_addr[8]),
+				.A7		(sdram_addr[7]),
+				.A6		(sdram_addr[6]),
+				.A5		(sdram_addr[5]),
+				.A4		(sdram_addr[4]),
+				.A3		(sdram_addr[3]),
+				.A2		(sdram_addr[2]),
+				.A1		(sdram_addr[1]),
+				.A0		(sdram_addr[0]),
+
+				.DQ15	(sdram_data[15]),
+				.DQ14	(sdram_data[14])  ,
+				.DQ13	(sdram_data[13]),
+				.DQ12	(sdram_data[12]),
+				.DQ11	(sdram_data[11]),
+				.DQ10	(sdram_data[10]),
+				.DQ9	(sdram_data[9]),
+				.DQ8	(sdram_data[8]),
+				.DQ7	(sdram_data[7]),
+				.DQ6	(sdram_data[6]),
+				.DQ5	(sdram_data[5]),
+				.DQ4	(sdram_data[4]),
+				.DQ3	(sdram_data[3]),
+				.DQ2	(sdram_data[2]),
+				.DQ1	(sdram_data[1]),
+				.DQ0	(sdram_data[0]),
+
+				.BA0	(sdram_bank[0]),
+				.BA1	(sdram_bank[1]),
+				.DQMH	(sdram_data_mask[1]),
+				.DQML	(sdram_data_mask[0]),
+				.CLK	(sdram_clk),
+				.CKE	(sdram_cke),
+				.WENeg	(sdram_we_n),
+				.RASNeg	(sdram_ras_n),
+				.CSNeg	(sdram_cs_n),
+				.CASNeg (sdram_cas_n)
+);
 
 //slave 1
 wb_sdram s1 (
@@ -160,7 +210,8 @@ wb_sdram s1 (
 	.sdram_addr(sdram_addr ),
 	.sdram_bank(sdram_bank ),
 	.sdram_data(sdram_data ),
-	.sdram_data_mask(sdram_data_mask )
+	.sdram_data_mask(sdram_data_mask ),
+	.sdram_ready(sdram_ready)
 
 );
 
@@ -209,7 +260,7 @@ integer ch;
 
 integer data_count;
 
-always #2 clk = ~clk;
+always #10 clk = ~clk;
 
 
 reg		execute_command;
@@ -232,7 +283,7 @@ initial begin
 	fd_out = $fopen(`OUTPUT_FILE, "w");
 
 	rst				<= 0;
-	#4
+	#20
 	rst				<= 1;
 
 	//clear the handler signals
@@ -243,11 +294,17 @@ initial begin
 	in_data_count	<= 0;
 	out_ready		<= 32'h0;
 	//clear wishbone signals
-	#20
+	#100
 	rst				<= 0;
 	out_ready 		<= 1;
 
-	#200
+	#1000
+	while (!sdram_ready) begin
+		#100
+		execute_command <= 0;
+	end
+
+	$display ("SDRAM Ready");
 
 	if (fd_in == 0) begin
 		$display ("TB: input stimulus file was not found");
@@ -282,10 +339,10 @@ initial begin
 					execute_command	<= 1;
 				end //while command is not finished
 				while (command_finished) begin
-					#1
+					#100
 					execute_command <= 0;
 				end
-				#200
+				#500
 				$display ("TB: finished command");
 				//if (!$feof(fd_in)) begin
 				//	ch = $fgetc(fd_in);
@@ -295,6 +352,7 @@ initial begin
 		end //end while ! eof
 	end //end not reset
 	#100
+	$display("TB: Closing Files");
 	$fclose (fd_in);
 	$fclose (fd_out);
 	$finish();
@@ -305,7 +363,7 @@ parameter TB_EXECUTE	=	4'h1;
 parameter TB_WRITE		=	4'h2;
 parameter TB_READ		=	4'h3;
 
-reg	[3:0]	state;
+reg	[3:0]	state = TB_IDLE;
 
 reg	reading_multiple	= 0;
 reg	prev_int			= 0;
