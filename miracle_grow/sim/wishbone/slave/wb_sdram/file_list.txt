@@ -1,3 +1,4 @@
+mt48lc4m16.v
 rtl/sdram_include.v
 unisims/glbl.v
 unisims/STARTUP_FPGACORE.v
