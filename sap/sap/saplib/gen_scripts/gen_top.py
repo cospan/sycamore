@@ -535,6 +535,7 @@ class GenTop(Gen):
 				else:
 					pre_name += "s" + str(index) + "_"
 
+#XXX: For the slaves, I should just skip all the inout stuff, cause I don't ned wires for inout, they bind directly to the port
 		#generate all the wires
 		if (name != "io"):
 			for io in io_types:
@@ -622,22 +623,38 @@ class GenTop(Gen):
 
 				found_binding = False
 				inout_binding = ""
+
 				if (io == "inout"):
 					if debug:
 						print "found inout!: " + port
 					bkeys = self.bindings.keys()
 					for bkey in bkeys:
-						name = bkey.partition("[")[0]
-						name = name.strip()
-						if (name == (pre_name + port)):
+						bname = bkey.partition("[")[0]
+						bname = bname.strip()
+						if io_module:
 							if debug:
-								print "found: " + bkey
-							out_buf = out_buf + self.bindings[bkey]["port"]
-							found_binding = True
+								print "comparing %s with %s" % (bname, port)
+							if (bname == port):
+								if debug:
+									print "found: " + bkey
+								out_buf = out_buf + self.bindings[bkey]["port"]
+								found_binding = True
+
+
+						else: 
+							if debug:
+								print "comparing %s with %s_%s" % (bname, name, port)
+							if (bname == (name + "_" +  port)):
+								if debug:
+									print "found: " + bkey
+								out_buf = out_buf + self.bindings[bkey]["port"]
+								found_binding = True
 
 				if( not found_binding):
 					#add name and index if required
 					if ((len(name) > 0) and (index != -1)):
+						if debug:
+							print "found name and index %s %d" % (name, index)
 						if (port.startswith(name)):	
 							out_buf = out_buf + name + str(index) + port.partition(name)[2]
 						else:

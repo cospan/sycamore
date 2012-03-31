@@ -99,7 +99,7 @@ output				sdram_we_n;
 
 output		[11:0]	sdram_addr;
 output		[1:0]	sdram_bank;
-output		[15:0]	sdram_data;
+inout		[15:0]	sdram_data;
 output		[1:0]	sdram_data_mask;
 output				sdram_ready;
 

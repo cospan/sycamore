@@ -136,24 +136,53 @@ class Test (unittest.TestCase):
 		self.assertEqual(len(result) > 0, True)
 
 
-	def test_generate_buffer_slave(self):
-		
-		absfilepath = saputils.find_rtl_file_location("wb_gpio.v")
-		#print "simple_gpio.v location: " + absfilepath
+	def test_generate_buffer_slave_with_inout(self):
+#		print "generate slave with inout port"
+		absfilepath = saputils.find_rtl_file_location("wb_sdram.v")
 		slave_keywords = [
 			"DRT_ID",
 			"DRT_FLAGS",
 			"DRT_SIZE"
 		]
 		mtags = saputils.get_module_tags(filename = absfilepath, bus="wishbone", keywords = slave_keywords) 
-
-			
-
 		self.gen.wires = [
 			"clk",
 			"rst"
 		]
+		tags = {}
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/syc1_proto_gpio_mem.json"
+			filein = open(filename)
+			filestr = filein.read()
+			tags = json.loads(filestr)
 
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+
+		self.gen.tags = tags
+		self.gen.bindings = self.gen.tags["CONSTRAINTS"]["bind"]
+
+		result = self.gen.generate_buffer(name="mem1", index=2, module_tags = mtags, debug=self.dbg) 
+
+		buf = result
+		#print "out:\n" + buf
+		self.assertEqual(len(buf) > 0, True)
+
+
+	def test_generate_buffer_slave(self):
+		
+		absfilepath = saputils.find_rtl_file_location("wb_gpio.v")
+		slave_keywords = [
+			"DRT_ID",
+			"DRT_FLAGS",
+			"DRT_SIZE"
+		]
+		mtags = saputils.get_module_tags(filename = absfilepath, bus="wishbone", keywords = slave_keywords) 
+		self.gen.wires = [
+			"clk",
+			"rst"
+		]
 		tags = {}
 		try:
 			filename = os.getenv("SAPLIB_BASE") + "/example_project/mem_example.json"
@@ -166,35 +195,11 @@ class Test (unittest.TestCase):
 			self.assertEqual(False, True)
 
 		self.gen.tags = tags
-
 		result = self.gen.generate_buffer(name="wbs", index=0, module_tags = mtags) 
 
 		buf = result
 		#print "out:\n" + buf
 		self.assertEqual(len(buf) > 0, True)
-
-#	def test_generate_buffer_slave_hard(self):
-#		absfilepath = saputils.find_rtl_file_location("wb_ddr.v")
-#		#print "simple_gpio.v location: " + absfilepath
-#		slave_keywords = [
-#			"DRT_ID",
-#			"DRT_FLAGS",
-#			"DRT_SIZE"
-#		]
-#		tags = saputils.get_module_tags(filename = absfilepath, bus="wishbone", keywords = slave_keywords) 
-#
-#		print tags
-#
-#		self.gen.wires = [
-#			"clk",
-#			"rst"
-#		]
-#		result = self.gen.generate_buffer(name="wbs", index=0, module_tags = tags) 
-#
-#		buf = result
-#		#print "out:\n" + buf
-#		self.assertEqual(len(buf) > 0, True)
-
 
 
 
@@ -214,6 +219,40 @@ class Test (unittest.TestCase):
 		buf = result
 		#print "out:\n" + buf
 		self.assertEqual(len(buf) > 0, True)
+
+
+	def test_generate_buffer_ftdi_io_handler(self):
+
+		absfilepath = saputils.find_rtl_file_location("ft_host_interface.v")
+		slave_keywords = [
+			"DRT_ID",
+			"DRT_FLAGS",
+			"DRT_SIZE"
+		]
+		mtags = saputils.get_module_tags(filename = absfilepath, bus="wishbone", keywords = slave_keywords) 
+		self.gen.wires = [
+			"clk",
+			"rst"
+		]
+		tags = {}
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/syc1_proto_gpio_mem.json"
+			filein = open(filename)
+			filestr = filein.read()
+			tags = json.loads(filestr)
+
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+
+		self.gen.tags = tags
+		self.gen.bindings = self.gen.tags["CONSTRAINTS"]["bind"]
+
+		result = self.gen.generate_buffer(name = "uio", module_tags = mtags, io_module = True, debug=True) 
+		buf = result
+		print "out:\n" + buf
+		self.assertEqual(len(buf) > 0, True)
+
 
 	def test_generate_arbitrator_buffer_not_needed(self):
 		"""test if the generate arbitrator buffer will successfully generate a buffer"""
