@@ -4,7 +4,9 @@
 	"PROJECT_NAME":"example_project",
 	"BUILD_TOOL":"xilinx",
 	"TEMPLATE":"wishbone_template.json",
-	"INTERFACE":"ft_host_interface.v",
+	"INTERFACE":{
+		"filename":"ft_host_interface.v"
+	},
 	"SLAVES":{
 		"gpio1":{
 			"filename":"wb_gpio.v"

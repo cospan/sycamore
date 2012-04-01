@@ -1,4 +1,4 @@
-#``:wConstraints for reference design 's3esk_startup'.
+#Constraints for reference design 's3esk_startup'.
 #
 # Revision C of the Spartan-3E Starter Kit.
 #
@@ -37,8 +37,7 @@ NET "RX" LOC = "B4" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4 | PULLUP;
 #NET "tft_red<0>" LOC = "A8" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
 #NET "tft_red<1>" LOC = "G9" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
 #NET "tft_red<2>" LOC = "B11" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
-#NET "tft_red<3>" LOC = "A11" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
-#NET "tft_red<4>" LOC = "E13" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
+#NET "tft_red<3>" LOC = "A11" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4; #NET "tft_red<4>" LOC = "E13" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
 #NET "tft_red<5>" LOC = "C4" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
 #NET "tft_red<6>" LOC = "A16" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;
 #NET "tft_red<7>" LOC = "B16" | IOSTANDARD = LVTTL | SLEW = SLOW | DRIVE = 4;

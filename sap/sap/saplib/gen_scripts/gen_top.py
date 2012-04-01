@@ -48,7 +48,23 @@ class GenTop(Gen):
 
 		num_slaves = len(slave_list) + 1
 		self.tags = tags
+
+
+#add the global tags
 		self.bindings = self.tags["CONSTRAINTS"]["bind"]
+#add the interface bindings directly
+		if "bind" in self.tags["INTERFACE"]:
+			for if_name in self.tags["INTERFACE"]["bind"]:
+				self.bindings[if_name] = self.tags["INTERFACE"]["bind"][if_name]
+
+#add each of the slave items to the binding
+			#insert the names
+		for slave_name in self.tags["SLAVES"]:
+			if "bind" in self.tags["SLAVES"][slave_name]:
+				for bind_name in self.tags["SLAVES"][slave_name]["bind"]:
+					self.bindings[slave_name + "_" + bind_name] = self.tags["SLAVES"][slave_name]["bind"][bind_name]
+			
+
 		if debug:
 			print "found " + str(len(slave_list)) + " slaves"
 			for slave in slave_list:
@@ -227,7 +243,7 @@ class GenTop(Gen):
 
 		
 		#generate the IO handler
-		io_filename = tags["INTERFACE"]
+		io_filename = tags["INTERFACE"]["filename"]
 		absfilepath = saputils.find_rtl_file_location(io_filename)
 		io_tags = saputils.get_module_tags(filename = absfilepath, bus = "wishbone")
 

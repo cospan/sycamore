@@ -193,7 +193,7 @@ class SapProject:
 			shutil.copy (constraint_path, abs_proj_base + "/constraints/" + constraint_fname)
 
 		#Generate the IO handler
-		interface_filename = self.project_tags["INTERFACE"]
+		interface_filename = self.project_tags["INTERFACE"]["filename"]
 		fdict = {"location":""}
 		file_dest = self.project_tags["BASE_DIR"] + "/rtl/bus/interface"
 		result = self.filegen.process_file(filename = interface_filename, file_dict=fdict , directory=file_dest)

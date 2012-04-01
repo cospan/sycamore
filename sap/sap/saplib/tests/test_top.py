@@ -248,9 +248,9 @@ class Test (unittest.TestCase):
 		self.gen.tags = tags
 		self.gen.bindings = self.gen.tags["CONSTRAINTS"]["bind"]
 
-		result = self.gen.generate_buffer(name = "uio", module_tags = mtags, io_module = True, debug=True) 
+		result = self.gen.generate_buffer(name = "uio", module_tags = mtags, io_module = True, debug=self.dbg) 
 		buf = result
-		print "out:\n" + buf
+#		print "out:\n" + buf
 		self.assertEqual(len(buf) > 0, True)
 
 
