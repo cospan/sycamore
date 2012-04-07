@@ -198,9 +198,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkHPaned" id="hpaned1">
+          <object class="GtkHPaned" id="mainhpanel">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="position">3</property>
             <child>
               <object class="GtkVBox" id="vbox3">
                 <property name="visible">True</property>
@@ -237,18 +238,11 @@
               </object>
               <packing>
                 <property name="resize">False</property>
-                <property name="shrink">True</property>
+                <property name="shrink">False</property>
               </packing>
             </child>
             <child>
-              <object class="GtkDrawingArea" id="cairo_canvas">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-              </object>
-              <packing>
-                <property name="resize">True</property>
-                <property name="shrink">True</property>
-              </packing>
+              <placeholder/>
             </child>
           </object>
           <packing>

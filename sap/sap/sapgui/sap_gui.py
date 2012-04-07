@@ -5,6 +5,7 @@ import gobject
 import cairo
 
 from gtk import gdk
+import graph_drawer
 
 #sap_gui.py
 
@@ -13,6 +14,7 @@ class sap_gui_controller:
 		"""
 		Display the Sap GUI
 		"""
+		self.gd = graph_drawer.GraphDrawer()
 
 		builderfile = "sap_gui.glade"
 		windowname = "Sap IDE"
@@ -23,9 +25,16 @@ class sap_gui_controller:
 		builder.connect_signals(self)
 
 		self.window = builder.get_object("main_window")
-		self.drawing_area = builder.get_object("cairo_canvas")
+		print "main_window: " + str(self.window)
+		hpaned = builder.get_object("mainhpanel")
+		print "hpaned: " + str(hpaned)
+		self.gd.show()
+		hpaned.add2(self.gd)
+
+#		self.drawing_area = builder.get_object("cairo_canvas")
 		self.window.connect("destroy", gtk.main_quit)
 		self.window.show()
+
 
 		return
 
