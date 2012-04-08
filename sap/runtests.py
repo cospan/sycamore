@@ -16,7 +16,6 @@ def usage():
 	print "test_name can be an entire package"
 	print ""
 	print "\tsaplib"
-	print "\tsapcmd"
 	print "\tsapgui"
 	print ""
 	print "test_name can be a specific file"
