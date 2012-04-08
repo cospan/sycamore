@@ -121,10 +121,10 @@ class Test (unittest.TestCase):
 
 	def test_has_dependency(self):
 		#scan a file that is not a verilog file
-		result = self.sapfile.has_dependencies("simple_gpio", debug=self.dbg)
+		result = self.sapfile.has_dependencies("wb_gpio", debug=self.dbg)
 		self.assertEqual(result, False)
 		#scan for a file that is a verilog file with a full path
-		file_location = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/interconnect/uart/uart_io_handler.v"
+		file_location = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/host_interface/uart/uart_io_handler.v"
 		result = self.sapfile.has_dependencies(file_location, debug=self.dbg)
 		self.assertEqual(result, True)
 		#scan a file that is a verilog file but not the full path
@@ -135,11 +135,11 @@ class Test (unittest.TestCase):
 		result = self.sapfile.has_dependencies("sdram.v", debug=self.dbg)
 		self.assertEqual(result, True)
 		
-		result = self.sapfile.has_dependencies("simple_gpio.v", debug=self.dbg)
+		result = self.sapfile.has_dependencies("wb_gpio.v", debug=self.dbg)
 		self.assertEqual(result, False)
 
 	def test_get_list_of_dependencies(self):
-		deps = self.sapfile.get_list_of_dependencies("simple_gpio.v", debug=self.dbg)
+		deps = self.sapfile.get_list_of_dependencies("wb_gpio.v", debug=self.dbg)
 		self.assertEqual(len(deps) == 0, True)
 		deps = self.sapfile.get_list_of_dependencies("uart_io_handler.v", debug=self.dbg)
 		self.assertEqual(len(deps) > 0, True)
@@ -150,7 +150,7 @@ class Test (unittest.TestCase):
 
 	def test_is_module_in_file(self):
 		module_name = "uart"
-		filename = "simple_gpio.v"
+		filename = "wb_gpio.v"
 		result = self.sapfile.is_module_in_file(filename, module_name, debug=self.dbg)
 		self.assertEqual(result, False)
 		filename = "uart.v"

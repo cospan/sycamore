@@ -42,7 +42,7 @@ class Test (unittest.TestCase):
 #		tags = {}
 #		drt_buffer = ""
 #		try:
-#			filename = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
+#			filename = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"
 #			filein = open(filename)
 #			filestr = filein.read()
 #			tags = json.loads(filestr)

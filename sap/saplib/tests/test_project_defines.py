@@ -25,7 +25,7 @@ class Test (unittest.TestCase):
 				self.gen = obj()
 				print "found" + name
 		try:
-			filename = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"
 			filein = open(filename)
 			filestr = filein.read()
 			self.tags = json.loads(filestr)

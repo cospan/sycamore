@@ -25,7 +25,7 @@ class Test (unittest.TestCase):
 	
 	def test_read_config_file(self):
 		"""confirm that a project config file can be read"""
-		file_name = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"
 		result = self.project.read_config_file(file_name, debug=self.dbg)
 		result = True
 		self.assertEqual(result, True)
@@ -38,7 +38,7 @@ class Test (unittest.TestCase):
 
 #	def test_generate_project(self):
 #		"""test if a project can be generated"""
-#		file_name = os.getenv("SAPLIB_BASE") + "/example_project/example1.json"
+#		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"
 #		result = self.project.generate_project(file_name, debug=self.dbg)
 #		self.assertEqual(result, True)
 

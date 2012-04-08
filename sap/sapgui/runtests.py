@@ -29,8 +29,11 @@ def usage():
 
 def get_testfile_list():
 	testnames = []
-	for root, dir, testfile in os.walk(sys.path[0] + "/saplib/tests"):
+
+	for root, dir, testfile in os.walk(sys.path[0] + "/tests"):
 		testfiles = testfile	
+
+
 
 	if (testfiles.__contains__("__init__.py")):
 		testfiles.remove("__init__.py")
@@ -59,7 +62,7 @@ def test (arg):
 	if (arg == "all"):
 		print "All tests"
 		tl = unittest.TestLoader()
-		pt = tl.discover(sys.path[0] + "/saplib/tests", pattern = 'test*.py')
+		pt = tl.discover(sys.path[0] + "/tests", pattern = 'test*.py')
 		print "package tests: "
 		print dir (pt)
 		print "number of test cases: " + str(pt.countTestCases())
@@ -70,10 +73,19 @@ def test (arg):
 
 		print "Searching for test"
 		tl = unittest.TestLoader()
-		pt = tl.discover(sys.path[0] + "/saplib/tests", pattern = arg);
-		if (pt.countTestCases()  == 0):
-			print "Didn't find: " + sys.path[0] + "/saplib/tests/" + arg
+		pt = tl.discover(sys.path[0] + "/tests", pattern = arg)
+		paths = [	sys.path[0] + "/tests"] 
+		for p in paths:
+			print "searching " + p + "...",
+			pt = tl.discover(p, pattern = arg)
+			if pt.countTestCases() != 0:
+				print "Found!"
+				break;
+			else:
+				print ""
 
+		if (pt.countTestCases()  == 0):
+			print "Didn't find test"
 		else:
 			print "Found test"
 			pt.debug()	
@@ -81,10 +93,7 @@ def test (arg):
 
 def main(argv):
 	"""Process arguments and run the specified commands"""
-	sys.path.append(sys.path[0] + "/saplib")
-	sys.path.append(sys.path[0] + "/saplib/gen_scripts")
-	sys.path.append(sys.path[0] + "/saplib/tests")
-
+	sys.path.append(sys.path[0] + "/tests")
 
 	global _debug
 	_debug = False

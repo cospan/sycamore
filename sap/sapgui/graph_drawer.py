@@ -44,21 +44,31 @@ class GraphDrawer ( GraphDrawingArea ):
 #		print "v: " + str(self.val)
 #		self.val += 1
 		cr = self.cr
-		cr.set_source_rgb(1, 1, 0)
-		cr.arc(320,240,100, 0, 2*math.pi)
-		cr.fill_preserve()
-
-		cr.set_source_rgb(0, 0, 0)
-		cr.stroke()
-
-		cr.arc(280,210,20, 0, 2*math.pi)
-		cr.arc(360,210,20, 0, 2*math.pi)
+		cr.set_source_rgb(1, 0, 0)
+		cr.rectangle (50, 50, 100, 60)
 		cr.fill()
-
-		cr.set_line_width(10)
-		cr.set_line_cap(cairo.LINE_CAP_ROUND)
-		cr.arc(320, 240, 60, math.pi/4, math.pi*3/4)
+#		cr.fill_preserve()
 		cr.stroke()
+
+
+		cr.set_source_rgb(0, 1, 0)
+		cr.rectangle (200, 50, 100, 60)
+		cr.fill()
+#		cr.fill_preserve()
+		cr.stroke()
+
+
+#		cr.set_line_width(10)
+#		cr.set_line_cap(cairo.LINE_CAP_ROUND)
+#		cr.stroke()
+	def draw_graph(self):
+		print "drawing graph"
+
+	def draw_node(self):
+		print "draw node"
+
+	def draw_edge(self, node1, node2):
+		print "connecting nodes"
 
 
 

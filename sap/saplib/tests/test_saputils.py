@@ -37,7 +37,7 @@ class Test (unittest.TestCase):
 		"""give a filename that should be in the RTL"""
 
 		import saputils
-		result = saputils.find_rtl_file_location("simple_gpio.v")
+		result = saputils.find_rtl_file_location("wb_gpio.v")
 		#print "file location: " + result
 		try:
 			testfile = open(result)
@@ -73,7 +73,7 @@ class Test (unittest.TestCase):
 		"""try and extrapolate all info from the slave file"""
 		import saputils
 		base_dir = os.getenv("SAPLIB_BASE")	
-		filename = base_dir + "/hdl/rtl/wishbone/slave/simple_gpio/simple_gpio.v"
+		filename = base_dir + "/hdl/rtl/wishbone/slave/wb_gpio/wb_gpio.v"
 		drt_keywords = [
 			"DRT_ID",
 			"DRT_FLAGS",
@@ -155,7 +155,7 @@ class Test (unittest.TestCase):
 
 	def test_read_clk_with_timespec(self):
 		import saputils
-		filename = "Avt_S6LX9_MicroBoard_UCF_110804.ucf" 
+		filename = "lx9.ucf" 
 		clock_rate = saputils.read_clock_rate(filename, debug = self.dbg)
 		self.assertEqual(len(clock_rate) > 0, True)
 
