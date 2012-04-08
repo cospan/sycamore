@@ -27,9 +27,9 @@ def usage():
 
 
 def get_testfile_list():
-	testnames = []
+	testfiles = []
 	for root, dir, testfile in os.walk(sys.path[0] + "/saplib/tests"):
-		testfiles = testfile	
+		testfiles += testfile	
 
 	for root, dir, testfile in os.walk(sys.path[0] + "/sapgui/tests"):
 		testfiles += testfile	
@@ -75,8 +75,8 @@ def test (arg):
 		print "Searching for test"
 		tl = unittest.TestLoader()
 		pt = tl.discover(sys.path[0] + "/saplib/tests", pattern = arg)
-		paths = [	sys.path[0] + "/saplib/tests"]
-#					sys.path[0] + "/sapgui/tests"]
+		paths = [	sys.path[0] + "/saplib/tests",
+					sys.path[0] + "/sapgui/tests"]
 		for p in paths:
 			print "searching " + p + "...",
 			pt = tl.discover(p, pattern = arg)
