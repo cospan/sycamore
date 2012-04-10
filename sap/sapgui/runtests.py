@@ -15,8 +15,6 @@ def usage():
 	print ""
 	print "test_name can be an entire package"
 	print ""
-	print "\tsaplib"
-	print "\tsapcmd"
 	print "\tsapgui"
 	print ""
 	print "test_name can be a specific file"
@@ -88,12 +86,21 @@ def test (arg):
 			print "Didn't find test"
 		else:
 			print "Found test"
+			print "Running %d tests..." % (pt.countTestCases())
 			pt.debug()	
+			print "All tests Passed!"
 
 
 def main(argv):
 	"""Process arguments and run the specified commands"""
+	os.environ["SAPLIB_BASE"] = sys.path[0] + "/../saplib"
+#	print "path: " + str(sys.path)
 	sys.path.append(sys.path[0] + "/tests")
+	sys.path.append(sys.path[0] + "/..")
+	sys.path.append(sys.path[0] + "/../saplib")
+#	print "after append"
+#	print "path: " + str(sys.path)
+
 
 	global _debug
 	_debug = False
