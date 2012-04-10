@@ -21,22 +21,53 @@ class Test (unittest.TestCase):
 		if "SAPLIB_DEBUG" in os.environ:
 			if (os.environ["SAPLIB_DEBUG"] == "True"):
 				self.dbg = True
+
+		#every test needs the SGC 
+		self.sgc = sap_graph_controller.SapGraphController()
 		return
 
-		self.sgc = sap_graph_controller.SapGraphController()
 
 
-	def test_load_file(self):
+	def test_load_config_file(self):
 		#find a file to load
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sgc.load_config_file(file_name)
 		self.assertEqual(True, True)
 
-	def test_save_file(self):
+	def test_save_config_file(self):
+		self.assertEqual(True, True)
+
+	def test_generate_project(self):
+		self.assertEqual(True, True)
+
+	def test_project_location(self):
+		self.assertEqual(True, True)
+
+	def test_project_name(self):
+		self.assertEqual(True, True)
+
+	def test_vendor_tools(self):
+		self.assertEqual(True, True)
+
+	def test_board_name(self):
+		self.assertEqual(True, True)
+
+	def test_constraint_file_name(self):
+		self.assertEqual(True, True)
+
+	def test_fpga_part_number(self):
 		self.assertEqual(True, True)
 
 	def test_initialize_graph(self):
 		self.assertEqual(True, True)
 
 	def test_set_host_interface(self):
+		self.assertEqual(True, True)
+
+	def test_bus_type(self):
+		self.assertEqual(True, True)
+
+	def test_new_design(self):
 		self.assertEqual(True, True)
 		
 	def test_add_slave(self):
@@ -46,6 +77,9 @@ class Test (unittest.TestCase):
 		self.assertEqual(True, True)
 
 	def test_move_slave(self):
+		self.assertEqual(True, True)
+
+	def test_arbitration(self):
 		self.assertEqual(True, True)
 
 
