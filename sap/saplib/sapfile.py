@@ -5,6 +5,12 @@ import glob
 import sys
 from inspect import isclass
 
+class ModuleNotFound(Exception):
+	def __init__(self, value):
+		self.value = value
+	def __str__(self):
+		return repr(self.value)
+
 
 class SapFile:
 	"""Base SapGen Class must be overriden: Used to modify or generate files"""
@@ -204,14 +210,24 @@ class SapFile:
 				print "found dependencies!"
 			deps = self.get_list_of_dependencies(filename, debug = ldebug)
 			for d in deps:
-				dep_filename = self.find_module_filename(d, debug = ldebug)
-				if (len(dep_filename) == 0):
-					if debug:
-						print "Couldn't find dependency filename for module " + d
+				try:
+					dep_filename = self.find_module_filename(d, debug = ldebug)
+				except ModuleNotFound as ex:
+					print "Dependency Warning: %s" % (str(ex))
+					print "Module Name: %s" % (d)
+					print "This warning may be due to:"
+					print "\tIncluding a simulation only module"
+					print "\tIncluding a vendor specific module"
+					print "\tA module that was not found"
 					continue
-				else :
-					if debug:
-						print "found the filename: " + dep_filename
+
+#				if (len(dep_filename) == 0):
+#					if debug:
+#						print "Couldn't find dependency filename for module " + d
+#					continue
+#				else :
+				if debug:
+					print "found the filename: " + dep_filename
 				#check this file out for dependecies, then append that on to the local list
 				result = self.resolve_dependencies(dep_filename, debug = ldebug)
 				if debug:
@@ -439,7 +455,10 @@ class SapFile:
 		os.chdir(cwd)
 		#if debug:
 		#	print "didn't find module name"
-		return ""
+
+#sometimes modules cannot be found, but this is okay
+		raise ModuleNotFound("Module was not found")
+#		return ""
 
 	def is_module_in_file(self, filename, module_name, debug = False):
 		"""check the file for the module"""

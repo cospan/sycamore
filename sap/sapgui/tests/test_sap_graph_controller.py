@@ -32,7 +32,9 @@ class Test (unittest.TestCase):
 		#find a file to load
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
 		self.sgc.load_config_file(file_name)
-		self.assertEqual(True, True)
+		board_name = self.sgc.get_board_name()
+
+		self.assertEqual(board_name, "xilinx-s3esk")
 
 	def test_save_config_file(self):
 		self.assertEqual(True, True)
@@ -59,7 +61,14 @@ class Test (unittest.TestCase):
 		self.assertEqual(True, True)
 
 	def test_initialize_graph(self):
-		self.assertEqual(True, True)
+		#load a file
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sgc.load_config_file(file_name)
+		self.sgc.initialize_graph()
+
+		slave_count = self.sgc.get_number_of_peripheral_slaves()
+
+		self.assertEqual(slave_count, 2)
 
 	def test_set_host_interface(self):
 		self.assertEqual(True, True)

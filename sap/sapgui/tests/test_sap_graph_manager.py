@@ -55,6 +55,20 @@ class Test (unittest.TestCase):
 
 		self.assertEqual(size, 1)	
 
+	def test_get_number_of_peripheral_slaves(self):
+		self.sgm.add_node("slave_1", gm.Node_Type.slave, gm.Slave_Type.peripheral, slave_index=0, debug = self.dbg)
+		self.sgm.add_node("slave_2", gm.Node_Type.slave, gm.Slave_Type.peripheral, slave_index=1, debug = self.dbg)
+		count = self.sgm.get_number_of_peripheral_slaves()
+		self.assertEqual(count, 2)	
+
+	def test_get_number_of_memory_slaves(self):
+		self.sgm.add_node("slave_1", gm.Node_Type.slave, gm.Slave_Type.memory, slave_index=0, debug = self.dbg)
+		self.sgm.add_node("slave_2", gm.Node_Type.slave, gm.Slave_Type.memory, slave_index=1, debug = self.dbg)
+		count = self.sgm.get_number_of_memory_slaves()
+
+		self.assertEqual(True, True)	
+
+
 	def test_clear_graph(self):
 		if self.dbg:
 			print "generating host interface node"

@@ -50,7 +50,7 @@ class Test (unittest.TestCase):
 
 	def test_generate_ddr_project(self):
 		"""test if the ddr project can be generated with version 2"""
-		file_name = os.getenv("SAPLIB_BASE") + "/example_project/ddr_example.json"
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"
 		result = self.project.generate_project(file_name, debug=self.dbg)
 		self.assertEqual(result, True)
 	

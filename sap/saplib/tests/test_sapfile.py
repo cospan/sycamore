@@ -168,7 +168,7 @@ class Test (unittest.TestCase):
 		#"dependencies found for " + filename
 		#self.assertEqual(result, True)
 		#harder dependency
-		filename = "wb_ddr.v"
+		filename = "wb_sdram.v"
 		result = self.sapfile.resolve_dependencies(filename, debug = self.dbg)
 		print "\n\n\n\n"
 		print "dependency for " + filename

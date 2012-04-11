@@ -122,6 +122,24 @@ class SapGraphManager:
 	def get_number_of_connections(self):
 		return self.graph.number_of_edges()
 
+	def get_number_of_peripheral_slaves(self):
+		count = 0
+		gd = self.get_nodes_dict()	
+		for name in gd.keys():
+			if 	gd[name].node_type == Node_Type.slave and \
+				gd[name].slave_type == Slave_Type.peripheral:
+				count += 1
+		return count
+
+	def get_number_of_memory_slaves(self):
+		count = 0
+		gd = self.get_nodes_dict()	
+		for name in gd.keys():
+			if 	gd[name].node_type == Node_Type.slave and \
+				gd[name].slave_type == Slave_Type.memory:
+				count += 1
+		return count
+
 #Control Stuff
 	def set_parameters(self, name, parameters, debug = False):
 		"""
