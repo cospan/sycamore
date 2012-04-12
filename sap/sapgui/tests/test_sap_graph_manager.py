@@ -5,6 +5,8 @@ import json
 import sapfile
 import saputils
 import sap_graph_manager as gm
+from sap_graph_manager import SlaveError
+from sap_graph_manager import NodeError
 
 class Test (unittest.TestCase):
 	"""Unit test for gen_drt.py"""
@@ -55,16 +57,19 @@ class Test (unittest.TestCase):
 
 		self.assertEqual(size, 1)	
 
+	
+
 	def test_get_number_of_peripheral_slaves(self):
-		self.sgm.add_node("slave_1", gm.Node_Type.slave, gm.Slave_Type.peripheral, slave_index=0, debug = self.dbg)
-		self.sgm.add_node("slave_2", gm.Node_Type.slave, gm.Slave_Type.peripheral, slave_index=1, debug = self.dbg)
-		count = self.sgm.get_number_of_peripheral_slaves()
+
+		self.sgm.add_node("slave_1", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)
+		self.sgm.add_node("slave_2", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)
+		count = self.sgm.get_number_of_slaves(gm.Slave_Type.peripheral)
 		self.assertEqual(count, 2)	
 
 	def test_get_number_of_memory_slaves(self):
-		self.sgm.add_node("slave_1", gm.Node_Type.slave, gm.Slave_Type.memory, slave_index=0, debug = self.dbg)
-		self.sgm.add_node("slave_2", gm.Node_Type.slave, gm.Slave_Type.memory, slave_index=1, debug = self.dbg)
-		count = self.sgm.get_number_of_memory_slaves()
+		self.sgm.add_node("slave_1", gm.Node_Type.slave, gm.Slave_Type.memory, debug = self.dbg)
+		self.sgm.add_node("slave_2", gm.Node_Type.slave, gm.Slave_Type.memory, debug = self.dbg)
+		count = self.sgm.get_number_of_slaves(gm.Slave_Type.memory)
 
 		self.assertEqual(True, True)	
 
@@ -92,7 +97,6 @@ class Test (unittest.TestCase):
 		self.sgm.add_node(	"gpio", 
 							gm.Node_Type.slave,
 							gm.Slave_Type.peripheral,
-							slave_index=1,
 							debug=self.dbg)
 
 		gpio_name = gm.get_unique_name(	"gpio", 
@@ -273,7 +277,71 @@ class Test (unittest.TestCase):
 		#print "Dictionary: " + str(parameters["ports"]["phy_uart_in"])
 		self.assertEqual(parameters["ports"]["phy_uart_in"]["port"], "RX")
 
+	def test_move_peripheral_slave(self):
+		self.sgm.add_node("slave_1", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)
+		self.sgm.add_node("slave_2", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)
+		self.sgm.add_node("slave_3", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)
+	
+		if self.dbg:
+			count = self.sgm.get_number_of_peripheral_slaves()
+			print "Number of slaves: %d" % (count)
+		self.sgm.move_slave(2, 1, gm.Slave_Type.peripheral)
+
+		s3_name = gm.get_unique_name("slave_3", gm.Node_Type.slave, gm.Slave_Type.peripheral, slave_index=1)
+
+		result = True
+		try:
+			node = self.sgm.get_node(s3_name) 
+		except NodeError as ex:
+			print "Error while trying to get Node: " + str(ex)
+			result = False
+
+
+		self.assertEqual(result, True)
 		
+	def test_move_memory_slave(self):
+		self.sgm.add_node("slave_1", gm.Node_Type.slave, gm.Slave_Type.memory, debug = self.dbg)
+		self.sgm.add_node("slave_2", gm.Node_Type.slave, gm.Slave_Type.memory, debug = self.dbg)
+		self.sgm.add_node("slave_3", gm.Node_Type.slave, gm.Slave_Type.memory, debug = self.dbg)
+	
+		if self.dbg:
+			count = self.sgm.get_number_of_memory_slaves()
+			print "Number of slaves: %d" % (count)
+
+		result = self.sgm.move_slave(2, 1, gm.Slave_Type.memory)
+
+		s3_name = gm.get_unique_name("slave_3", gm.Node_Type.slave, gm.Slave_Type.memory, slave_index=1)
+
+		result = True
+		try:
+			node = self.sgm.get_node(s3_name) 
+		except NodeError as ex:
+			print "Error while trying to get Node: " + str(ex)
+			result = False
+
+		self.assertEqual(result, True)
+	
+
+	def test_get_slave_name_at(self):
+		self.sgm.add_node("slave_1", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)
+		self.sgm.add_node("slave_2", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)
+		self.sgm.add_node("slave_3", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)
+
+		test_name = gm.get_unique_name("slave_2", gm.Node_Type.slave, gm.Slave_Type.peripheral, slave_index = 1)
+		found_name = self.sgm.get_slave_name_at(1, gm.Slave_Type.peripheral)
+		
+	
+		self.assertEqual(test_name, found_name)
+
+	def test_remove_slave(self):
+		self.sgm.add_node("slave_1", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)
+		self.sgm.add_node("slave_2", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)
+		self.sgm.add_node("slave_3", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)
+
+		self.sgm.remove_slave(1, gm.Slave_Type.peripheral)
+
+		count = self.sgm.get_number_of_slaves(gm.Slave_Type.peripheral)
+		self.assertEqual(count, 2)
 
 
 

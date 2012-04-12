@@ -4,7 +4,7 @@ import sys
 import json
 import sapfile
 import saputils
-import sap_graph_controller
+import sap_controller as sc
 
 
 class Test (unittest.TestCase):
@@ -23,7 +23,7 @@ class Test (unittest.TestCase):
 				self.dbg = True
 
 		#every test needs the SGC 
-		self.sgc = sap_graph_controller.SapGraphController()
+		self.sc = sc.SapController()
 		return
 
 
@@ -31,8 +31,8 @@ class Test (unittest.TestCase):
 	def test_load_config_file(self):
 		#find a file to load
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
-		self.sgc.load_config_file(file_name)
-		board_name = self.sgc.get_board_name()
+		self.sc.load_config_file(file_name)
+		board_name = self.sc.get_board_name()
 
 		self.assertEqual(board_name, "xilinx-s3esk")
 
@@ -63,10 +63,10 @@ class Test (unittest.TestCase):
 	def test_initialize_graph(self):
 		#load a file
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
-		self.sgc.load_config_file(file_name)
-		self.sgc.initialize_graph()
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
 
-		slave_count = self.sgc.get_number_of_peripheral_slaves()
+		slave_count = self.sc.get_number_of_peripheral_slaves()
 
 		self.assertEqual(slave_count, 2)
 

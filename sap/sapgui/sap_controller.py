@@ -2,7 +2,7 @@
 import json
 import sapfile
 import saputils
-import sap_graph_manager
+import sap_graph_manager as gm
 from sap_graph_manager import Slave_Type
 from sap_graph_manager import Node_Type
 from sap_graph_manager import get_unique_name
@@ -12,7 +12,7 @@ def enum(*sequential, **named):
 	return type('Enum', (), enums)
 
 
-class SapGraphController:
+class SapController:
 	def __init__(self):
 		self.new_design()
 		return
@@ -60,8 +60,7 @@ class SapGraphController:
 							Node_Type.memory_interconnect)
 		self.sgm.add_node(	"Peripherals", 
 							Node_Type.peripheral_interconnect)
-		self.sgm.add_node(	"DRT",
-							Node_Type.slave,
+		self.add_slave(		"DRT",
 							Slave_Type.peripheral,
 							slave_index = 0)
 
@@ -89,18 +88,16 @@ class SapGraphController:
 		sp_count = self.sgm.get_number_of_peripheral_slaves()
 		if "SLAVES" in self.project_tags:
 			for slave_name in self.project_tags["SLAVES"].keys():
-				self.sgm.add_node(	slave_name,
-									Node_Type.slave,
-									Slave_Type.peripheral,
-									slave_index = sp_count)
+				self.add_slave(	slave_name,
+								Slave_Type.peripheral,
+								slave_index = sp_count)
 				sp_count += 1
 
 		#load all the memory slaves
 		sm_count = self.sgm.get_number_of_memory_slaves()
 		if "MEMORY" in self.project_tags:
 			for slave_name in self.project_tags["MEMORY"].keys():
-				self.sgm.add_node(	slave_name,
-									Node_Type.slave,
+				self.sgm.add_slave(	slave_name,
 									Slave_Type.memory,
 									slave_index = sm_count)
 
@@ -182,7 +179,7 @@ class SapGraphController:
 		if "CONSTRAINTS" not in self.project_tags.keys():
 			self.project_tags["CONSTRAINTS"] = {}
 
-		if "constraint_files" not in self.project_tags["CONSTRAINTS"].keys()
+		if "constraint_files" not in self.project_tags["CONSTRAINTS"].keys():
 			self.project_tags["CONSTRAINTS"]["constraint_files"] = []
 
 		self.project_tags["CONSTRAINTS"]["constraints_files"] = [constraint_file_name]
@@ -191,7 +188,7 @@ class SapGraphController:
 		if "CONSTRAINTS" not in self.project_tags.keys():
 			self.project_tags["CONSTRAINTS"] = {}
 
-		if "constraint_files" not in self.project_tags["CONSTRAINTS"].keys()
+		if "constraint_files" not in self.project_tags["CONSTRAINTS"].keys():
 			self.project_tags["CONSTRAINTS"]["constraint_files"] = []
 
 		self.project_tags["CONSTRAINTS"]["constraints_files"].append(constraint_file_name)
@@ -212,7 +209,7 @@ class SapGraphController:
 		if "CONSTRAINTS" not in self.project_tags.keys():
 			self.project_tags["CONSTRAINTS"] = {}
 
-		if "device" not in self.project_tags["CONSTRAINTS"].keys()
+		if "device" not in self.project_tags["CONSTRAINTS"].keys():
 			self.project_tags["CONSTRAINTS"]["device"] = ""
 
 		self.project_tags["CONSTRAINTS"]["device"] = fpga_part_number
@@ -229,7 +226,7 @@ class SapGraphController:
 		"""
 		Initialize an empty design
 		"""
-		self.sgm = sap_graph_manager.SapGraphManager()
+		self.sgm = gm.SapGraphManager()
 		self.bus_type = "wishbone"
 		self.tags = {}
 		self.file_name = ""
@@ -249,13 +246,6 @@ class SapGraphController:
 		self.project_tags["CONSTRAINTS"]["bind"] = {}
 
 
-		return
-
-	def generate_project(self):
-		"""
-		Generates the output project that can be used
-		to create a bit image
-		"""
 		return
 
 	def set_bus_type(self, bus_type):
@@ -319,25 +309,59 @@ class SapGraphController:
 		Finds and removes the arbitrator from the host
 		"""
 
-	def add_slave(self, slave_name, slave_type, slave_index):
+	def add_slave(self, slave_name, slave_type, slave_index=-1):
 		"""
 		Adds a slave to the specified bus at the specified index
 		"""
 		#check if the slave_index makes sense
 		#if slave index s -1 then add it to the next available location
+		self.sgm.add_node(	slave_name,
+							Node_Type.slave,
+							slave_type)
+
+		if slave_index == -1:
+			#add the slave wherever
+			return
+
+
+		if slave_type == Slave_Type.peripheral:
+			if slave_index == 0 and slave_name != "DRT":
+				raise gm.SlaveError("Only the DRT can be at position 0")
+			s_count = self.sgm.get_number_of_peripheral_slaves()
+			uname = get_unique_name(slave_name, Node_Type.slave, slave_type, s_count - 1)		
+			slave = self.sgm.get_node(uname)
+			if slave_index >= s_count:	
+				#slave index is too high to be moved, were done
+				return
+			if slave_index == s_count - 1:
+				#were done, the slave was already moved there
+				return
+
+			self.sgm.move_peripheral_slave(slave.slave_index, slave_index)
+			return
+
+		if slave_type == Slave_Type.memory:
+			s_count = self.sgm.get_number_of_memory_slaves()
+			uname = get_unique_name(slave_name, Node_Type.slave, slave_type, s_count - 1)
+			slave = self.sgm.get_node(uname)
+			if slave_index >= s_count:
+				#slave index is too high to be moved, were done
+				return
+
+			if slave_index == s_count - 1:
+				#were done, the slave was already moved there
+				return
+
+			self.sgm.move_slave(slave.slave_index, slave_index, Slave_Type.memory)
+
+
 		return
 
-	def remove_slave(self, slave_name = None, slave_type = Slave_Type.peripheral, slave_index=0):
+	def remove_slave(self, slave_type = Slave_Type.peripheral, slave_index=0):
 		"""
 		Removes slave from specified index
 		"""
-		#can't remove the DRT so if the index is 0 then don't try
-
-		#it's possible to remove the node given only the
-		#Slave_Type, and the slave_index
-
-		#check if the slave_name is 'None', if so then
-		#we need to search for the slave_name
+		self.sgm.remove_slave(slave_index, slave_type)
 		return
 
 	def move_slave(self, 	slave_name = None, 
@@ -349,6 +373,24 @@ class SapGraphController:
 		move slave from one place to another,
 		the slave can be moved from one bus to another
 		and the index position can be moved
+		"""
+		if slave_name is None:
+			gm.SlaveError("a slave name must be specified")
+
+		if from_slave_type == to_slave_type:
+			#simple move call
+			self.sgm.move_slave(from_slave_index, to_slave_index, from_slave_type)
+			return
+
+		#moving to the other bus, need to sever connetions
+		remove_slave(slave_name, from_slave_type, from_slave_index)
+		add_slave(slave_name, to_slave_type, to_slave_index)
+		return
+
+	def generate_project(self):
+		"""
+		Generates the output project that can be used
+		to create a bit image
 		"""
 		return
 
