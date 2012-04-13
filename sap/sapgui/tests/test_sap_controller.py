@@ -36,9 +36,6 @@ class Test (unittest.TestCase):
 
 		self.assertEqual(board_name, "xilinx-s3esk")
 
-	def test_save_config_file(self):
-		self.assertEqual(True, True)
-
 	def test_generate_project(self):
 		self.assertEqual(True, True)
 
@@ -89,6 +86,22 @@ class Test (unittest.TestCase):
 		self.assertEqual(True, True)
 
 	def test_arbitration(self):
+		self.assertEqual(True, True)
+
+	def test_save_config_file(self):
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+
+		home_dir = saputils.resolve_linux_path("~")
+		self.sc.save_config_file(home_dir + "/test_out.json")
+		try:
+			filein = open(home_dir + "/test_out.json")
+			json_string = filein.read()
+			filein.close()
+		except IOError as err:
+			print ("File Error: " + str(err))
+			self.assertEqual(True, False)
+
 		self.assertEqual(True, True)
 
 

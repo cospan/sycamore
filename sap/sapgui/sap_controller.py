@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import json
+import saplib
 import sapfile
 import saputils
 import sap_graph_manager as gm
@@ -15,6 +16,7 @@ def enum(*sequential, **named):
 class SapController:
 	def __init__(self):
 		self.new_design()
+		self.filename = ""
 		return
 
 
@@ -30,10 +32,11 @@ class SapController:
 			json_string = filein.read()
 			filein.close()
 		except IOError as err:
-			print("File Error: " + str(err))
+			print "File Error: " + str(err)
 			return False
 
 		self.project_tags = json.loads(json_string)
+		self.filename = file_name
 		return True
 
 	def initialize_graph(self):
@@ -122,7 +125,16 @@ class SapController:
 
 		#if there are no slaves on the memory interconnect
 		#then don't generate the structure in the JSON file for it
-		return
+		json_string = json.dumps(self.project_tags, sort_keys=True, indent = 4)
+		try:
+			file_out = open(file_name, 'w')
+			file_out.write(json_string)
+			file_out.close()
+		except IOError as err:
+			print "File Error: " + str(err)
+			return False
+
+		return True
 
 	def set_project_location(self, location):
 		"""
@@ -288,26 +300,41 @@ class SapController:
 		self.sgm.set_parameters(hi_name, parameters)
 		return True
 
-	def get_host_interface(self):
-		return
+	def get_host_interface_name(self):
+		hi_name = get_unique_name(	"Host Interface", 
+									Node_Type.host_interface) 
+		hi = self.sgm.get_node(hi_name)
+		return hi.name
 
-	def add_arbitrator(self, 	host_name, 
-								host_type, 
+	def get_slave_name(self,	slave_type, slave_index):
+		s_name = self.sgm.get_slave_name_at(slave_index, slave_type)
+		slave = self.sgm.get_node(s_name)
+		return slave.name
+
+	def add_arbitrator(self, 	host_type, 
 								host_index, 
-								slave_name, 
 								slave_type, 
 								slave_index):
 		"""
 		adds an arbitrator and attaches it between the host and
 		the slave
 		"""
+		h_name = self.sgm.get_slave_name_at(host_index, host_type)
+		s_name = self.sgm.get_slave_name_at(slave_index, slave_type)
+		self.sgm.connect_nodes (h_name, s_name)
 
-	def remove_arbitrator(self,	host_name,
-								host_type,
-								host_index):
+
+
+	def remove_arbitrator(self,	host_type,
+								host_index,
+								slave_type,
+								slave_index):
 		"""
 		Finds and removes the arbitrator from the host
 		"""
+		h_name = gm.get_slave_name_at(host_index, host_type)
+		s_name = gm.get_slave_name_at(slave_index, slave_type)
+		self.sgm.disconnect_nodes(h_name, s_name)
 
 	def add_slave(self, slave_name, slave_type, slave_index=-1):
 		"""
@@ -392,10 +419,10 @@ class SapController:
 		Generates the output project that can be used
 		to create a bit image
 		"""
+		try:
+			saplib.generate_project(self.filename)
+		except IOError as err:
+			print "File Error: " + str(err)
 		return
-
-	
-	
-
 
 
