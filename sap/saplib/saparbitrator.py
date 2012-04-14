@@ -2,6 +2,15 @@ import saputils
 import os
 from string import Template
 
+
+def is_arbitrator_host(module_tags = {}, debug = False):
+	"""determines if a slave can be an arbitrator host"""
+	#go through all the inports and verify that after the first 
+	#'_' there is a a wbm and hte wbm has all the arbitrator 
+	#host components
+
+	return False	
+
 """Analyzes tags, generates arbitrators, sets tags to indicate connections"""
 
 def is_arbitrator_required(tags = {}, debug = False):

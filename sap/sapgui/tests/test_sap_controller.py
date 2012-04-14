@@ -67,26 +67,140 @@ class Test (unittest.TestCase):
 
 		self.assertEqual(slave_count, 2)
 
+	def test_get_number_of_slaves(self):
+		#load a file
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+
+		self.sc.add_slave(	"mem1",
+							sc.Slave_Type.memory)
+
+		p_count = self.sc.get_number_of_slaves(sc.Slave_Type.peripheral)
+		m_count = self.sc.get_number_of_slaves(sc.Slave_Type.memory)
+		self.assertEqual(p_count, 2)
+		self.assertEqual(m_count, 1)
+
 	def test_set_host_interface(self):
-		self.assertEqual(True, True)
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+
+
+		self.sc.set_host_interface("ft_host_interface")
+		name = self.sc.get_host_interface_name()
+		
+		self.assertEqual(name, "ft_host_interface")
 
 	def test_bus_type(self):
-		self.assertEqual(True, True)
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+
+		bus_name = self.sc.get_bus_type()
+
+		self.assertEqual(bus_name, "wishbone")
 
 	def test_new_design(self):
 		self.assertEqual(True, True)
 		
 	def test_add_slave(self):
-		self.assertEqual(True, True)
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+
+		self.sc.add_slave(	"mem1",
+							sc.Slave_Type.memory)
+
+		p_count = self.sc.get_number_of_slaves(sc.Slave_Type.peripheral)
+		m_count = self.sc.get_number_of_slaves(sc.Slave_Type.memory)
+		self.assertEqual(p_count, 2)
+		self.assertEqual(m_count, 1)
 
 	def test_remove_slave(self):
-		self.assertEqual(True, True)
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
 
-	def test_move_slave(self):
-		self.assertEqual(True, True)
+		self.sc.remove_slave(sc.Slave_Type.peripheral, 1)
+		p_count = self.sc.get_number_of_slaves(sc.Slave_Type.peripheral)
+		self.assertEqual(p_count, 1)
+
+	def test_move_slave_in_peripheral_bus(self):
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+
+		self.sc.add_slave(	"test",
+							sc.Slave_Type.peripheral)
+
+		name1 = self.sc.get_slave_name(sc.Slave_Type.peripheral, 2)
+		self.sc.move_slave(	"test",
+							sc.Slave_Type.peripheral,
+							2,
+							sc.Slave_Type.peripheral,
+							1)
+
+		name2 = self.sc.get_slave_name(sc.Slave_Type.peripheral, 1)
+		self.assertEqual(name1, name2)
+
+	def test_move_slave_in_memory_bus(self):
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+
+		self.sc.add_slave(	"test1",
+							sc.Slave_Type.memory)
+
+		self.sc.add_slave(	"test2",
+							sc.Slave_Type.memory)
+
+		m_count = self.sc.get_number_of_slaves(sc.Slave_Type.memory)
+
+		name1 = self.sc.get_slave_name(sc.Slave_Type.memory, 0)
+		self.sc.move_slave(	"test1",
+							sc.Slave_Type.memory,
+							0,
+							sc.Slave_Type.memory,
+							1)
+
+		name2 = self.sc.get_slave_name(sc.Slave_Type.memory, 1)
+		self.assertEqual(name1, name2)
+
+
+	def test_move_slave_between_bus(self):
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+
+		self.sc.add_slave(	"test",
+							sc.Slave_Type.peripheral)
+
+		name1 = self.sc.get_slave_name(sc.Slave_Type.peripheral, 2)
+		self.sc.move_slave(	"test",
+							sc.Slave_Type.peripheral,
+							2,
+							sc.Slave_Type.memory,
+							0)
+
+		name2 = self.sc.get_slave_name(sc.Slave_Type.memory, 0)
+		self.assertEqual(name1, name2)
+
+
 
 	def test_arbitration(self):
-		self.assertEqual(True, True)
+#XXX: Test if the arbitrator is loaded correctly
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/arb_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+
+#XXX: Test if the arbitrator can be removed
+
+
+#XXX: Test if the arbitrator can be added
+
+
+
 
 	def test_save_config_file(self):
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	

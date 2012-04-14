@@ -224,14 +224,22 @@ class SapGraphManager:
 			
 		self.graph = nx.relabel_nodes (	self.graph,	
 										{from_node.unique_name : from_unique})
+		from_node = self.get_node(from_unique)
+		from_node.slave_index = to_index
 		from_node.unique_name = from_unique
+
+
+
+
 
 		to_node.slave_index = from_index
 		to_unique = get_unique_name(to_node.name, to_node.node_type, to_node.slave_type, to_node.slave_index)
 		self.graph = nx.relabel_nodes (	self.graph,
 										{to_node.unique_name:to_unique})
-		to_node.unique_name = to_unique
+		to_node = self.get_node(to_unique)	
 
+		to_node.slave_index = from_index
+		to_node.unique_name = to_unique
 
 		if debug:
 			print "after move:"
@@ -311,12 +319,18 @@ class SapGraphManager:
 			
 		self.graph = nx.relabel_nodes (	self.graph,	
 										{from_node.unique_name : from_unique})
+		from_node = self.get_node(from_unique)
+		from_node.slave_index = to_index
 		from_node.unique_name = from_unique
+
 
 		to_node.slave_index = from_index
 		to_unique = get_unique_name(to_node.name, to_node.node_type, to_node.slave_type, to_node.slave_index)
 		self.graph = nx.relabel_nodes (	self.graph,
 										{to_node.unique_name:to_unique})
+
+		to_node = self.get_node(to_unique)	
+		to_node.slave_index = from_index
 		to_node.unique_name = to_unique
 
 

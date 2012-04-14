@@ -7,6 +7,8 @@ import sap_graph_manager as gm
 from sap_graph_manager import Slave_Type
 from sap_graph_manager import Node_Type
 from sap_graph_manager import get_unique_name
+from saperror import ModuleNotFound
+from saperror import SlaveError
 
 def enum(*sequential, **named):
 	enums = dict(zip(sequential, range(len(sequential))), **named)
@@ -104,6 +106,9 @@ class SapController:
 									Slave_Type.memory,
 									slave_index = sm_count)
 
+
+#XXX: Go through all the slaves and connect any arbitrators
+
 		#check if there is a host insterface defined
 		if "INTERFACE" in self.project_tags:
 			file_name = saputils.find_rtl_file_location(self.project_tags["INTERFACE"]["filename"])
@@ -111,6 +116,16 @@ class SapController:
 			self.sgm.set_parameters(hi_name, parameters)
 		
 		return True
+
+	def get_number_of_slaves(self, slave_type):
+		if slave_type is None:
+			raise SlaveError("slave type was not specified")
+
+		if slave_type == Slave_Type.peripheral:
+			return self.get_number_of_peripheral_slaves()
+
+		return self.get_number_of_memory_slaves()
+
 
 	def get_number_of_memory_slaves(self):
 		return self.sgm.get_number_of_memory_slaves()
@@ -285,14 +300,17 @@ class SapController:
 		#check if the host interface is valid
 		file_name = ""
 		try:
-			file_name = saputils.find_module_filename(host_interface_name)
+			sf = sapfile.SapFile()
+			file_name = sf.find_module_filename(host_interface_name)
 		except ModuleNotFound as ex:
 			if debug:
-				print "Invalid Module Name"
+				print "Invalid Module Name: %s" % (host_interface_name)
 
 #XXX: Need to inform the user that the Host Interface Selected was
 #not valid
 				return False
+
+		file_name = saputils.find_rtl_file_location(file_name)
 
 		#if the host interface is valid then get all the tags
 		parameters = saputils.get_module_tags(	filename = file_name, bus=self.get_bus_type())
@@ -304,7 +322,7 @@ class SapController:
 		hi_name = get_unique_name(	"Host Interface", 
 									Node_Type.host_interface) 
 		hi = self.sgm.get_node(hi_name)
-		return hi.name
+		return hi.parameters["module"]
 
 	def get_slave_name(self,	slave_type, slave_index):
 		s_name = self.sgm.get_slave_name_at(slave_index, slave_type)
@@ -410,8 +428,8 @@ class SapController:
 			return
 
 		#moving to the other bus, need to sever connetions
-		remove_slave(slave_name, from_slave_type, from_slave_index)
-		add_slave(slave_name, to_slave_type, to_slave_index)
+		self.remove_slave(from_slave_type, from_slave_index)
+		self.add_slave(slave_name, to_slave_type, to_slave_index)
 		return
 
 	def generate_project(self):

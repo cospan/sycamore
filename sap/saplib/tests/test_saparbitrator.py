@@ -1,5 +1,6 @@
 import unittest
 import saparbitrator
+import saputils
 import json
 import sys
 import os
@@ -13,6 +14,25 @@ class Test (unittest.TestCase):
 		if "SAPLIB_DEBUG" in os.environ:
 			if (os.environ["SAPLIB_DEBUG"] == "True"):
 				self.dbg = True
+
+	def test_is_arbitrator_host(self):
+		"""
+		test if the slave is an arbitrator host
+		"""
+
+		#the first test should fail
+		file_name = "wb_gpio.v"
+		m_tags = saputils.get_module_tags(file_name, "wishbone")
+		result = is_arbitrator_host(m_tags, debug = True)
+
+		self.assertEqual(result, False)
+
+		#the second test should pass
+		file_name = "wb_fsmc.v" 
+		m_tags = saputils.get_module_tags(file_name, "wishbone")
+		result = is_arbitrator_host(m_tags, debug = True)
+
+		self.assertEqual(result, True)
 
 	def test_is_arbitrator_not_requried(self):
 		"""test if the project_tags have been modified to show arbitrator"""
