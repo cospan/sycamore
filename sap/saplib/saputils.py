@@ -2,6 +2,7 @@ import os
 import sys
 import string
 import sappreproc
+import saparbitrator
 
 """utilites that don't really belong in any of the sap classes"""
 
@@ -106,6 +107,7 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 	tags["ports"] = {}
 	tags["module"] = ""
 	tags["parameters"] = {}
+	tags["arbitrator_masters"] = []
 		
 	#need a more robust way of openning the slave
 
@@ -270,6 +272,7 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 			tags["parameters"][parameter_name] = parameter_value
 
 
+	tags["arbitrator_masters"] = saparbitrator.get_number_of_arbitrator_hosts(tags)
 
 
 	if debug:
@@ -290,6 +293,7 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 					if (isinstance( value, int)):
 						value = str(value)
 					print "\t" + key + ":" + value
+
 	return tags
 
 
@@ -344,7 +348,8 @@ def read_clock_rate(constraint_filename, debug = False):
 
 		#is this the timespec for the "clk" clock?
 		if ("timespec" in line) and ("ts_clk" in line):
-			print "found timespec"
+			if debug:
+				print "found timespec"
 			#this is the "clk" clock, now read the clock value 
 			if debug:
 				print "found TIMESPEC"

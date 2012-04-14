@@ -1,6 +1,7 @@
 import unittest
 import sys
 import os
+import saputils
 
 class Test (unittest.TestCase):
 	"""Unit test for saputils"""
@@ -15,17 +16,26 @@ class Test (unittest.TestCase):
 
 		#print "SAPLIB_BASE: " + os.getenv("SAPLIB_BASE")
 
+	def test_arbitrator_count(self):
+		"""gets the module tags and detects if there is any arbitrator hosts"""
+		filename = saputils.find_rtl_file_location("wb_gpio.v")
+		tags = saputils.get_module_tags(filename, debug=self.dbg)
+		self.assertEqual(len(tags["arbitrator_masters"]), 0)
+
+		filename = saputils.find_rtl_file_location("wb_console.v")
+		tags = saputils.get_module_tags(filename, debug=self.dbg)
+		self.assertEqual(len(tags["arbitrator_masters"]), 2)
 
 	def test_create_dir(self):
 		"""create a directory"""
-		import saputils
+		
 		result = saputils.create_dir("~/sandbox/projects")
 		self.assertEqual(result, True)
 	
 
 	def test_remove_comments(self):
 		"""try and remove all comments from a buffer"""
-		import saputils
+		
 		bufin = "not comment /*comment\n\n*/\n\n//comment\n\n/*\nabc\n*/soemthing//comment"
 		#print "input buffer:\n" + bufin
 		output_buffer = saputils.remove_comments(bufin)
@@ -36,7 +46,7 @@ class Test (unittest.TestCase):
 	def test_find_rtl_file_location(self):
 		"""give a filename that should be in the RTL"""
 
-		import saputils
+		
 		result = saputils.find_rtl_file_location("wb_gpio.v")
 		#print "file location: " + result
 		try:
@@ -50,7 +60,7 @@ class Test (unittest.TestCase):
 
 	def test_resolve_linux_path(self):
 		"""given a filename with or without the ~ return a filename with the ~ expanded"""
-		import saputils
+		
 		filename1 = "/filename1"
 		filename = saputils.resolve_linux_path(filename1)
 		#print "first test: " + filename
@@ -71,7 +81,7 @@ class Test (unittest.TestCase):
 	
 	def test_read_slave_tags(self):
 		"""try and extrapolate all info from the slave file"""
-		import saputils
+		
 		base_dir = os.getenv("SAPLIB_BASE")	
 		filename = base_dir + "/hdl/rtl/wishbone/slave/wb_gpio/wb_gpio.v"
 		drt_keywords = [
@@ -95,7 +105,7 @@ class Test (unittest.TestCase):
 
 	def test_read_slave_tags_with_params(self):
 		"""some verilog files have a paramter list"""
-		import saputils
+		
 		base_dir = os.getenv("SAPLIB_BASE")
 		filename = base_dir + "/hdl/rtl/wishbone/slave/ddr/wb_ddr.v"
 		drt_keywords = [
@@ -115,17 +125,18 @@ class Test (unittest.TestCase):
 		#	for port in tags["ports"][io].keys():
 		#		print "Ports: " + port
 
-		print "\n\n\n\n\n\n"
-		print "module name: " + tags["module"]
-		print "\n\n\n\n\n\n"
+		if self.dbg:
+			print "\n\n\n\n\n\n"
+			print "module name: " + tags["module"]
+			print "\n\n\n\n\n\n"
 
-		self.assertEqual(True, True)
+		self.assertEqual(tags["module"], "wb_ddr")
 
 
 	
 	def test_read_hard_slave_tags(self):
 		"""try and extrapolate all info from the slave file"""
-		import saputils
+		
 		base_dir = os.getenv("SAPLIB_BASE")	
 		filename = base_dir + "/hdl/rtl/wishbone/slave/ddr/wb_ddr.v"
 		drt_keywords = [
@@ -148,13 +159,13 @@ class Test (unittest.TestCase):
 		self.assertEqual(True, True)
 
 	def test_read_clk_with_period(self):
-		import saputils
+		
 		filename = "sycamore_serial.ucf" 
 		clock_rate = saputils.read_clock_rate(filename, debug = self.dbg)
 		self.assertEqual(len(clock_rate) > 0, True)
 
 	def test_read_clk_with_timespec(self):
-		import saputils
+		
 		filename = "lx9.ucf" 
 		clock_rate = saputils.read_clock_rate(filename, debug = self.dbg)
 		self.assertEqual(len(clock_rate) > 0, True)
@@ -162,5 +173,4 @@ class Test (unittest.TestCase):
 
 if __name__ == "__main__":
 	sys.path.append (sys.path[0] + "/../")
-	import saputils
 	unittest.main()
