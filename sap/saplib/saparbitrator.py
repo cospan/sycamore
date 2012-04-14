@@ -3,15 +3,70 @@ import os
 from string import Template
 
 
-def is_arbitrator_host(module_tags = {}, debug = False):
-	"""determines if a slave can be an arbitrator host"""
+"""Analyzes tags, generates arbitrators, sets tags to indicate connections"""
+def get_number_of_arbitrator_hosts(module_tags = {}, debug = False):
+	"""
+	returns the number of arbitrator hosts found inside the module
+	"""
+
 	#go through all the inports and verify that after the first 
 	#'_' there is a a wbm and hte wbm has all the arbitrator 
 	#host components
 
-	return False	
+	if debug:
+		print "Module Name: %s" % (module_tags["module"])
+		print "ports: "
+	wb_bus = [	"dat_i",
+				"int_i",
+				"ack_i",
+				"adr_o",
+				"stb_o",
+				"we_o",
+				"cyc_o",
+				"dat_o",
+				"sel_o"
+			]
+	possible_prefix = {}
+	prefixes = []
+	for io_ports in module_tags["ports"]:
+		if debug:
+			print "\tio_ports: " + io_ports
+		for name in module_tags["ports"][io_ports]:
+			if debug:
+				print "\t\t: " + str(name)
+			#throw out obvious false
+			if "_" not in name:
+				continue
 
-"""Analyzes tags, generates arbitrators, sets tags to indicate connections"""
+			for wbm_wire in wb_bus:
+				if wbm_wire in name:
+					prefix = name.partition("_")[0]
+					if prefix not in possible_prefix.keys():
+						possible_prefix[prefix] = list(wb_bus)
+						if debug:
+							print "found a possible arbitrator: %s" % (prefix)
+
+					wbm_post = name.partition("_")[2]
+					if wbm_post in possible_prefix[prefix]:
+						possible_prefix[prefix].remove(wbm_post)
+					
+
+
+	for prefix in possible_prefix.keys():
+		if debug:
+			print "examining: %s" % (prefix)
+			print "\tlength of prefix list: %s" % (str(possible_prefix[prefix]))
+		if len (possible_prefix[prefix]) == 0:
+			if debug:
+				print "%s is an arbitrator host" % (prefix)
+			prefixes.append(prefix)
+
+	return prefixes
+
+
+def is_arbitrator_host(module_tags = {}, debug = False):
+	"""determines if a slave can be an arbitrator host"""
+	return (len(get_number_of_arbitrator_hosts(module_tags, debug)) > 0)
 
 def is_arbitrator_required(tags = {}, debug = False):
 	"""analyze the project tags to determine if any arbitration is requried""" 

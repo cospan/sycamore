@@ -15,6 +15,26 @@ class Test (unittest.TestCase):
 			if (os.environ["SAPLIB_DEBUG"] == "True"):
 				self.dbg = True
 
+	def test_get_number_of_arbitrator_hosts(self):
+		#the first test should fail
+		file_name = "wb_gpio.v"
+		file_name = saputils.find_rtl_file_location(file_name)
+		m_tags = saputils.get_module_tags(file_name, "wishbone")
+		result = saparbitrator.get_number_of_arbitrator_hosts(m_tags, debug = self.dbg)
+
+		self.assertEqual(len(result), 0)
+
+		#the second test should pass
+		file_name = "wb_console.v" 
+		file_name = saputils.find_rtl_file_location(file_name)
+		m_tags = saputils.get_module_tags(file_name, "wishbone")
+		result = saparbitrator.get_number_of_arbitrator_hosts(m_tags, debug = self.dbg)
+
+		self.assertEqual(len(result), 2)
+
+
+		
+
 	def test_is_arbitrator_host(self):
 		"""
 		test if the slave is an arbitrator host
@@ -22,15 +42,17 @@ class Test (unittest.TestCase):
 
 		#the first test should fail
 		file_name = "wb_gpio.v"
+		file_name = saputils.find_rtl_file_location(file_name)
 		m_tags = saputils.get_module_tags(file_name, "wishbone")
-		result = is_arbitrator_host(m_tags, debug = True)
+		result = saparbitrator.is_arbitrator_host(m_tags, debug = self.dbg)
 
 		self.assertEqual(result, False)
 
 		#the second test should pass
-		file_name = "wb_fsmc.v" 
+		file_name = "wb_console.v" 
+		file_name = saputils.find_rtl_file_location(file_name)
 		m_tags = saputils.get_module_tags(file_name, "wishbone")
-		result = is_arbitrator_host(m_tags, debug = True)
+		result = saparbitrator.is_arbitrator_host(m_tags, debug = self.dbg)
 
 		self.assertEqual(result, True)
 
