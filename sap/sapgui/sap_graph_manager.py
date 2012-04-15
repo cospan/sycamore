@@ -92,7 +92,7 @@ class SapGraphManager:
 		self.graph.add_node(str(node.unique_name))
 		self.graph.node[node.unique_name] = node
 
-		return True
+		return node.unique_name
 
 	def remove_slave(self, slave_index, slave_type):
 		#can't remove the DRT so if the index is 0 then don't try
@@ -396,12 +396,39 @@ class SapGraphManager:
 		Connects two nodes together
 		"""
 		self.graph.add_edge(node1, node2)
+		self.graph[node1][node2]["name"]=""
 	
-	def disconnect_nodes(self, node1, node2):
+	def set_edge_name(self, node1_name, node2_name, edge_name):
+		"""
+		find the edge connected to the two given nodes
+		"""
+		self.graph[node1_name][node2_name]["name"]=edge_name
+
+	def get_edge_name(self, node1_name, node2_name):
+		return self.graph[node1_name][node2_name]["name"]
+
+	def is_slave_connected_to_slave(self, slave):
+		for nb_name in self.graph.neighbors(slave):
+			nb = self.get_node(nb_name)
+			if nb.node_type == Node_Type.slave:
+				return True
+
+		return False
+
+	def get_connected_slaves(self, arb_host):
+		slaves = {}
+		for nb_name in self.graph.neighbors(arb_host):
+			nb = self.get_node(nb_name)
+			if nb.node_type == Node_Type.slave:
+				slaves[self.graph[arb_host][nb_name]["name"]] = nb.unique_name
+				
+		return slaves
+
+	def disconnect_nodes(self, node1_name, node2_name):
 		"""
 		if the two nodes are connected disconnect them
 		"""
-		self.graph.remove_edge(node1, node2)
+		self.graph.remove_edge(node1_name, node2_name)
 
 	def get_number_of_connections(self):
 		return self.graph.number_of_edges()

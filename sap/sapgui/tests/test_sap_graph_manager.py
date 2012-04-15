@@ -226,6 +226,45 @@ class Test (unittest.TestCase):
 		num_of_connections = self.sgm.get_number_of_connections()
 		self.assertEqual(num_of_connections, 0)
 
+	def test_edge_name(self):
+		if self.dbg:
+			print "adding two nodes, connecting them, setting the name and then reading it"
+
+		self.sgm.add_node("uart", gm.Node_Type.host_interface)
+		self.sgm.add_node("master", gm.Node_Type.master)
+
+
+
+		uart_name = gm.get_unique_name("uart", gm.Node_Type.host_interface)
+		master_name = gm.get_unique_name("master", gm.Node_Type.master)
+
+		self.sgm.connect_nodes(uart_name, master_name)
+
+		self.sgm.set_edge_name(uart_name, master_name, "connection")
+
+		result = self.sgm.get_edge_name(uart_name, master_name)
+		self.assertEqual(result, "connection")
+
+	def test_edge_dict(self):
+		if self.dbg:
+			print "adding two nodes, connecting them, setting the name and then reading it"
+
+		uart_name = self.sgm.add_node("uart", gm.Node_Type.slave, gm.Slave_Type.peripheral)
+		master_name = self.sgm.add_node("master", gm.Node_Type.slave, gm.Slave_Type.peripheral)
+
+		self.sgm.connect_nodes(uart_name, master_name)
+
+		self.sgm.set_edge_name(uart_name, master_name, "connection")
+
+		result = self.sgm.is_slave_connected_to_slave(uart_name)
+		self.assertEqual(result, True)
+
+		arb_dict = self.sgm.get_connected_slaves(uart_name)
+		self.assertEqual(arb_dict["connection"], master_name)
+		
+
+
+
 
 	def test_get_node_data(self):
 		if self.dbg:

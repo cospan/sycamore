@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+import os
+import sys
 import json
-import saplib
+from saplib import saplib
 import sapfile
 import saputils
 import sap_graph_manager as gm
@@ -41,7 +43,10 @@ class SapController:
 		self.filename = file_name
 		return True
 
-	def initialize_graph(self):
+	def set_config_file_location(self, file_name):
+		self.filename = file_name
+
+	def initialize_graph(self, debug=False):
 		"""
 		Initializes the graph and project tags
 		"""
@@ -89,6 +94,18 @@ class SapController:
 		self.sgm.connect_nodes(m_name, pi_name)
 		self.sgm.connect_nodes(pi_name, drt_name)
 
+
+		#get module data for the DRT
+		try:
+			file_name = saputils.find_rtl_file_location("device_rom_table.v")
+		except ModuleNotFound as ex:
+			if debug:
+				print "Invalid Module Name: %s" % (host_interface_name)
+		
+		parameters = saputils.get_module_tags(	filename = file_name, bus=self.get_bus_type())
+		self.sgm.set_parameters(drt_name, parameters)
+
+
 		#attempt to load data from the tags
 		sp_count = self.sgm.get_number_of_peripheral_slaves()
 		if "SLAVES" in self.project_tags:
@@ -96,25 +113,117 @@ class SapController:
 				self.add_slave(	slave_name,
 								Slave_Type.peripheral,
 								slave_index = sp_count)
+
+				s_name = gm.get_unique_name(slave_name, Node_Type.slave, Slave_Type.peripheral, sp_count)
+				file_name = self.project_tags["SLAVES"][slave_name]["filename"]
+				parameters = {}
+				try:
+					file_name = saputils.find_rtl_file_location(file_name)
+				except ModuleNotFound as ex:
+					if debug:
+						print "Invalid Module Name: %s" % (host_interface_name)
+
+				#print "filename: " + file_name
+
+				parameters = saputils.get_module_tags(	filename = file_name, bus=self.get_bus_type())
+				self.sgm.set_parameters(s_name, parameters)
 				sp_count += 1
+
 
 		#load all the memory slaves
 		sm_count = self.sgm.get_number_of_memory_slaves()
 		if "MEMORY" in self.project_tags:
 			for slave_name in self.project_tags["MEMORY"].keys():
-				self.sgm.add_slave(	slave_name,
+				self.add_slave(		slave_name,
 									Slave_Type.memory,
 									slave_index = sm_count)
 
+				s_name = gm.get_unique_name(slave_name, Node_Type.slave, Slave_Type.memory, sm_count)
+				file_name = self.project_tags["MEMORY"][slave_name]["filename"]
+				parameters = {}
 
-#XXX: Go through all the slaves and connect any arbitrators
+				try:
+					file_name = saputils.find_rtl_file_location(file_name)
+				except ModuleNotFound as ex:
+					if debug:
+						print "Invalid Module Name: %s" % (host_interface_name)
+
+
+				parameters = saputils.get_module_tags(	filename = file_name, bus=self.get_bus_type())
+				self.sgm.set_parameters(s_name, parameters)
+				sm_count += 1
+
+
 
 		#check if there is a host insterface defined
 		if "INTERFACE" in self.project_tags:
 			file_name = saputils.find_rtl_file_location(self.project_tags["INTERFACE"]["filename"])
 			parameters = saputils.get_module_tags(	filename = file_name, bus=self.get_bus_type())
 			self.sgm.set_parameters(hi_name, parameters)
-		
+
+
+
+#XXX: Go through all the slaves and connect any arbitrators
+		if "SLAVES" in self.project_tags:
+			for host_name in self.project_tags["SLAVES"].keys():
+				if "BUS" in self.project_tags["SLAVES"][host_name].keys():
+					for arb_name in self.project_tags["SLAVES"][host_name]["BUS"].keys():
+						#there is an arbitrator here
+						slave_name = self.project_tags["SLAVES"][host_name]["BUS"][arb_name]
+						if debug:
+							print "arbitrator: %s attaches to %s through bus: %s" % (host_name, slave_name, arb_name)
+
+						h_name = ""
+						h_index = -1
+						h_type = Slave_Type.peripheral
+						s_name = ""
+						s_index = -1
+						s_type = Slave_Type.peripheral
+
+
+						#now to attach the arbitrator
+						p_count = self.get_number_of_slaves(Slave_Type.peripheral) 
+						m_count = self.get_number_of_slaves(Slave_Type.memory)
+
+						#find the host and slave nodes
+						for i in range (0, p_count):
+							self.sgm.get_slave_name_at(i, Slave_Type.peripheral)	
+							sn = self.sgm.get_slave_name_at(i, Slave_Type.peripheral) 
+							slave = self.sgm.get_node(sn)
+
+							if slave.name == host_name:
+								h_name = slave.unique_name
+								h_index = i
+								h_type = Slave_Type.peripheral
+
+							if slave.name == slave_name:
+								s_name = slave.unique_name
+								s_index = i
+								s_type = Slave_Type.peripheral
+								
+
+						for i in range (0, m_count):
+							self.sgm.get_slave_name_at(i, Slave_Type.memory)	
+							sn = self.sgm.get_slave_name_at(i, Slave_Type.memory) 
+							slave = self.sgm.get_node(sn)
+
+							if slave.name == host_name:
+								h_name = slave.unique_name
+								h_index = i
+								h_type = Slave_Type.memory
+
+							if slave.name == slave_name:
+								s_name = slave.unique_name
+								s_index = i
+								s_type = Slave_Type.memory
+
+						#now I have all the materialst to attach the arbitrator
+						self.add_arbitrator(	h_type,
+												h_index,
+												arb_name,
+												s_type,
+												s_index)
+	
 		return True
 
 	def get_number_of_slaves(self, slave_type):
@@ -209,7 +318,7 @@ class SapController:
 		if "constraint_files" not in self.project_tags["CONSTRAINTS"].keys():
 			self.project_tags["CONSTRAINTS"]["constraint_files"] = []
 
-		self.project_tags["CONSTRAINTS"]["constraints_files"] = [constraint_file_name]
+		self.project_tags["CONSTRAINTS"]["constraint_files"] = [constraint_file_name]
 
 	def append_constraint_file_name(self, constraint_file_name):
 		if "CONSTRAINTS" not in self.project_tags.keys():
@@ -222,8 +331,8 @@ class SapController:
 	
 	def get_constraint_file_names(self):
 		if "CONSTRAINTS" in self.project_tags.keys():
-			if "constraint_file_name" in self.project_tags["CONSTRAINTS"].keys():
-				return self.project_tags["CONSTRAINTS"]["constraint_file_name"]
+			if "constraint_files" in self.project_tags["CONSTRAINTS"].keys():
+				return self.project_tags["CONSTRAINTS"]["constraint_files"]
 
 
 		return []
@@ -331,6 +440,7 @@ class SapController:
 
 	def add_arbitrator(self, 	host_type, 
 								host_index, 
+								arbitrator_name,
 								slave_type, 
 								slave_index):
 		"""
@@ -338,9 +448,28 @@ class SapController:
 		the slave
 		"""
 		h_name = self.sgm.get_slave_name_at(host_index, host_type)
+		tags = self.sgm.get_parameters(h_name)
+		#print "h_name: " + h_name
+		if arbitrator_name not in tags["arbitrator_masters"]:
+			return False
+
 		s_name = self.sgm.get_slave_name_at(slave_index, slave_type)
 		self.sgm.connect_nodes (h_name, s_name)
+		self.sgm.set_edge_name(h_name, s_name, arbitrator_name)
+		return True
 
+	def get_connected_arbitrator_name(self,	host_type,
+											host_index,
+											slave_type,
+											slave_index):
+
+		h_name = self.sgm.get_slave_name_at(host_index, host_type)
+		tags = self.sgm.get_parameters(h_name)
+		if arbitrator_name not in tags["arbitrator_masters"]:
+			return ""
+
+		s_name = self.sgm.get_slave_name_at(slave_index, slave_type)
+		return self.get_edge_name(h_name, s_name)
 
 
 	def remove_arbitrator(self,	host_type,
@@ -353,6 +482,33 @@ class SapController:
 		h_name = gm.get_slave_name_at(host_index, host_type)
 		s_name = gm.get_slave_name_at(slave_index, slave_type)
 		self.sgm.disconnect_nodes(h_name, s_name)
+
+
+	def is_active_arbitrator_host(self, host_type, host_index):
+
+		h_name = self.sgm.get_slave_name_at(host_index, host_type)
+		tags = self.sgm.get_parameters(h_name)
+		h_node = self.sgm.get_node(h_name)
+#		print "node: " + str(h_node)
+#		print "parameters: " + str(tags)
+
+		if h_name not in tags["arbitrator_masters"]:
+			if len(tags["arbitrator_masters"]) == 0:
+				return False
+
+		if not self.sgm.is_slave_connected_to_slave(h_name):
+			return False
+
+		return True
+
+	def get_arbitrator_dict(self, host_type, host_index):
+		if not self.is_active_arbitrator_host(host_type, host_index):
+			return {}
+
+		h_name = self.sgm.get_slave_name_at(host_index, host_type)
+
+		return self.sgm.get_connected_slaves(h_name)
+
 
 	def add_slave(self, slave_name, slave_type, slave_index=-1):
 		"""
@@ -437,6 +593,7 @@ class SapController:
 		Generates the output project that can be used
 		to create a bit image
 		"""
+		self.save_config_file(self.filename)
 		try:
 			saplib.generate_project(self.filename)
 		except IOError as err:

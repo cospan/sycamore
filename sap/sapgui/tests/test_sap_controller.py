@@ -37,25 +37,65 @@ class Test (unittest.TestCase):
 		self.assertEqual(board_name, "xilinx-s3esk")
 
 	def test_generate_project(self):
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+
+		home_dir = saputils.resolve_linux_path("~")
+		self.sc.save_config_file(home_dir + "/test_out.json")
+	
+		self.sc.set_config_file_location(home_dir + "/test_out.json")
+		self.sc.generate_project()
+		
 		self.assertEqual(True, True)
 
 	def test_project_location(self):
-		self.assertEqual(True, True)
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.set_project_location("p1_location")
+		result = self.sc.get_project_location()
+
+		self.assertEqual(result, "p1_location")
 
 	def test_project_name(self):
-		self.assertEqual(True, True)
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.set_project_name("p1_name")
+		result = self.sc.get_project_name()
+
+		self.assertEqual(result, "p1_name")
 
 	def test_vendor_tools(self):
-		self.assertEqual(True, True)
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+
+		self.sc.set_vendor_tools("altera")
+		result = self.sc.get_vendor_tools()
+		self.assertEqual(result, "altera")
 
 	def test_board_name(self):
-		self.assertEqual(True, True)
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+
+		self.sc.set_board_name("bored of writing unit tests")
+		result = self.sc.get_board_name()
+		self.assertEqual(result, "bored of writing unit tests")
 
 	def test_constraint_file_name(self):
-		self.assertEqual(True, True)
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+
+		self.sc.set_constraint_file_name("bored of writing unit tests")
+		result = self.sc.get_constraint_file_names()
+
+		self.assertEqual(result[0], "bored of writing unit tests")
 
 	def test_fpga_part_number(self):
-		self.assertEqual(True, True)
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+
+		self.sc.set_fpga_part_number("bored of writing unit tests")
+		result = self.sc.get_fpga_part_number()
+		self.assertEqual(result, "bored of writing unit tests")
 
 	def test_initialize_graph(self):
 		#load a file
@@ -101,9 +141,6 @@ class Test (unittest.TestCase):
 
 		self.assertEqual(bus_name, "wishbone")
 
-	def test_new_design(self):
-		self.assertEqual(True, True)
-		
 	def test_add_slave(self):
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
 		self.sc.load_config_file(file_name)
@@ -195,7 +232,35 @@ class Test (unittest.TestCase):
 		self.sc.initialize_graph()
 
 #XXX: Test if the arbitrator can be removed
+		p_count = self.sc.get_number_of_slaves(sc.Slave_Type.peripheral)
+		m_count = self.sc.get_number_of_slaves(sc.Slave_Type.memory)
 
+		arb_host = ""
+		arb_slave = ""
+		bus_name = ""
+
+		for i in range (0, p_count):
+			name1 = self.sc.get_slave_name(sc.Slave_Type.peripheral, i)
+			if self.dbg:
+				print "testing %s for arbitration..." % (name1)
+			if self.sc.is_active_arbitrator_host(sc.Slave_Type.peripheral, i):
+				arb_host = name1
+				a_dict = self.sc.get_arbitrator_dict(sc.Slave_Type.peripheral, i)
+				for key in a_dict.keys():
+					bus_name = key
+					arb_slave = a_dict[key]
+
+		for i in range (0, m_count):
+			name1 = self.sc.get_slave_name(sc.Slave_Type.memory, i)
+			if self.sc.is_active_arbitrator_host(sc.Slave_Type.memory, i):
+				arb_host = name1
+				a_dict = self.sc.get_arbitrator_dict(sc.Slave_Type.memory, i)
+				for key in a_dict.keys():
+					bus_name = key
+					arb_slave = a_dict[key]
+
+		if self.dbg:
+			print "%s is connected to %s through %s" % (arb_host, arb_slave, bus_name)
 
 #XXX: Test if the arbitrator can be added
 

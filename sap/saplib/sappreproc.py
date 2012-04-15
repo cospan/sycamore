@@ -50,7 +50,8 @@ def generate_define_table(filestring="", debug = False):
 			except TypeError as terr:
 				print "Type Error: " + str(terr)
 			except:
-				print "error while processing : ", item, ": ",  sys.exc_info()[0]
+				if item != "project_defines.v":
+					print "error while processing : ", item, ": ",  sys.exc_info()[0]
 			continue
 
 		if item.startswith("`define"):
