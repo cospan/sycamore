@@ -98,6 +98,7 @@ def main(argv):
 	sys.path.append(sys.path[0] + "/tests")
 	sys.path.append(sys.path[0] + "/..")
 	sys.path.append(sys.path[0] + "/../saplib")
+	sys.path.append(sys.path[0] + '/../saplib/gen_scripts')
 #	print "after append"
 #	print "path: " + str(sys.path)
 
