@@ -52,6 +52,7 @@ class SapGuiController:
 			print "Error loading file: " + str(err)
 
 		self.gd = graph_drawer.GraphDrawer()
+		self.gd.set_debug_mode(debug = _debug)
 
 		builderfile = "sap_gui.glade"
 		windowname = "Sap IDE"

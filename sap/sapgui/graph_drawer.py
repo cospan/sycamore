@@ -13,12 +13,14 @@ class GraphDrawingArea(gtk.DrawingArea):
 		self.connect ( "expose_event", self.do_expose_event )
 		gobject.timeout_add(50, self.tick)
 
+
 	def tick (self):
 		self.alloc = self.get_allocation()
 		rect = gtk.gdk.Rectangle (	self.alloc.x, \
 									self.alloc.y, \
 									self.alloc.width, \
 									self.alloc.height )
+
 
 #		print "Type: " + str(type(self))
 #		if type(self.window) is NoneType:
@@ -39,11 +41,35 @@ class GraphDrawer ( GraphDrawingArea ):
 	def __init__(self):
 		GraphDrawingArea.__init__(self)
 		self.val = 0
+		self.debug = False
+
+		self.dash_size = 30
+		self.dash_total_size = 4.0
+		self.dash_width = 1.0
+
+	def set_debug_mode(self, debug):
+		self.debug = debug
 
 	def draw(self, width, height):
+	
+		cr = self.cr
+		column_width = self.get_column_width(width)
+
+		#if debug flag enabled write the debug in the top left
+		if self.debug:
+			cr.move_to(5, 10)
+			cr.set_source_rgb(0, 0, 0)
+
+			cr.show_text("debug")
+			cr.move_to(5, 20)
+			cr.show_text("width, height: " + str(width) + ", " + str(height))
+			cr.move_to(5, 30)
+			cr.show_text("column width: " + str(column_width))
+
+
+		"""
 #		print "v: " + str(self.val)
 #		self.val += 1
-		cr = self.cr
 		cr.set_source_rgb(1, 0, 0)
 		cr.rectangle (50, 50, 100, 60)
 		cr.fill()
@@ -56,11 +82,37 @@ class GraphDrawer ( GraphDrawingArea ):
 		cr.fill()
 #		cr.fill_preserve()
 		cr.stroke()
+		"""
+
+		#draw the column lines
+
+		cr.set_line_width(2)
+		cr.set_line_cap(cairo.LINE_CAP_SQUARE)
+		cr.set_dash([self.dash_size/self.dash_total_size, self.dash_size/self.dash_width], 0) 
+		
+		for i in range (1, 4):
+			cr.move_to(column_width * i, 0)
+			cr.line_to(column_width * i, height)
+
+		cr.move_to(column_width * 3, height/2)
+		cr.line_to(width, height/2)
+
+		cr.stroke()
 
 
 #		cr.set_line_width(10)
 #		cr.set_line_cap(cairo.LINE_CAP_ROUND)
 #		cr.stroke()
+
+	def get_column_width(self, screen_width=0.0):
+		#sanity check
+		if screen_width <= 1:
+			return screen_width
+
+		return screen_width / 4.0
+
+
+
 	def draw_graph(self):
 		print "drawing graph"
 
