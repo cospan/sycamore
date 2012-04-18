@@ -29,7 +29,7 @@ def usage():
 	print ""
 	print "Example:"
 	print "Test the view with arb_example.json config file"
-	print "sap_gui.py -v ./../saplib/example_projects/arb_example.json"
+	print "sap_gui.py -v ../saplib/example_projects/arb_example.json"
 	print ""
 
 
