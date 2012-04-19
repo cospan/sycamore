@@ -5,7 +5,6 @@ import gobject
 import cairo
 
 from gtk import gdk
-import graph_drawer
 
 import os
 import sys
@@ -41,17 +40,21 @@ class SapGuiController:
 		"""
 
 		import sap_controller as sc
+		import graph_drawer
 		#load the sap controller
 		self.sc = sc.SapController()
 
 		try:
 			if len(filename) > 0:
+				print "loading: " + filename
 				self.sc.load_config_file(filename)
 
 		except IOError as err:
 			print "Error loading file: " + str(err)
 
-		self.gd = graph_drawer.GraphDrawer()
+		self.sc.initialize_graph()
+
+		self.gd = graph_drawer.GraphDrawer(self.sc.get_graph_manager())
 		self.gd.set_debug_mode(debug = _debug)
 
 		builderfile = "sap_gui.glade"
@@ -122,7 +125,7 @@ def main(argv):
 				usage()
 				
 
-	app = SapGuiController()
+	app = SapGuiController(filename)
 	gtk.main()
 
 if __name__ == "__main__":

@@ -108,6 +108,9 @@ class SapController:
 
 		#attempt to load data from the tags
 		sp_count = self.sgm.get_number_of_peripheral_slaves()
+		if debug:
+			print "loading %d peripheral slaves" % sp_count
+
 		if "SLAVES" in self.project_tags:
 			for slave_name in self.project_tags["SLAVES"].keys():
 				self.add_slave(	slave_name,
@@ -132,6 +135,9 @@ class SapController:
 
 		#load all the memory slaves
 		sm_count = self.sgm.get_number_of_memory_slaves()
+		if debug:
+			print "loading %d peripheral slaves" % sm_count
+
 		if "MEMORY" in self.project_tags:
 			for slave_name in self.project_tags["MEMORY"].keys():
 				self.add_slave(		slave_name,
@@ -599,5 +605,8 @@ class SapController:
 		except IOError as err:
 			print "File Error: " + str(err)
 		return
+
+	def get_graph_manager(self):
+		return self.sgm
 
 

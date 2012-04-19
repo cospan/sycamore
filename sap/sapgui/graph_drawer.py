@@ -4,37 +4,11 @@ import gtk, gobject, cairo
 from gtk import gdk
 import math
 from types import *
-
-"""Custom Drawing Area"""
-class GraphDrawingArea(gtk.DrawingArea):
-	def __init__(self):
-		super (GraphDrawingArea, self).__init__()
-		
-		self.connect ( "expose_event", self.do_expose_event )
-		gobject.timeout_add(50, self.tick)
-
-
-	def tick (self):
-		self.alloc = self.get_allocation()
-		rect = gtk.gdk.Rectangle (	self.alloc.x, \
-									self.alloc.y, \
-									self.alloc.width, \
-									self.alloc.height )
-
-
-#		print "Type: " + str(type(self))
-#		if type(self.window) is NoneType:
-#			return True
-#		else:
-		self.window.invalidate_rect ( rect, True )        
-
-		return True # Causes timeout to tick again
-
-
-	def do_expose_event( self, widget, event ):
-#		print "expose event"
-		self.cr = self.window.cairo_create( )
-		self.draw( *self.window.get_size())
+from graph_drawing_area import GraphDrawingArea
+from graph_utils import box
+import sap_graph_manager as gm
+from sap_graph_manager import Node_Type
+from sap_graph_manager import Slave_Type
 
 
 def enum(*sequential, **named):
@@ -46,12 +20,17 @@ BOX_STYLE = enum(	'OUTLINE',
 					'SOLID')
 
 
+"""
+Custom Cairo Drawing surface
+"""
 
 class GraphDrawer ( GraphDrawingArea ):   
-	def __init__(self):
+	def __init__(self, sgm):
 		GraphDrawingArea.__init__(self)
 		self.val = 0
 		self.debug = False
+		#save the reference to the sgm
+		self.sgm = sgm
 
 		self.dash_size = 30
 		self.dash_total_size = 4.0
@@ -61,14 +40,120 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.box_width_ratio = .75
 		#ratio from width to height
 		self.box_height_ratio = .5
+
+		#the height of the slaves can change when more are added
+		self.pslave_height_ratio = .5
+		self.mslave_height_ratio = .5
+
 		#padding
 		self.x_padding = 10
 		self.y_padding = 10
+
+		#boxes
+		self.boxes = {}
+		self.boxes["host_interface"] = box()
+		self.boxes["master"] = box()
+		self.boxes["pic"] = box()
+		self.boxes["mic"] = box()
+		self.boxes["pslaves"] = []
+		self.boxes["mslaves"] = []
+
+		#initial prev_width, prev_height
+		self.prev_width = -1
+		self.prev_height = -1
+
+		ps_count = self.sgm.get_number_of_slaves(Slave_Type.peripheral)
+		ms_count = self.sgm.get_number_of_slaves(Slave_Type.memory)
+
+		for i in range (0, ps_count):
+			self.boxes["pslaves"].append(box())
+
+		for i in range (0, ms_count):
+			self.boxes["mslaves"].append(box())
+
+
+		self.prev_ps_count = ps_count
+		self.prev_ms_count = ms_count
+		
+
+
+	def calculate_box_sizes(self, width, height):
+		column_width = self.get_column_width(width)
+
+		#host interface
+		b = self.boxes["host_interface"]
+		b.width = column_width * self.box_width_ratio
+		b.height = b.width * self.box_height_ratio
+		b.x = (column_width - b.width) / 2.0
+		b.y = (height / 2.0) - b.height / 2.0
+
+		#master
+		b = self.boxes["master"]
+		b.width = column_width * self.box_width_ratio
+		b.height = height - (column_width - b.width)
+		b.x = (column_width - b.width) / 2.0 + column_width
+		b.y = (column_width - b.width) / 2.0
+
+		#periph interconnect
+		b = self.boxes["pic"]
+		b.width = column_width * self.box_width_ratio
+		b.height = (height / 2.0) - (column_width - b.width) 
+		b.x = (column_width - b.width) / 2.0 + 2 * column_width 
+		b.y = ((column_width - b.width) / 2.0) 
+
+		#memory interconnect
+		b = self.boxes["mic"]
+		b.width = column_width * self.box_width_ratio 
+		b.height = (height / 2.0) - (column_width - b.width) 
+		b.x = (column_width - b.width) / 2.0 + (2 * column_width) 
+		b.y = (column_width - b.width) / 2.0 + height / 2.0 
+
+
+		#peripheral slaves
+		for i in range (0, len(self.boxes["pslaves"])):
+			b = self.boxes["pslaves"][i]
+			b.width = column_width * self.box_width_ratio 
+			b.height = b.width * self.pslave_height_ratio  
+			b.x = (column_width - b.width) / 2.0 + (column_width * 3) 
+			b.y = (column_width - b.width) / 2.0 + \
+					i * ((column_width - b.width) + b.height)
+
+		#memory slaves
+		for i in range (0, len(self.boxes["mslaves"])):
+			b = self.boxes["mslaves"][i]
+			b.width = column_width * self.box_width_ratio 
+			b.height = b.width * self.mslave_height_ratio  
+			b.x = (column_width - b.width) / 2.0 + (column_width * 3) 
+			b.y = (column_width - b.width) / 2.0 + \
+					i * ((column_width - b.width) + b.height) + \
+					height / 2
+					
 
 	def set_debug_mode(self, debug):
 		self.debug = debug
 
 	def draw(self, width, height):
+		
+		#compare the current width and height with the previous
+		#if there is a different calculate the size of all the boxes
+		ps_count = self.sgm.get_number_of_slaves(Slave_Type.peripheral)
+		ms_count = self.sgm.get_number_of_slaves(Slave_Type.memory)
+
+		if 	width != self.prev_width or \
+			height != self.prev_height or \
+			self.prev_ps_count != ps_count or \
+			self.prev_ms_count != ms_count :
+
+			print "calculate"
+			self.calculate_box_sizes(width, height)
+
+		#save the previous values
+		self.prev_width = width
+		self.prev_height = height
+
+		self.prev_ps_count = ps_count
+		self.prev_ms_count = ms_count
+
 	
 		cr = self.cr
 		column_width = self.get_column_width(width)
@@ -77,63 +162,42 @@ class GraphDrawer ( GraphDrawingArea ):
 		if self.debug:
 			self.display_debug(width, height)
 
-		self.draw_wb_lines(width, height)
+		#self.draw_wb_lines(width, height)
 		
-		self.draw_host_interface(width, height)
-		self.draw_master(width, height)
-		self.draw_mem_interconnect(width, height)
-		self.draw_periph_interconnect(width, height)
+		self.draw_host_interface()
+		self.draw_master()
+		self.draw_mem_interconnect()
+		self.draw_periph_interconnect()
+		self.draw_periph_slaves()
+		self.draw_mem_slaves()
+		self.draw_connections(width, height)
 
 
-	def draw_host_interface(self, width, height):	
+	def draw_host_interface(self):	
 		cr = self.cr
-		column_width = self.get_column_width(width)
-		#get the box width and height
-		box_width = column_width * self.box_width_ratio
-		box_height = box_width * self.box_height_ratio
+		b = self.boxes["host_interface"]
 
-		#location of the host interface is:
-		box_x = (column_width - box_width) / 2.0
-		box_y = (height/2.0) - box_height / 2.0
-
-		self.draw_box(	box_x, box_y,
-						box_width, box_height,
+		self.draw_box(	b.x, b.y,
+						b.width, b.height,
 						text = "host interface",
 						r = 1.0, g = 0.0, b = 0.0,
 						style = BOX_STYLE.OUTLINE)
 
-	def draw_master(self, width, height):
+	def draw_master(self):
 		cr = self.cr
-		column_width = self.get_column_width(width)
-		master_width = column_width * self.box_width_ratio
-		#equal padding around box
-		master_height = height - (column_width - master_width)
-
-		#location of the master is
-		master_x = (column_width - master_width) / 2.0 + column_width
-		master_y = (column_width - master_width) / 2.0
-
-		self.draw_box(	master_x, master_y,
-						master_width, master_height,
+		b = self.boxes["master"]
+		self.draw_box(	b.x, b.y,
+						b.width, b.height,
 						text = "master",
 						r = 1.0, g = 1.0, b = 0.0,
 						style = BOX_STYLE.OUTLINE)
 
 
-	def draw_mem_interconnect(self, width, height):
+	def draw_mem_interconnect(self):
 		cr = self.cr
-		column_width = self.get_column_width(width)
-		#interconnect boxes
-		mem_ic_width = column_width * self.box_width_ratio
-
-		#interconnect is only taking up half the screen
-		mem_ic_height = (height / 2) - (column_width - mem_ic_width)
-
-		mem_ic_x = (column_width-mem_ic_width) / 2.0 + 2 * column_width
-		mem_ic_y = (column_width - mem_ic_width) / 2.0
-
-		self.draw_box(	mem_ic_x, mem_ic_y,
-						mem_ic_width, mem_ic_height,
+		b = self.boxes["mic"]
+		self.draw_box(	b.x, b.y,
+						b.width, b.height,
 						text = "memory ic",
 						r = 0.0, g = 1.0, b = 0.0,
 						style = BOX_STYLE.OUTLINE)
@@ -141,20 +205,41 @@ class GraphDrawer ( GraphDrawingArea ):
 
 
 
-	def draw_periph_interconnect(self, width, height):
+	def draw_periph_interconnect(self):
 		cr = self.cr
-		column_width = self.get_column_width(width)
-		per_ic_width = column_width * self.box_width_ratio
-		per_ic_height = (height / 2) - (column_width - per_ic_width)
-
-		per_ic_x = (column_width-per_ic_width) / 2.0 + 2 * column_width
-		per_ic_y = ((column_width - per_ic_width) / 2.0) + (height / 2)
-
-		self.draw_box(	per_ic_x, per_ic_y,
-						per_ic_width, per_ic_height,
+		b = self.boxes["pic"]
+		self.draw_box(	b.x, b.y,
+						b.width, b.height,
 						text = "periph ic",
 						r = 1.0, g = .5, b = 0.0,
 						style = BOX_STYLE.OUTLINE)
+
+
+	def draw_periph_slaves(self):
+		for i in range (0, len(self.boxes["pslaves"])):
+			name = self.sgm.get_slave_name_at(i, Slave_Type.peripheral)
+			p = self.sgm.get_node(name)
+			b = self.boxes["pslaves"][i]
+			self.draw_box(	b.x, b.y,
+							b.width, b.height,
+							text = p.name,
+							r = .75, g = .5, b = 0.0,
+							style = BOX_STYLE.OUTLINE)
+
+
+	def draw_mem_slaves(self):
+		for i in range (0, len(self.boxes["mslaves"])):
+			name = self.sgm.get_slave_name_at(i, Slave_Type.memory)
+			p = self.sgm.get_node(name)
+			b = self.boxes["mslaves"][i]
+			self.draw_box(	b.x, b.y,
+							b.width, b.height,
+							text = p.name,
+							r = .75, g = .5, b = 0.0,
+							style = BOX_STYLE.OUTLINE)
+
+
+
 
 
 
@@ -237,6 +322,11 @@ class GraphDrawer ( GraphDrawingArea ):
 		cr.move_to(5, 30)
 		cr.show_text("column width: " + str(column_width))
 
+		cr.move_to(5, 40)
+		cr.show_text("peripheral slaves: " + str(self.prev_ps_count))
+		cr.move_to(5, 50)
+		cr.show_text("memory slaves: " + str(self.prev_ms_count))
+
 
 
 
@@ -248,17 +338,55 @@ class GraphDrawer ( GraphDrawingArea ):
 		return screen_width / 4.0
 
 
+	def draw_connections(self, width, height):
+		cr = self.cr
+		column_width = self.get_column_width(width)
 
-	def draw_graph(self):
-		print "drawing graph"
+		cr.set_line_width(2)
+		cr.set_line_cap(cairo.LINE_CAP_SQUARE)
+		cr.set_dash([], 0) 
 
-	def draw_node(self):
-		print "draw node"
+		hi_b = self.boxes["host_interface"]
+		m_b = self.boxes["master"]
+		pic_b = self.boxes["pic"]
+		mic_b = self.boxes["mic"]
 
-	def draw_edge(self, node1, node2):
-		print "connecting nodes"
+		#generate host to master connection
+		cr.move_to (hi_b.x + hi_b.width, hi_b.y + hi_b.height / 2.0)
+		cr.line_to (m_b.x, m_b.y + m_b.height/2.0)
+
+		#master to peripheral interconnect
+		cr.move_to (m_b.x + m_b.width, pic_b.y + pic_b.height / 2.0)
+		cr.line_to (pic_b.x, pic_b.y + pic_b.height / 2.0)
+
+		#master to memory interconnect
+		cr.move_to (m_b.x + m_b.width, mic_b.y + mic_b.height / 2.0)
+		cr.line_to (mic_b.x, mic_b.y + mic_b.height / 2.0)
+
+		#peripheral interconnect to peripheral slaves
+		for i in range (0, len(self.boxes["pslaves"])):
+			b = self.boxes["pslaves"][i]
+			cr.move_to (pic_b.x + pic_b.width, \
+						(column_width - b.width) / 2.0 + \
+						i * ((column_width - b.width) + b.height) + \
+						b.height / 2.0)
+
+			cr.line_to (b.x, b.y + b.height / 2.0)
+
+		#memory interconnect to memory slaves
+		for i in range (0, len(self.boxes["mslaves"])):
+			b = self.boxes["mslaves"][i]
+			cr.move_to (mic_b.x + mic_b.width, \
+						(column_width - b.width) / 2.0 + \
+						i * ((column_width - b.width) + b.height) + \
+						b.height / 2.0 +\
+						height / 2.0)
+
+			cr.line_to (b.x, b.y + b.height / 2.0)
 
 
+
+		cr.stroke()
 
 
 def run (Widget):
