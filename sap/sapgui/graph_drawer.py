@@ -126,12 +126,21 @@ class GraphDrawer ( GraphDrawingArea ):
 							| gtk.gdk.POINTER_MOTION_MASK
 							| gtk.gdk.POINTER_MOTION_HINT_MASK)
 
+		self.selected_node = None
+
 		
 	def set_moving_state(self, moving):
 		self.moving = moving
 
 	def set_button_state(self, button_state):
 		self.button_state = button_state
+		if button_state == 1:
+			node_name = self.get_selected_name(self.p_x, self.p_y)
+			self.selected_node = self.sgm.get_node(node_name)
+		else:
+			self.selected_node = None
+
+
 
 	def set_pointer_value(self, x, y):
 		self.p_x = x
@@ -397,6 +406,13 @@ class GraphDrawer ( GraphDrawingArea ):
 		cr.move_to(5, 90)
 		cr.show_text("moving: %6d" % self.moving)
 
+		cr.move_to(5, 100)
+		node_name = "None"
+		if not (self.selected_node is None):
+			node_name = self.selected_node.name
+
+		cr.show_text("selected node: %s" % node_name )
+
 
 
 
@@ -465,24 +481,24 @@ class GraphDrawer ( GraphDrawingArea ):
 		b = self.boxes["host_interface"]
 		if b.in_bounding_box(x, y):	
 			#return the name
-			name = gm.get_unique_name("host_interface", Node_Type.host_interface)
+			name = gm.get_unique_name("Host Interface", Node_Type.host_interface)
 		
 		#check master
 		b = self.boxes["master"]
 		if b.in_bounding_box(x, y):	
-			name = gm.get_unique_name("master", Node_Type.master)
+			name = gm.get_unique_name("Master", Node_Type.master)
 
 		#check memory interconnect
 		b = self.boxes["mic"]
 		if b.in_bounding_box(x, y):	
-			name = gm.get_unique_name("memory_interconnect", Node_Type.master)
+			name = gm.get_unique_name("Memory", Node_Type.memory_interconnect)
 
 
 
 		#check peripheral interconnect
 		b = self.boxes["pic"]
 		if b.in_bounding_box(x, y):	
-			name = gm.get_unique_name("peripheral_interconnect", Node_Type.master)
+			name = gm.get_unique_name("Peripherals", Node_Type.peripheral_interconnect)
 
 
 
