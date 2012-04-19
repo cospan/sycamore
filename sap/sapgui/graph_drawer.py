@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import pygtk
+pygtk.require('2.0')
 import gtk, gobject, cairo
 from gtk import gdk
 import math
@@ -19,6 +21,38 @@ def enum(*sequential, **named):
 BOX_STYLE = enum(	'OUTLINE', 
 					'SOLID')
 
+def motion_notify_event (widget, event):
+	x = 0
+	y = 0
+	state = event.state
+
+	if event.is_hint:
+		x, y, state = event.window.get_pointer()
+	else:
+		x = event.x
+		y = event.y
+		state = event.state
+
+	widget.set_pointer_value(x, y)
+
+	if state & gtk.gdk.BUTTON1_MASK:
+		widget.set_moving_state(1)
+
+
+	return True
+
+def button_press_event (widget, event):
+	x, y, state = event.window.get_pointer()
+	widget.set_button_state(1)	
+	widget.set_pointer_value(x, y)
+	return True
+
+def button_release_event (widget, event):
+	x, y, state = event.window.get_pointer()
+	widget.set_button_state(0)
+	widget.set_pointer_value(x, y)
+	widget.set_moving_state(0)
+	return True
 
 """
 Custom Cairo Drawing surface
@@ -74,7 +108,34 @@ class GraphDrawer ( GraphDrawingArea ):
 
 		self.prev_ps_count = ps_count
 		self.prev_ms_count = ms_count
+
+		#add event handling for the mouse
+		self.p_x = 0
+		self.p_y = 0
+		self.button_state = 0
+		self.moving = 0
+
+		self.connect("motion_notify_event", motion_notify_event)
+		self.connect("button_press_event", button_press_event)
+		self.connect("button_release_event", button_release_event)
+
+		self.set_events(	gtk.gdk.EXPOSURE_MASK
+							| gtk.gdk.LEAVE_NOTIFY_MASK
+							| gtk.gdk.BUTTON_PRESS_MASK
+							| gtk.gdk.BUTTON_RELEASE_MASK
+							| gtk.gdk.POINTER_MOTION_MASK
+							| gtk.gdk.POINTER_MOTION_HINT_MASK)
+
 		
+	def set_moving_state(self, moving):
+		self.moving = moving
+
+	def set_button_state(self, button_state):
+		self.button_state = button_state
+
+	def set_pointer_value(self, x, y):
+		self.p_x = x
+		self.p_y = y
 
 
 	def calculate_box_sizes(self, width, height):
@@ -223,7 +284,7 @@ class GraphDrawer ( GraphDrawingArea ):
 			self.draw_box(	b.x, b.y,
 							b.width, b.height,
 							text = p.name,
-							r = .75, g = .5, b = 0.0,
+							r = 0.0, g = 0.0, b = 1.0,
 							style = BOX_STYLE.OUTLINE)
 
 
@@ -235,7 +296,7 @@ class GraphDrawer ( GraphDrawingArea ):
 			self.draw_box(	b.x, b.y,
 							b.width, b.height,
 							text = p.name,
-							r = .75, g = .5, b = 0.0,
+							r = 1.0, g = 0.0, b = 1.0,
 							style = BOX_STYLE.OUTLINE)
 
 
@@ -327,6 +388,15 @@ class GraphDrawer ( GraphDrawingArea ):
 		cr.move_to(5, 50)
 		cr.show_text("memory slaves: " + str(self.prev_ms_count))
 
+		cr.move_to(5, 60)
+		cr.show_text("pointer x: %6d" % self.p_x)
+		cr.move_to(5, 70)
+		cr.show_text("pointer y: %6d" % self.p_y)
+		cr.move_to(5, 80)
+		cr.show_text("buttons state: %4d" % self.button_state)
+		cr.move_to(5, 90)
+		cr.show_text("moving: %6d" % self.moving)
+
 
 
 
@@ -387,6 +457,53 @@ class GraphDrawer ( GraphDrawingArea ):
 
 
 		cr.stroke()
+
+	def get_selected_name(self, x, y):
+		name = ""
+
+		#check host interface
+		b = self.boxes["host_interface"]
+		if b.in_bounding_box(x, y):	
+			#return the name
+			name = gm.get_unique_name("host_interface", Node_Type.host_interface)
+		
+		#check master
+		b = self.boxes["master"]
+		if b.in_bounding_box(x, y):	
+			name = gm.get_unique_name("master", Node_Type.master)
+
+		#check memory interconnect
+		b = self.boxes["mic"]
+		if b.in_bounding_box(x, y):	
+			name = gm.get_unique_name("memory_interconnect", Node_Type.master)
+
+
+
+		#check peripheral interconnect
+		b = self.boxes["pic"]
+		if b.in_bounding_box(x, y):	
+			name = gm.get_unique_name("peripheral_interconnect", Node_Type.master)
+
+
+
+		#check the peripheral slaves
+		for i in range (0, len(self.boxes["pslaves"])):
+			pname = self.sgm.get_slave_name_at(i, Slave_Type.peripheral)
+			b = self.boxes["pslaves"][i]
+			if b.in_bounding_box(x, y):	
+				name = pname
+
+
+		#check the memory slaves
+		for i in range (0, len(self.boxes["mslaves"])):
+			mname = self.sgm.get_slave_name_at(i, Slave_Type.memory)
+			b = self.boxes["mslaves"][i]
+			if b.in_bounding_box(x, y):	
+				name = mname
+
+		return name
+
+
 
 
 def run (Widget):
