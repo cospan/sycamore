@@ -36,22 +36,23 @@ def motion_notify_event (widget, event):
 	widget.set_pointer_value(x, y)
 
 	if state & gtk.gdk.BUTTON1_MASK:
-		widget.set_moving_state(1)
+		widget.start_moving()
+#		widget.set_moving_state(1)
 
 
 	return True
 
 def button_press_event (widget, event):
 	x, y, state = event.window.get_pointer()
-	widget.set_button_state(1)	
+	widget.button_press()
 	widget.set_pointer_value(x, y)
 	return True
 
 def button_release_event (widget, event):
 	x, y, state = event.window.get_pointer()
-	widget.set_button_state(0)
 	widget.set_pointer_value(x, y)
-	widget.set_moving_state(0)
+	widget.stop_moving()
+	widget.button_release()
 	return True
 
 """
@@ -127,20 +128,122 @@ class GraphDrawer ( GraphDrawingArea ):
 							| gtk.gdk.POINTER_MOTION_HINT_MASK)
 
 		self.selected_node = None
+		self.rel_x = 0
+		self.rel_y = 0
 
+		self.mov_x = 0
+		self.mov_y = 0
+
+	def can_node_move(self, node):
+		#can only moved 
+		if node is None:
+			return False
+
+		if node.node_type != Node_Type.slave:
+			return False
+
+		#can't move the DRT
+		if node.slave_type == Slave_Type.peripheral and node.slave_index == 0:
+			return False
+
+		return True
 		
-	def set_moving_state(self, moving):
-		self.moving = moving
+	def start_moving(self):
+		if self.moving == 1:
+			return
+		# the node should have been selected in set_button_state
+		node = self.selected_node
+		if self.can_node_move(node):
+			#store the pointer's relative position to the top of the box
+			b = None
+			if node.slave_type == Slave_Type.peripheral:
+				b = self.boxes["pslaves"][node.slave_index]
+			else:
+				b = self.boxes["mslaves"][node.slave_index]
 
-	def set_button_state(self, button_state):
-		self.button_state = button_state
-		if button_state == 1:
-			node_name = self.get_selected_name(self.p_x, self.p_y)
-			self.selected_node = self.sgm.get_node(node_name)
+			self.rel_x = self.p_x - b.x 
+			self.rel_y = self.p_y - b.y
+			
+			#tell everyone we are moving
+			self.moving = 1
+
+	def stop_moving (self):
+		if self.moving == 0:
+			return
+
+		if self.debug:
+			print "dropping slave"
+
+		self.moving = 0
+		node = self.selected_node
+
+		cw = self.get_column_width(self.prev_width)
+		sc_left = cw * 3
+		sc_right = cw * 4
+		sc_top = 0
+		sc_bot = self.prev_height
+		#check to see if the slave is within the slave column
+
+		b = None
+		if node.slave_type == Slave_Type.peripheral:
+			b = self.boxes["pslaves"][node.slave_index]
 		else:
-			self.selected_node = None
+			b = self.boxes["mslaves"][node.slave_index]
+
+		#check if were are within the slave area
+		if self.debug:
+			print "check to see if we're in slave area"
+
+		if self.mov_x < sc_left:
+			return
+		if self.mov_x > sc_right:
+			return
+		if self.mov_y < sc_top:
+			return
+		if self.mov_y > sc_bot:
+			return
+
+		if self.debug:
+			print "in slave area"
+
+		mid_x = self.mov_x + (b.width / 2.0)
+		mid_y = self.mov_y + (b.height / 2.0)
 
 
+#		drop_type = None
+		sl = []
+		if mid_y < (self.prev_height / 2.0):
+			if self.debug:
+				print "in peripheral bus"
+#			drop_type = Slave_Type.peripheral
+			sl = self.boxes["pslaves"]
+
+		else:
+			if self.debug:
+				print "in memory bus"
+#			drop_type = Slave_Type.memory
+			sl = self.boxes["mslaves"]
+
+		#now find where in the bus it is dropped
+		drop_index = 0
+		for slave_box in sl:
+			if mid_y < slave_box.y + (slave_box.height / 2.0):
+				break
+			else:
+				drop_index += 1
+
+		print "drop location is at %d" % drop_index
+
+
+	
+	def button_press(self):
+		node_name = self.get_selected_name(self.p_x, self.p_y)
+		if len(node_name) > 0:
+			self.selected_node = self.sgm.get_node(node_name)
+
+
+	def button_release(self):
+		self.selected_node = None
 
 	def set_pointer_value(self, x, y):
 		self.p_x = x
@@ -241,6 +344,7 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.draw_periph_slaves()
 		self.draw_mem_slaves()
 		self.draw_connections(width, height)
+		self.draw_moving()
 
 
 	def draw_host_interface(self):	
@@ -287,6 +391,12 @@ class GraphDrawer ( GraphDrawingArea ):
 
 	def draw_periph_slaves(self):
 		for i in range (0, len(self.boxes["pslaves"])):
+			#if there is a box moving don't draw it here
+			if self.moving and not (self.selected_node is None):
+				if self.selected_node.slave_type == Slave_Type.peripheral\
+					and self.selected_node.slave_index == i:
+					continue
+
 			name = self.sgm.get_slave_name_at(i, Slave_Type.peripheral)
 			p = self.sgm.get_node(name)
 			b = self.boxes["pslaves"][i]
@@ -299,6 +409,11 @@ class GraphDrawer ( GraphDrawingArea ):
 
 	def draw_mem_slaves(self):
 		for i in range (0, len(self.boxes["mslaves"])):
+			#if there is a box moving don't draw it here
+			if self.moving and not (self.selected_node is None):
+				if self.selected_node.slave_type == Slave_Type.memory \
+					and self.selected_node.slave_index == i:
+					continue
 			name = self.sgm.get_slave_name_at(i, Slave_Type.memory)
 			p = self.sgm.get_node(name)
 			b = self.boxes["mslaves"][i]
@@ -308,10 +423,27 @@ class GraphDrawer ( GraphDrawingArea ):
 							r = 1.0, g = 0.0, b = 1.0,
 							style = BOX_STYLE.OUTLINE)
 
+	def draw_moving(self):
+		if self.moving == 0:
+			return
 
+		node = None
+		b = None
+		node = self.selected_node
+		if node.slave_type == Slave_Type.peripheral:
+			b = self.boxes["pslaves"][node.slave_index]
 
+		else:
+			b = self.boxes["mslaves"][node.slave_index]
+			
+		self.mov_x = self.p_x - self.rel_x
+		self.mov_y = self.p_y - self.rel_y
 
-
+		self.draw_box(	self.mov_x, self.mov_y,
+						b.width, b.height,
+						text = node.name,
+						r = 0.0, g = 0.5, b = 1.0,
+						style = BOX_STYLE.OUTLINE)
 
 
 	def draw_box (		self, 
@@ -413,6 +545,8 @@ class GraphDrawer ( GraphDrawingArea ):
 
 		cr.show_text("selected node: %s" % node_name )
 
+
+		
 
 
 
