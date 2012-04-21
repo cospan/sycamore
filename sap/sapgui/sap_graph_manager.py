@@ -137,6 +137,10 @@ class SapGraphManager:
 
 
 	def move_slave(self, from_index, to_index, slave_type):
+
+		if from_index == to_index:
+			return
+
 		if slave_type is None:
 			raise SlaveError ("Slave Type must be specified")
 
@@ -151,6 +155,10 @@ class SapGraphManager:
 		"""
 		Move the slaves from the from_index to the to index
 		"""
+		s_count = self.get_number_of_peripheral_slaves()
+		if to_index >= s_count:
+			to_index = s_count - 1
+
 		if from_index == to_index:
 			return
 
@@ -259,6 +267,15 @@ class SapGraphManager:
 		"""
 		Move the slave from the from_index to the to_index
 		"""
+		s_count = self.get_number_of_memory_slaves()
+		if to_index >= s_count:
+			to_index = s_count - 1
+
+
+		if from_index == to_index:
+			return
+
+
 		graph_dict = self.get_nodes_dict()
 
 		#find the slave at the from_index

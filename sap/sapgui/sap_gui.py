@@ -56,6 +56,9 @@ class SapGuiController:
 
 		self.gd = graph_drawer.GraphDrawer(self.sc.get_graph_manager())
 		self.gd.set_debug_mode(debug = _debug)
+		self.gd.set_slave_add_callback(self.on_slave_add)
+		self.gd.set_slave_move_callback(self.on_slave_move)
+		self.gd.set_slave_remove_callback(self.on_slave_remove)
 
 		builderfile = "sap_gui.glade"
 		windowname = "Sap IDE"
@@ -75,10 +78,53 @@ class SapGuiController:
 #		self.drawing_area = builder.get_object("cairo_canvas")
 		self.window.connect("destroy", gtk.main_quit)
 		self.window.show()
-
-
-
 		return
+
+	def on_slave_add(self, node, slave_type, index):
+		"""
+		when a user visually drops a slave box into a valid location
+		in one of the slave buses this gets called
+		"""
+		print "entered on slave add"
+
+		#add the slave into the slave graph
+		self.sc.add_slave(node.name, slave_type, index) 
+		self.gd.force_update()
+		return True
+
+	def on_slave_remove(self, slave_type, index):
+		"""
+		when a user visually removes a slave box
+		"""
+		print "entered on slave remove"
+		#remove the slave from the slave graph
+		self.sc.remove_slave(slave_type, index)
+		self.gd.force_update()
+		return True
+
+	def on_slave_move(	self, 
+						from_type, 
+						from_index, 
+						to_type, 
+						to_index):
+		"""
+		when a previously existing slave is moved
+		"""
+		print "entered on_slave_move"
+		if from_type == to_type and from_index == to_index:
+			return False
+
+		name = self.sc.get_slave_name(from_type, from_index)
+		self.sc.move_slave(
+							name,
+							from_type,
+							from_index,
+							to_type,
+							to_index)
+
+		self.gd.force_update()
+		return True
+
 
 
 	def on_file_quit(self, widget):
