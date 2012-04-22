@@ -1,6 +1,7 @@
 import os
 import sys
 import string
+import glob
 import sappreproc
 import saparbitrator
 
@@ -400,3 +401,63 @@ def read_clock_rate(constraint_filename, debug = False):
 	if debug:
 		print "Clock Rate: " + clock_rate
 	return clock_rate
+
+
+def get_slave_list(bus = "wishbone", debug = False):
+	if debug:
+		print "in get slave list"
+	base_dir = os.getenv("SAPLIB_BASE")	
+	directory = base_dir + "/hdl/rtl/" + bus + "/slave"
+
+	file_list = _get_file_recursively(directory)
+	
+	if debug:
+		print "verilog files: "
+	for f in file_list:
+		if debug:
+			print "\t" + f
+
+	slave_list = []
+	#check to see if the files are a wishbone slave file
+	for f in file_list:
+		fin = None
+		data = ""
+		try:
+			fin = open(f, "r")
+			data = fin.read()
+			fin.close()
+		except IOError as err:
+			if debug:
+				print "failed to open: " + str(err)
+
+		if "DRT_ID" not in data:
+			continue
+		if "DRT_FLAGS" not in data:
+			continue
+		if "DRT_SIZE" not in data:
+			continue
+
+		name = f.split("/")[-1]
+		if name == "wishbone_slave_template.v":
+			continue
+
+		slave_list.append(f)
+
+	if debug:
+		print "slave list: "
+		for f in slave_list:
+			print "\t" + f
+
+def _get_file_recursively(directory):
+	file_dir_list = glob.glob(directory + "/*")
+	file_list = []
+	for f in file_dir_list:
+		if (os.path.isdir(f)):
+			if 	(f.split("/")[-1] != "sim"): 
+				file_list += _get_file_recursively(f) 
+		elif (os.path.isfile(f)):
+			if f.endswith(".v"):
+				file_list.append(f)
+
+	return file_list
+

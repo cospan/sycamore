@@ -4,7 +4,7 @@ import gtk
 import gobject
 import cairo
 
-from gtk import gdk
+from gtk.gdk  import Pixbuf
 
 import os
 import sys
@@ -69,13 +69,46 @@ class SapGuiController:
 		builder.connect_signals(self)
 
 		self.window = builder.get_object("main_window")
-#		print "main_window: " + str(self.window)
-		hpaned = builder.get_object("mainhpanel")
-#		print "hpaned: " + str(hpaned)
+		self.main_view = builder.get_object("mainhpanel") 
+		self.project_view = builder.get_object("project_view")
+		self.project_view.set_size_request(150, 200)
+		self.gd.set_size_request(400, 200)
 		self.gd.show()
-		hpaned.add2(self.gd)
 
-#		self.drawing_area = builder.get_object("cairo_canvas")
+#slave icon view and property view
+		self.graph_pane = gtk.HPaned()
+		self.graph_pane.show()
+
+		self.main_view.add(self.graph_pane)
+
+		self.prop_slave_view = gtk.VPaned()
+		self.prop_slave_view.set_size_request(200, -1)
+		self.prop_slave_view.show()
+
+
+		#create an icon view and model for it 
+		self.slave_icon_view = gtk.IconView()
+		self.slave_icon_view.show()
+
+		#setup the icon model
+		self.slave_list = gtk.ListStore(Pixbuf, str)
+#		self.slave_list.set_selection_mode(
+		self.setup_slave_icon_model(self.slave_list)
+		self.slave_icon_view.set_model(self.slave_list)
+
+		self.prop_slave_view.add1(self.slave_icon_view)
+
+		#add the graph drawer and property/slave list to the graph_pane
+		self.graph_pane.add1(self.gd)
+		self.graph_pane.add2(self.prop_slave_view)
+
+
+
+
+
+
+#		self.main_view.add2(self.gd)
+
 		self.window.connect("destroy", gtk.main_quit)
 		self.window.show()
 		return
@@ -125,6 +158,20 @@ class SapGuiController:
 		self.gd.force_update()
 		return True
 
+	
+	def setup_slave_icon_model(self, ic_model):
+
+		self.slave_icon_view.set_pixbuf_column(0)
+		self.slave_icon_view.set_text_column(1)
+		
+		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size("./images/slave_icon.png", 64, 128)
+
+		print "adding initial icon list"
+		ic_model.append([pixbuf, "hi"])	
+		ic_model.append([pixbuf, "sup"])	
+		
+
+
 
 
 	def on_file_quit(self, widget):
@@ -173,6 +220,8 @@ def main(argv):
 
 	app = SapGuiController(filename)
 	gtk.main()
+
+
 
 if __name__ == "__main__":
 	main(sys.argv[1:])

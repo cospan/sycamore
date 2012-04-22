@@ -204,7 +204,7 @@
             <property name="can_focus">True</property>
             <property name="position">3</property>
             <child>
-              <object class="GtkVBox" id="vbox3">
+              <object class="GtkVBox" id="project_view">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>

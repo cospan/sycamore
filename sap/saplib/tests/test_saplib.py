@@ -16,12 +16,6 @@ class Test (unittest.TestCase):
 		#print "debug: " + str(dbg)
 		return
 
-
-	def test_get_slave_list(self):
-		"""test the query slave function"""
-		result = saplib.get_slave_list(bus = "wishbone")
-		self.assertEqual((len(result) > 0), False)
-
 	def test_get_interface_list(self):
 		"""test the query handler function"""
 		result = saplib.get_interface_list(bus = "wishbone")

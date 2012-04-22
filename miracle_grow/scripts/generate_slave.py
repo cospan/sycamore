@@ -87,12 +87,12 @@ def remove_slave_dir(mg_path = "", slavename = ""):
 		try:
 			shutil.rmtree(mg_path + "/sim/wishbone/slave/" + slavename)
 		except shutil.error, err:
-			print "no files in that slave sim direcotry"
+			print "no files in that slave sim directory"
 
 	
 
 if __name__=="__main__":
-	#assume we are in <sycamore>/miragle_grow/scripts
+	#assume we are in <sycamore>/miracle_grow/scripts
 	global _verbose 
 	global _debug
 	global _kill

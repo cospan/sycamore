@@ -5,11 +5,7 @@ import shutil
 import json
 import saputils
 import sapproject
-
-def get_slave_list (bus="wisbone"):
-	"""Return a list of the slaves associated with bus"""
-	slave_list = []
-	return slave_list
+import glob
 
 def get_interface_list (bus="wishbone"):
 	"""Return a list of interfaces associates with bus"""

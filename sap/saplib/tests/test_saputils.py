@@ -171,6 +171,9 @@ class Test (unittest.TestCase):
 		self.assertEqual(len(clock_rate) > 0, True)
 
 
+	def test_get_slave_list(self):
+		slave_list = saputils.get_slave_list(debug=True)
+
 if __name__ == "__main__":
 	sys.path.append (sys.path[0] + "/../")
 	unittest.main()
