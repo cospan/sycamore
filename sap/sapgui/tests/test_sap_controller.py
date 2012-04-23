@@ -143,6 +143,24 @@ class Test (unittest.TestCase):
 
 		self.assertEqual(bus_name, "wishbone")
 
+	def test_rename_slave(self):
+		
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+
+		filename = saputils.find_rtl_file_location("wb_console.v")
+
+		self.sc.rename_slave(sc.Slave_Type.peripheral, 1, "name1")
+
+		name = self.sc.get_slave_name(sc.Slave_Type.peripheral, 1)
+
+	
+		self.assertEqual(name, "name1")
+
+
+
+
 	def test_add_slave(self):
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
 		self.sc.load_config_file(file_name)

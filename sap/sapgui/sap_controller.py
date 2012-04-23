@@ -535,6 +535,13 @@ class SapController:
 
 		return self.sgm.get_connected_slaves(h_name)
 
+	def rename_slave(self, slave_type, index, new_name):
+		"""
+		finds a slave by type and index and renames it
+		"""
+
+		#get the slave_node
+		self.sgm.rename_slave(slave_type, index, new_name)
 
 	def add_slave(self, name, filename, slave_type, slave_index=-1):
 		"""

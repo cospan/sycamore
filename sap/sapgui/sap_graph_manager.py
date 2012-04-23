@@ -113,6 +113,16 @@ class SapGraphManager:
 		slave_name = self.get_slave_name_at(count - 1, slave_type)
 		self.graph.remove_node(slave_name)
 
+	def rename_slave(self, slave_type, slave_index, new_name):
+		current_name = self.get_slave_name_at(slave_index, slave_type) 
+		node = self.get_node(current_name)
+
+		unique_name = get_unique_name(new_name, Node_Type.slave, slave_type, slave_index)
+		
+		node.name = new_name
+		node.unique_name = unique_name
+		self.graph = nx.relabel_nodes (	self.graph, \
+									{current_name : unique_name}) 
 
 	def get_slave_name_at(self, index, slave_type):
 		if slave_type is None:

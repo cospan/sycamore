@@ -58,6 +58,15 @@ class Test (unittest.TestCase):
 		self.assertEqual(size, 1)	
 
 	
+	def test_rename_slave(self):
+		if self.dbg:
+			print "renaming slave"
+		self.sgm.add_node ("name1", gm.Node_Type.slave, gm.Slave_Type.peripheral, 0)
+		self.sgm.rename_slave(gm.Slave_Type.peripheral, 0, "name2")
+		name = self.sgm.get_slave_name_at(0, gm.Slave_Type.peripheral)
+		node = self.sgm.get_node(name)
+		name = node.name
+		self.assertEqual(name, "name2")
 
 	def test_get_number_of_peripheral_slaves(self):
 
