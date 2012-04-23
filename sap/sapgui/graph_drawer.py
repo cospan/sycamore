@@ -142,21 +142,54 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.slave_move_callback = None
 		self.new_slave = 0
 
-	def add_new_slave(self, new_node):
+
+		#initialize drag receive
+		self.drag_dest_set(	gtk.DEST_DEFAULT_ALL, \
+							[], \
+							gtk.gdk.ACTION_COPY)
+
+		self.drag_dest_add_text_targets()
+
+		self.connect("drag-data-received", self.on_drag_data_received)
+
+
+	def on_drag_data_received(self, widget, drag_content, x, y, data, info, my_data):
 		"""
-		adds a new slave visually, when the slave is actually
-		dropped then the sap_controller will actually add the
-		real device, so this is more a means to visually add
-		a slave
+		a slave has been dragged to this window and dropped
 		"""
+		text = data.get_text()
+		print "graph drawer received text: %s" % text
+		if not self.in_slave_column(x, y):
+			return
 
-		#set the new slave as the selected slave 
+		if self.debug:
+			print "in slave area"
 
-		#fake a move input, this will tell the graph drawer to
-		#draw the slave moving
+		drop_type = None
+		sl = []
+		if y < (self.prev_height / 2.0):
+			if self.debug:
+				print "in peripheral bus"
+			drop_type = Slave_Type.peripheral	
+			sl = self.boxes["pslaves"]
+		else:
+			drop_type = Slave_Type.memory
+			sl = self.boxes["mslaves"]
+		
+		drop_index = 0
+		for slave_box in sl:
+			if y < slave_box.y + (slave_box.height / 2.0):
+				break
+			else:
+				drop_index += 1
 
-		#setup the relative position and a fake pointer location
-		#off the screen
+		if self.debug:
+			print "drop location is at %d" % drop_index
+
+		if (self.slave_add_callback is not None):
+			self.slave_add_callback(text, drop_type, drop_index)
+
+
 
 	def set_slave_add_callback(self, slave_add_callback):
 		self.slave_add_callback = slave_add_callback
@@ -200,20 +233,20 @@ class GraphDrawer ( GraphDrawingArea ):
 			#tell everyone we are moving
 			self.moving = 1
 
-	def in_slave_column(self):
+	def in_slave_column(self, x, y):
 		cw = self.get_column_width(self.prev_width)
 		sc_left = cw * 3
 		sc_right = cw * 4
 		sc_top = 0
 		sc_bot = self.prev_height
 
-		if self.mov_x < sc_left:
+		if x < sc_left:
 			return False
-		if self.mov_x > sc_right:
+		if x > sc_right:
 			return False
-		if self.mov_y < sc_top:
+		if y < sc_top:
 			return False
-		if self.mov_y > sc_bot:
+		if y > sc_bot:
 			return False
 
 		return True
@@ -267,7 +300,7 @@ class GraphDrawer ( GraphDrawingArea ):
 			if (self.slave_remove_callback is not None):
 				self.slave_remove_callback(node.slave_type, node.slave_index)
 
-		if not self.in_slave_column():
+		if not self.in_slave_column(self.mov_x, self.mov_y):
 			return
 
 		if self.debug:
@@ -302,39 +335,16 @@ class GraphDrawer ( GraphDrawingArea ):
 		if self.debug:
 			print "drop location is at %d" % drop_index
 
-		if self.new_slave == 1:
-			if self.debug:
-				print "adding new slave"
-			if (self.slave_add_callback is not None):
-				self.slave_add_callback(node, drop_type, drop_index)
+		if self.debug:
+			print "moving existing slave"
 
-		else:
-			if self.debug:
-				print "moving existing slave"
-
-			b = None
-			result = False
-			if (self.slave_move_callback is not None):
-				result = self.slave_move_callback(	node.slave_type,
-													node.slave_index,
-													drop_type,
-													drop_index)
-
-#			if result:
-
-#				if node.slave_type == Slave_Type.peripheral:
-#					b = self.boxes["pslaves"][node.slave_index]
-#					self.boxes["pslaves"].remove(b)
-#				else:
-#					b = self.boxes["mslaves"][node.slave_index]
-#					print "index: " + str(node.slave_index)
-#					self.boxes["mslaves"].remove(b)
-#
-#				if drop_type == Slave_Type.peripheral:
-#					self.boxes["pslaves"].insert(drop_index, b)
-#				else:
-#					self.boxes["mslaves"].insert(drop_index, b)
-
+		b = None
+		result = False
+		if (self.slave_move_callback is not None):
+			result = self.slave_move_callback(	node.slave_type,
+												node.slave_index,
+												drop_type,
+												drop_index)
 		
 	
 	def button_press(self):

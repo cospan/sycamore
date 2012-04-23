@@ -115,6 +115,7 @@ class Test (unittest.TestCase):
 		self.sc.initialize_graph()
 
 		self.sc.add_slave(	"mem1",
+							file_name,
 							sc.Slave_Type.memory)
 
 		p_count = self.sc.get_number_of_slaves(sc.Slave_Type.peripheral)
@@ -148,6 +149,7 @@ class Test (unittest.TestCase):
 		self.sc.initialize_graph()
 
 		self.sc.add_slave(	"mem1",
+							None,
 							sc.Slave_Type.memory)
 
 		p_count = self.sc.get_number_of_slaves(sc.Slave_Type.peripheral)
@@ -168,8 +170,10 @@ class Test (unittest.TestCase):
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
 		self.sc.load_config_file(file_name)
 		self.sc.initialize_graph()
+		filename = saputils.find_rtl_file_location("wb_console.v")
 
 		self.sc.add_slave(	"test",
+							filename,
 							sc.Slave_Type.peripheral)
 
 		name1 = self.sc.get_slave_name(sc.Slave_Type.peripheral, 2)
@@ -187,10 +191,13 @@ class Test (unittest.TestCase):
 		self.sc.load_config_file(file_name)
 		self.sc.initialize_graph()
 
+		filename = saputils.find_rtl_file_location("wb_console.v")
 		self.sc.add_slave(	"test1",
+							filename,
 							sc.Slave_Type.memory)
 
 		self.sc.add_slave(	"test2",
+							filename,
 							sc.Slave_Type.memory)
 
 		m_count = self.sc.get_number_of_slaves(sc.Slave_Type.memory)
@@ -210,8 +217,10 @@ class Test (unittest.TestCase):
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
 		self.sc.load_config_file(file_name)
 		self.sc.initialize_graph()
+		filename = saputils.find_rtl_file_location("wb_console.v")
 
 		self.sc.add_slave(	"test",
+							filename,	
 							sc.Slave_Type.peripheral)
 
 		name1 = self.sc.get_slave_name(sc.Slave_Type.peripheral, 2)

@@ -60,7 +60,8 @@ class SapController:
 			self.set_bus_type("wishbone")
 		elif self.project_tags["TEMPLATE"] == "axie_template.json":
 			self.set_bus_type("axie")
-
+			
+			
 		#add the nodes that are always present
 		self.sgm.add_node(	"Host Interface", 
 							Node_Type.host_interface)
@@ -70,7 +71,9 @@ class SapController:
 							Node_Type.memory_interconnect)
 		self.sgm.add_node(	"Peripherals", 
 							Node_Type.peripheral_interconnect)
+
 		self.add_slave(		"DRT",
+							None,
 							Slave_Type.peripheral,
 							slave_index = 0)
 
@@ -113,12 +116,22 @@ class SapController:
 
 		if "SLAVES" in self.project_tags:
 			for slave_name in self.project_tags["SLAVES"].keys():
-				self.add_slave(	slave_name,
-								Slave_Type.peripheral,
-								slave_index = sp_count)
 
-				s_name = gm.get_unique_name(slave_name, Node_Type.slave, Slave_Type.peripheral, sp_count)
 				file_name = self.project_tags["SLAVES"][slave_name]["filename"]
+				if "device_rom_table" in file_name:
+					file_name = None
+
+				if file_name is not None:
+					file_name = saputils.find_rtl_file_location(file_name)
+
+
+				
+				self.add_slave(	slave_name,
+								file_name,
+								Slave_Type.peripheral)
+
+				"""
+				s_name = gm.get_unique_name(slave_name, Node_Type.slave, Slave_Type.peripheral, sp_count)
 				parameters = {}
 				try:
 					file_name = saputils.find_rtl_file_location(file_name)
@@ -131,6 +144,7 @@ class SapController:
 				parameters = saputils.get_module_tags(	filename = file_name, bus=self.get_bus_type())
 				self.sgm.set_parameters(s_name, parameters)
 				sp_count += 1
+				"""
 
 
 		#load all the memory slaves
@@ -140,9 +154,15 @@ class SapController:
 
 		if "MEMORY" in self.project_tags:
 			for slave_name in self.project_tags["MEMORY"].keys():
+
+				file_name = self.project_tags["MEMORY"][slave_name]["filename"]
+				file_name = saputils.find_rtl_file_location(file_name)
 				self.add_slave(		slave_name,
+									file_name,
 									Slave_Type.memory,
-									slave_index = sm_count)
+									slave_index = -1)
+#									slave_index = sm_count)
+				"""
 
 				s_name = gm.get_unique_name(slave_name, Node_Type.slave, Slave_Type.memory, sm_count)
 				file_name = self.project_tags["MEMORY"][slave_name]["filename"]
@@ -158,7 +178,7 @@ class SapController:
 				parameters = saputils.get_module_tags(	filename = file_name, bus=self.get_bus_type())
 				self.sgm.set_parameters(s_name, parameters)
 				sm_count += 1
-
+				"""
 
 
 		#check if there is a host insterface defined
@@ -516,50 +536,68 @@ class SapController:
 		return self.sgm.get_connected_slaves(h_name)
 
 
-	def add_slave(self, slave_name, slave_type, slave_index=-1):
+	def add_slave(self, name, filename, slave_type, slave_index=-1):
 		"""
 		Adds a slave to the specified bus at the specified index
 		"""
 		#check if the slave_index makes sense
 		#if slave index s -1 then add it to the next available location
-		self.sgm.add_node(	slave_name,
+		s_count = self.sgm.get_number_of_slaves(slave_type)
+		self.sgm.add_node(	name,
 							Node_Type.slave,
 							slave_type)
 
+		slave = None
+
 		if slave_index == -1:
+			slave_index = s_count
+		else:
 			#add the slave wherever
-			return
 
+			if slave_type == Slave_Type.peripheral:
+				if slave_index == 0 and name != "DRT":
+					raise gm.SlaveError("Only the DRT can be at position 0")
+				s_count = self.sgm.get_number_of_peripheral_slaves()
+				uname = get_unique_name(	name, \
+											Node_Type.slave, \
+											slave_type, \
+											s_count - 1)		
 
-		if slave_type == Slave_Type.peripheral:
-			if slave_index == 0 and slave_name != "DRT":
-				raise gm.SlaveError("Only the DRT can be at position 0")
-			s_count = self.sgm.get_number_of_peripheral_slaves()
-			uname = get_unique_name(slave_name, Node_Type.slave, slave_type, s_count - 1)		
-			slave = self.sgm.get_node(uname)
-			if slave_index >= s_count:	
-				#slave index is too high to be moved, were done
-				return
-			if slave_index == s_count - 1:
-				#were done, the slave was already moved there
-				return
+				slave = self.sgm.get_node(uname)
+				if slave_index < s_count - 1:	
+					self.sgm.move_peripheral_slave(	slave.slave_index,\
+													slave_index)
+			elif slave_type == Slave_Type.memory:
+				s_count = self.sgm.get_number_of_memory_slaves()
+				uname = get_unique_name(	name, \
+											Node_Type.slave, \
+											slave_type, \
+											s_count - 1)
 
-			self.sgm.move_peripheral_slave(slave.slave_index, slave_index)
-			return
+				slave = self.sgm.get_node(uname)
+				if slave_index < s_count - 1:
+					self.sgm.move_slave(	slave.slave_index, \
+											slave_index, \
+											Slave_Type.memory)
 
-		if slave_type == Slave_Type.memory:
-			s_count = self.sgm.get_number_of_memory_slaves()
-			uname = get_unique_name(slave_name, Node_Type.slave, slave_type, s_count - 1)
-			slave = self.sgm.get_node(uname)
-			if slave_index >= s_count:
-				#slave index is too high to be moved, were done
-				return
+	
+		#print "slave index: " + str(slave_index)
 
-			if slave_index == s_count - 1:
-				#were done, the slave was already moved there
-				return
+		uname = get_unique_name(	name, \
+									Node_Type.slave, \
+									slave_type, \
+									slave_index)		
 
-			self.sgm.move_slave(slave.slave_index, slave_index, Slave_Type.memory)
+		slave = self.sgm.get_node(uname)
+		#print "slave unique name: " + uname
+
+			
+		if filename is not None:
+			#print "filename: " + filename
+			if len(filename) > 0:
+				parameters = saputils.get_module_tags(filename, self.bus_type)
+				self.sgm.set_parameters(uname, parameters)
+		
 
 
 		return
@@ -581,17 +619,29 @@ class SapController:
 		the slave can be moved from one bus to another
 		and the index position can be moved
 		"""
+		if to_slave_type == Slave_Type.peripheral and to_slave_index == 0:
+			return
 		if slave_name is None:
 			gm.SlaveError("a slave name must be specified")
+
 
 		if from_slave_type == to_slave_type:
 			#simple move call
 			self.sgm.move_slave(from_slave_index, to_slave_index, from_slave_type)
 			return
 
+
+		sname = self.sgm.get_slave_name_at(from_slave_index, from_slave_type)
+
+		node = self.sgm.get_node(sname)
+		tags = self.sgm.get_parameters(sname)
 		#moving to the other bus, need to sever connetions
 		self.remove_slave(from_slave_type, from_slave_index)
-		self.add_slave(slave_name, to_slave_type, to_slave_index)
+		sf = sapfile.SapFile()
+		filename = sf.find_module_filename(tags["module"]) 
+		filename = saputils.find_rtl_file_location(filename)
+		self.add_slave(slave_name, filename, to_slave_type, to_slave_index)
+
 		return
 
 	def generate_project(self):

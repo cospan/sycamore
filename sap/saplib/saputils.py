@@ -12,7 +12,9 @@ Changes:
 12/06/2011
 	-Modified the clock_read function so that the ucf file can have
 	quotation marks
-
+04/22/2012
+	-Added the get_slave_list function that returns a list of the
+	available slave filenames
 """
 
 
@@ -447,6 +449,8 @@ def get_slave_list(bus = "wishbone", debug = False):
 		print "slave list: "
 		for f in slave_list:
 			print "\t" + f
+
+	return slave_list
 
 def _get_file_recursively(directory):
 	file_dir_list = glob.glob(directory + "/*")

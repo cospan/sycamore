@@ -39,8 +39,12 @@ class SapGuiController:
 		Display the Sap GUI
 		"""
 
+		os.environ["SAPLIB_BASE"] = sys.path[0] + "/../saplib"
+		from saplib import saputils
 		import sap_controller as sc
 		import graph_drawer
+		import slave_icon_view as siv
+
 		#load the sap controller
 		self.sc = sc.SapController()
 
@@ -70,12 +74,13 @@ class SapGuiController:
 
 		self.window = builder.get_object("main_window")
 		self.main_view = builder.get_object("mainhpanel") 
+
+
 		self.project_view = builder.get_object("project_view")
 		self.project_view.set_size_request(150, 200)
 		self.gd.set_size_request(400, 200)
 		self.gd.show()
 
-#slave icon view and property view
 		self.graph_pane = gtk.HPaned()
 		self.graph_pane.show()
 
@@ -86,42 +91,81 @@ class SapGuiController:
 		self.prop_slave_view.show()
 
 
-		#create an icon view and model for it 
-		self.slave_icon_view = gtk.IconView()
+#slave icon view and property view
+		self.slave_icon_view = siv.SlaveIconView()
 		self.slave_icon_view.show()
+		bus_type = self.sc.get_bus_type()
+		slave_file_list = saputils.get_slave_list(bus_type)	
+		slave_dict = {}
+		for slave in slave_file_list:
+			slave_tags = saputils.get_module_tags(slave, bus_type)
+			name = slave_tags["module"]
+			slave_dict[name] = {}
+			slave_dict[name]["filename"] = slave
+			slave_dict[name]["r"] = 0.0
+			slave_dict[name]["g"] = 0.0
+			slave_dict[name]["b"] = 1.0
+			
 
-		#setup the icon model
-		self.slave_list = gtk.ListStore(Pixbuf, str)
-#		self.slave_list.set_selection_mode(
-		self.setup_slave_icon_model(self.slave_list)
-		self.slave_icon_view.set_model(self.slave_list)
-
+		self.slave_icon_view.set_slave_list(slave_dict)
+	
+#slave icon view
 		self.prop_slave_view.add1(self.slave_icon_view)
 
 		#add the graph drawer and property/slave list to the graph_pane
 		self.graph_pane.add1(self.gd)
 		self.graph_pane.add2(self.prop_slave_view)
 
-
-
-
-
-
-#		self.main_view.add2(self.gd)
-
 		self.window.connect("destroy", gtk.main_quit)
 		self.window.show()
 		return
 
-	def on_slave_add(self, node, slave_type, index):
+
+	def on_slave_add(self, filename, slave_type, index):
 		"""
 		when a user visually drops a slave box into a valid location
 		in one of the slave buses this gets called
 		"""
 		print "entered on slave add"
+		from saplib import saputils
+		from sap_controller import Slave_Type
+
+		print "filename: " + filename
+		
 
 		#add the slave into the slave graph
-		self.sc.add_slave(node.name, slave_type, index) 
+		bus_type = self.sc.get_bus_type()
+		
+		tags = saputils.get_module_tags(filename, bus_type)
+		name_index = 0
+		name = tags["module"] 
+
+		p_count = self.sc.get_number_of_slaves(Slave_Type.peripheral)
+		m_count = self.sc.get_number_of_slaves(Slave_Type.memory)
+		#check peripheral bus for the name
+		done = False
+		while not done:
+			print "checking names"
+			for i in range (0, p_count):
+				sname = self.sc.get_slave_name(Slave_Type.peripheral, i) 
+				if sname == name + str(name_index): 
+					name_index += 1
+					continue
+
+			for i in range (0, m_count):
+				sname = self.sc.get_slave_name(Slave_Type.memory, i)
+				if sname == name + str(name_index):
+					name_index += 1
+					continue
+			done = True
+
+
+
+
+
+		
+
+		self.sc.add_slave(name + str(name_index), filename, slave_type, index) 
 		self.gd.force_update()
 		return True
 
@@ -158,13 +202,64 @@ class SapGuiController:
 		self.gd.force_update()
 		return True
 
-	
+
 	def setup_slave_icon_model(self, ic_model):
+
+		color_depth = 8
+		icon_width = 128 
+		icon_height = 64
 
 		self.slave_icon_view.set_pixbuf_column(0)
 		self.slave_icon_view.set_text_column(1)
 		
-		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size("./images/slave_icon.png", 64, 128)
+		pixbuf = Pixbuf(	gtk.gdk.COLORSPACE_RGB, #color space
+							True,					#has alpha
+							color_depth,			#color depth
+							icon_width,				#width
+							icon_height)			#height
+
+		#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size("./images/slave_icon.png", 64, 128)
+
+		pix_data = pixbuf.get_pixels_array()
+		surface = cairo.ImageSurface.create_for_data(\
+								pix_data, \
+								cairo.FORMAT_RGB24, \
+								pixbuf.get_width(), \
+								pixbuf.get_height(), \
+								pixbuf.get_rowstride())
+
+		color = gtk.gdk.Color(0x0000, 0x0000, 0xFFFF) # Blue
+		cr = cairo.Context(surface)
+		cr.set_operator(cairo.OPERATOR_OVER)
+
+		cr.set_source_rgba(	COLOR16_TO_CAIRO(color.blue), \
+							COLOR16_TO_CAIRO(color.green), \
+							COLOR16_TO_CAIRO(color.red), \
+							1.0) # alpha = 1.0
+		cr.rectangle(0, 0, icon_width, icon_height)
+		cr.fill()
+		cr.set_source_rgb(0.0, 0.0, 0.0)
+		cr.rectangle(0, 0, icon_width, icon_height)
+		cr.set_line_width(5.0)
+		cr.stroke()
+
+		cr.set_source_rgba(0.0, 0.0, 0.0, 1.0)
+		cr.set_font_size(10)
+
+		text = "test"
+
+		x_bearing, y_bearing, twidth, theight = cr.text_extents(text)[:4]
+		text_x = 0.5 - twidth / 2 - x_bearing
+		text_y = 0.5 - theight / 2 - y_bearing
+
+		pos_x = 0 + (icon_width / 2.0) + text_x
+		pos_y = 0 + (icon_height / 2.0) + text_y
+		cr.move_to(pos_x, pos_y)
+		cr.show_text(text)
+		surface.flush()
+		surface.finish()
+
+
 
 		print "adding initial icon list"
 		ic_model.append([pixbuf, "hi"])	
