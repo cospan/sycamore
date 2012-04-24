@@ -133,6 +133,21 @@ class Test (unittest.TestCase):
 		self.assertEqual(tags["module"], "wb_ddr")
 
 
+	def test_read_user_parameters(self):
+		filename = saputils.find_rtl_file_location("wb_gpio.v")
+		tags = saputils.get_module_tags(filename, debug=self.dbg)
+
+		keys = tags["parameters"].keys()
+		if self.dbg:
+			print "reading the parameters specified by the user"
+		self.assertIn("INTERRUPT_MASK", keys)
+		if self.dbg:
+			print "make sure other parameters don't get read"
+		self.assertNotIn("ADDR_GPIO", keys)
+		
+
+
+
 	
 	def test_read_hard_slave_tags(self):
 		"""try and extrapolate all info from the slave file"""
@@ -172,7 +187,7 @@ class Test (unittest.TestCase):
 
 
 	def test_get_slave_list(self):
-		slave_list = saputils.get_slave_list(debug=True)
+		slave_list = saputils.get_slave_list(debug = self.dbg)
 
 if __name__ == "__main__":
 	sys.path.append (sys.path[0] + "/../")

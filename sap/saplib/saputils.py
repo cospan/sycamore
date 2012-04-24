@@ -111,6 +111,7 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 	tags["module"] = ""
 	tags["parameters"] = {}
 	tags["arbitrator_masters"] = []
+	raw_buf = ""
 		
 	#need a more robust way of openning the slave
 
@@ -125,9 +126,12 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 		"inout"
 	]
 
+
 	#XXX only working with verilog at this time, need to extend to VHDL
 	with open(filename) as slave_file:
 		buf = slave_file.read()
+		raw_buf = buf
+
 	
 	#find all the metadata
 	for key in keywords:
@@ -204,8 +208,8 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 		tags["ports"][io] = {}
 		substrings = buf.splitlines()	
 		for substring in substrings:
-			if debug:
-				print "working on substring: " + substring
+#			if debug:
+#				print "working on substring: " + substring
 			substring = substring.strip()
 			#if line doesn't start with an input/output or inout
 			if (not substring.startswith(io)):
@@ -258,6 +262,17 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 			
 			#print io + ": " + substring
 
+
+	#find all the USER_PARAMETER declarations
+	user_parameters = []
+	substrings = raw_buf.splitlines()
+	for substring in substrings:
+		substring = substring.strip()
+		if "USER_PARAMETER" in substring:
+			name = substring.partition(":")[2].strip()
+			user_parameters.append(name)
+
+
 	#find all the parameters
 	substrings = buf.splitlines()
 	for substring in substrings:
@@ -272,7 +287,8 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 			if debug:
 				print "parameter name: " + parameter_name
 				print "parameter value: " + parameter_value
-			tags["parameters"][parameter_name] = parameter_value
+			if parameter_name in user_parameters:
+				tags["parameters"][parameter_name] = parameter_value
 
 
 	tags["arbitrator_masters"] = saparbitrator.get_number_of_arbitrator_hosts(tags)
