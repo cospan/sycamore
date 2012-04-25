@@ -94,6 +94,23 @@ class SlaveIconView(gtk.ScrolledWindow):
 
 		self.icon_view.connect("drag-data-get", self.on_drag_data_get)
 		self.icon_view.connect("drag-begin", self.on_drag_begin) 
+		self.icon_view.connect("selection-changed", self.on_item_change)
+	
+		self.slave_icon_selected_callback = None
+
+	def set_slave_icon_selected_callback(self, callback):
+		self.slave_icon_selected_callback = callback
+
+	def on_item_change(self, widget): 
+		"""whenever an item is activated"""
+		paths = self.icon_view.get_selected_items() 	
+		if len(paths) > 0:
+			path = paths[0]
+			item = self.model[path]
+			itr = self.model.get_iter(path)
+			text = self.model.get_value(itr, 1)
+			if self.slave_icon_selected_callback is not None:
+				self.slave_icon_selected_callback(text)
 
 	def on_drag_begin(self, widget, drag_context):
 		print "on drag begin"

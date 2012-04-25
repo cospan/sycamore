@@ -130,22 +130,6 @@ class SapController:
 								file_name,
 								Slave_Type.peripheral)
 
-				"""
-				s_name = gm.get_unique_name(slave_name, Node_Type.slave, Slave_Type.peripheral, sp_count)
-				parameters = {}
-				try:
-					file_name = saputils.find_rtl_file_location(file_name)
-				except ModuleNotFound as ex:
-					if debug:
-						print "Invalid Module Name: %s" % (host_interface_name)
-
-				#print "filename: " + file_name
-
-				parameters = saputils.get_module_tags(	filename = file_name, bus=self.get_bus_type())
-				self.sgm.set_parameters(s_name, parameters)
-				sp_count += 1
-				"""
-
 
 		#load all the memory slaves
 		sm_count = self.sgm.get_number_of_memory_slaves()
@@ -161,25 +145,6 @@ class SapController:
 									file_name,
 									Slave_Type.memory,
 									slave_index = -1)
-#									slave_index = sm_count)
-				"""
-
-				s_name = gm.get_unique_name(slave_name, Node_Type.slave, Slave_Type.memory, sm_count)
-				file_name = self.project_tags["MEMORY"][slave_name]["filename"]
-				parameters = {}
-
-				try:
-					file_name = saputils.find_rtl_file_location(file_name)
-				except ModuleNotFound as ex:
-					if debug:
-						print "Invalid Module Name: %s" % (host_interface_name)
-
-
-				parameters = saputils.get_module_tags(	filename = file_name, bus=self.get_bus_type())
-				self.sgm.set_parameters(s_name, parameters)
-				sm_count += 1
-				"""
-
 
 		#check if there is a host insterface defined
 		if "INTERFACE" in self.project_tags:
@@ -598,13 +563,33 @@ class SapController:
 		slave = self.sgm.get_node(uname)
 		#print "slave unique name: " + uname
 
-			
 		if filename is not None:
 			#print "filename: " + filename
 			if len(filename) > 0:
 				parameters = saputils.get_module_tags(filename, self.bus_type)
 				self.sgm.set_parameters(uname, parameters)
 		
+
+				#check if there are already some parameter declarations within the project tags
+				slaves = {}
+
+				if slave_type == Slave_Type.peripheral:
+					if "SLAVES" in self.project_tags.keys():
+						slaves = self.project_tags["SLAVES"]
+
+				else:
+					if "MEMORY" in self.project_tags.keys():
+						slaves = self.project_tags["MEMORY"]
+					
+
+				if name in slaves.keys():
+					sd = slaves[name]
+					if "PARAMETERS" in sd.keys():
+						pd = sd["PARAMETERS"]
+						for key in pd.keys():
+							if key in parameters["parameters"].keys():
+								parameters["parameters"][key] = pd[key]
+
 
 
 		return

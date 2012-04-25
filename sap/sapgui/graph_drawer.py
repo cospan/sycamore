@@ -140,6 +140,7 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.slave_add_callback = None
 		self.slave_remove_callback = None
 		self.slave_move_callback = None
+		self.slave_select_callback = None
 		self.new_slave = 0
 
 
@@ -190,6 +191,8 @@ class GraphDrawer ( GraphDrawingArea ):
 			self.slave_add_callback(text, drop_type, drop_index)
 
 
+	def set_slave_select_callback(self, slave_select_callback):
+		self.slave_select_callback = slave_select_callback
 
 	def set_slave_add_callback(self, slave_add_callback):
 		self.slave_add_callback = slave_add_callback
@@ -351,6 +354,16 @@ class GraphDrawer ( GraphDrawingArea ):
 		node_name = self.get_selected_name(self.p_x, self.p_y)
 		if len(node_name) > 0:
 			self.selected_node = self.sgm.get_node(node_name)
+			sn = self.selected_node
+			name = sn.name
+			tags = self.sgm.get_parameters(node_name)
+			#get the index of the slave
+
+			self.slave_select_callback(	name,
+										tags)
+
+		else:
+			self.slave_select_callback(None, None)
 
 
 	def button_release(self):

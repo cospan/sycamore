@@ -124,6 +124,23 @@ class SapGraphManager:
 		self.graph = nx.relabel_nodes (	self.graph, \
 									{current_name : unique_name}) 
 
+	def fix_slave_indexes(self):
+		
+		pcount = self.get_number_of_slaves(Slave_Type.peripheral)
+		mcount = self.get_number_of_slaves(Slave_Type.memory)
+
+		for i in range(0, pcount):
+			name = self.get_slave_name_at(i, Slave_Type.peripheral)
+			node = self.get_node(name)
+			node.slave_index = i
+
+		for i in range(0, mcount):
+			name = self.get_slave_name_at(i, Slave_Type.memory)
+			node = self.get_node(name)
+			node.slave_index = i
+
+
+
 	def get_slave_name_at(self, index, slave_type):
 		if slave_type is None:
 			raise SlaveError("Peripheral or Memory must be specified")
@@ -159,6 +176,9 @@ class SapGraphManager:
 
 		else:
 			self.move_memory_slave(from_index, to_index)
+
+#XXX: Untested
+		self.fix_slave_indexes()
 
 
 	def move_peripheral_slave(self, from_index, to_index, debug=False):

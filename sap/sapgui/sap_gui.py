@@ -44,6 +44,7 @@ class SapGuiController:
 		import sap_controller as sc
 		import graph_drawer
 		import slave_icon_view as siv
+		import property_view as pv
 
 		#load the sap controller
 		self.sc = sc.SapController()
@@ -63,6 +64,7 @@ class SapGuiController:
 		self.gd.set_slave_add_callback(self.on_slave_add)
 		self.gd.set_slave_move_callback(self.on_slave_move)
 		self.gd.set_slave_remove_callback(self.on_slave_remove)
+		self.gd.set_slave_select_callback(self.on_slave_selected)
 
 		builderfile = "sap_gui.glade"
 		windowname = "Sap IDE"
@@ -87,13 +89,11 @@ class SapGuiController:
 		self.main_view.add(self.graph_pane)
 
 		self.prop_slave_view = gtk.VPaned()
-		self.prop_slave_view.set_size_request(200, -1)
-		self.prop_slave_view.show()
 
 
 #slave icon view and property view
 		self.slave_icon_view = siv.SlaveIconView()
-		self.slave_icon_view.show()
+		#self.slave_icon_view.show()
 		bus_type = self.sc.get_bus_type()
 		slave_file_list = saputils.get_slave_list(bus_type)	
 		slave_dict = {}
@@ -108,18 +108,69 @@ class SapGuiController:
 			
 
 		self.slave_icon_view.set_slave_list(slave_dict)
+		self.slave_icon_view.set_size_request(-1, 300)
+		self.slave_icon_view.set_slave_icon_selected_callback(self.on_slave_icon_selected)
 	
 #slave icon view
 		self.prop_slave_view.add1(self.slave_icon_view)
+		self.property_view = pv.PropertyView()
+		self.property_view.show_all()
+		self.property_view.set_size_request(-1, 100)
+
+
+		self.prop_slave_view.add2(self.property_view)
+		self.prop_slave_view.set_size_request(200, -1)
+		self.prop_slave_view.show_all()
 
 		#add the graph drawer and property/slave list to the graph_pane
 		self.graph_pane.add1(self.gd)
+
 		self.graph_pane.add2(self.prop_slave_view)
 
 		self.window.connect("destroy", gtk.main_quit)
 		self.window.show()
 		return
 
+
+	def on_slave_icon_selected(self, filename):
+		"""
+		whenever a user selects a slave in the slave icon view
+		"""
+
+		from saplib import saputils
+		from saplib import sapfile
+		sf = sapfile.SapFile()
+
+		#add the slave into the slave graph
+		bus_type = self.sc.get_bus_type()
+		
+		tags = saputils.get_module_tags(filename, bus_type)
+		module_name = tags["module"]
+		filename = sf.find_module_filename(module_name) 
+		self.property_view.set_node(module_name, filename,  tags)
+
+	def on_slave_selected(self, name, tags):
+		"""
+		whenever a user selects a slave from the actual graph
+		update the options in the property box
+		"""
+		if name is None:
+			self.property_view.clear_properties()
+			return
+
+		from saplib import saputils
+		from saplib import sapfile
+		sf = sapfile.SapFile()
+
+		filename = None
+		if "module" in tags.keys():
+			module_name = tags["module"]
+			filename = sf.find_module_filename(module_name) 
+			bus_type = self.sc.get_bus_type()
+
+		
+		self.property_view.set_node(name, filename, tags)
+		
 
 	def on_slave_add(self, filename, slave_type, index):
 		"""
@@ -201,73 +252,6 @@ class SapGuiController:
 
 		self.gd.force_update()
 		return True
-
-
-	def setup_slave_icon_model(self, ic_model):
-
-		color_depth = 8
-		icon_width = 128 
-		icon_height = 64
-
-		self.slave_icon_view.set_pixbuf_column(0)
-		self.slave_icon_view.set_text_column(1)
-		
-		pixbuf = Pixbuf(	gtk.gdk.COLORSPACE_RGB, #color space
-							True,					#has alpha
-							color_depth,			#color depth
-							icon_width,				#width
-							icon_height)			#height
-
-		#pixbuf = gtk.gdk.pixbuf_new_from_file_at_size("./images/slave_icon.png", 64, 128)
-
-		pix_data = pixbuf.get_pixels_array()
-		surface = cairo.ImageSurface.create_for_data(\
-								pix_data, \
-								cairo.FORMAT_RGB24, \
-								pixbuf.get_width(), \
-								pixbuf.get_height(), \
-								pixbuf.get_rowstride())
-
-		color = gtk.gdk.Color(0x0000, 0x0000, 0xFFFF) # Blue
-		cr = cairo.Context(surface)
-		cr.set_operator(cairo.OPERATOR_OVER)
-
-		cr.set_source_rgba(	COLOR16_TO_CAIRO(color.blue), \
-							COLOR16_TO_CAIRO(color.green), \
-							COLOR16_TO_CAIRO(color.red), \
-							1.0) # alpha = 1.0
-		cr.rectangle(0, 0, icon_width, icon_height)
-		cr.fill()
-		cr.set_source_rgb(0.0, 0.0, 0.0)
-		cr.rectangle(0, 0, icon_width, icon_height)
-		cr.set_line_width(5.0)
-		cr.stroke()
-
-		cr.set_source_rgba(0.0, 0.0, 0.0, 1.0)
-		cr.set_font_size(10)
-
-		text = "test"
-
-		x_bearing, y_bearing, twidth, theight = cr.text_extents(text)[:4]
-		text_x = 0.5 - twidth / 2 - x_bearing
-		text_y = 0.5 - theight / 2 - y_bearing
-
-		pos_x = 0 + (icon_width / 2.0) + text_x
-		pos_y = 0 + (icon_height / 2.0) + text_y
-		cr.move_to(pos_x, pos_y)
-		cr.show_text(text)
-		surface.flush()
-		surface.finish()
-
-
-
-		print "adding initial icon list"
-		ic_model.append([pixbuf, "hi"])	
-		ic_model.append([pixbuf, "sup"])	
-		
-
-
-
 
 	def on_file_quit(self, widget):
 		gtk.main_quit()
