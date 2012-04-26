@@ -48,6 +48,8 @@ class PropertyView(gtk.Frame):
 								padding = 0)
 
 		self.update_callback = None
+		self.update_button.connect("clicked", self.on_update_click)
+		self.property_dict = {}
 
 
 	def set_on_update_callback(self, update_callback):
@@ -57,11 +59,14 @@ class PropertyView(gtk.Frame):
 		"""
 		user updated the parameters
 		"""
-#		if self.update_callback is not None:
+#		if self.update_callback is not None
 #			self.update_callback(	self.slave_name,
 #									self.parameters)
-									
-
+		#go through each of the properties and overrite the previous
+		#value
+		for key in self.property_dict.keys():
+			text = self.property_dict[key].get_text()
+			self.parameters["parameters"][key] = text 
 
 		
 	def set_node(self, name = "", filename = "", tags = {}):
@@ -104,6 +109,7 @@ class PropertyView(gtk.Frame):
 			self.vbox.remove(self.table)
 
 		self.vbox.queue_draw()
+		self.property_dict = {}
 
 		self.pos				= 2
 		self.table = gtk.Table(	rows = 2, 
@@ -212,6 +218,7 @@ class PropertyView(gtk.Frame):
 							ypadding = self.typad)
 
 		entry = gtk.Entry()
+		self.property_dict[name] = entry
 		entry.set_text(str(value))
 		self.table.attach(	entry,
 							1,
