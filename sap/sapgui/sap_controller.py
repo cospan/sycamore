@@ -429,6 +429,19 @@ class SapController:
 		slave = self.sgm.get_node(s_name)
 		return slave.name
 
+	def is_arb_master_connected(	self,
+									slave_name,
+									arb_host):
+
+		slaves = self.sgm.get_connected_slaves(slave_name)
+		for key in slaves.keys():
+			edge_name = self.sgm.get_edge_name(slave_name, slaves[key])
+			if (arb_host == edge_name):
+				return True
+
+		return False
+		
+
 	def add_arbitrator(self, 	host_type, 
 								host_index, 
 								arbitrator_name,
@@ -491,6 +504,12 @@ class SapController:
 			return False
 
 		return True
+
+	def get_slave_name_by_unique(self, slave_name):
+		node = self.sgm.get_node(slave_name)
+		return node.name
+		
+		
 
 	def get_arbitrator_dict(self, host_type, host_index):
 		if not self.is_active_arbitrator_host(host_type, host_index):

@@ -23,6 +23,7 @@ Slave_Type = enum(	'memory',
 					'peripheral')
 		
 
+
 def get_unique_name(name, node_type, slave_type = Slave_Type.peripheral, slave_index = 0):
 	unique_name = ""
 	if node_type == Node_Type.slave:
@@ -95,6 +96,7 @@ class SapGraphManager:
 		return node.unique_name
 
 	def remove_slave(self, slave_index, slave_type):
+
 		#can't remove the DRT so if the index is 0 then don't try
 		if slave_type == Slave_Type.peripheral and slave_index == 0:
 			raise SlaveError ("DRT cannot be removed")
@@ -106,6 +108,7 @@ class SapGraphManager:
 			else:
 				raise SlaveError("Slave index %d on memory bus is out of range" % (slave_index)) 
 
+		#move the slave to the end so I can remove it
 		if slave_index < count:
 			for index in range (slave_index, count - 1):
 				self.move_slave(index, index + 1, slave_type)
@@ -124,6 +127,15 @@ class SapGraphManager:
 		self.graph = nx.relabel_nodes (	self.graph, \
 									{current_name : unique_name}) 
 
+	
+	def get_host_interface_node(self):
+		graph_dict = self.get_nodes_dict()
+		for name in graph_dict.keys():
+			node = self.get_node(name)
+			if node.node_type == Node_Type.host_interface:
+				return node
+		
+			
 	def fix_slave_indexes(self):
 		
 		pcount = self.get_number_of_slaves(Slave_Type.peripheral)
@@ -141,20 +153,32 @@ class SapGraphManager:
 
 
 
-	def get_slave_name_at(self, index, slave_type):
+	def get_slave_at(self, index, slave_type, debug = False):
+		name = self.get_slave_name_at(index, slave_type, debug)
+		return self.get_node(name)
+
+	def get_slave_name_at(self, index, slave_type, debug = False):
 		if slave_type is None:
 			raise SlaveError("Peripheral or Memory must be specified")
 
 		graph_dict = self.get_nodes_dict()
 
 		for key in graph_dict.keys():
-			if graph_dict[key].node_type != Node_Type.slave:
+			node = graph_dict[key]
+			if node.node_type != Node_Type.slave:
 				continue
 
-			if graph_dict[key].slave_type != slave_type:
+			if node.slave_type != slave_type:
 				continue
 
-			if graph_dict[key].slave_index == index:
+			if debug:
+				print "node: " + node.name
+				print "node.slave_index: " + str(node.slave_index)
+				print "index: " + str(index)
+
+			if node.slave_index == index:
+				if debug:
+					print "success"
 				return key
 
 		if slave_type == Slave_Type.peripheral:
@@ -163,7 +187,7 @@ class SapGraphManager:
 			raise SlaveError("Unable to locate slave %d on memory bus" % (index))
 
 
-	def move_slave(self, from_index, to_index, slave_type):
+	def move_slave(self, from_index, to_index, slave_type, debug = False):
 
 		if from_index == to_index:
 			return
@@ -172,10 +196,10 @@ class SapGraphManager:
 			raise SlaveError ("Slave Type must be specified")
 
 		if slave_type == Slave_Type.peripheral:
-			self.move_peripheral_slave(from_index, to_index)
+			self.move_peripheral_slave(from_index, to_index, debug)
 
 		else:
-			self.move_memory_slave(from_index, to_index)
+			self.move_memory_slave(from_index, to_index, debug)
 
 #XXX: Untested
 		self.fix_slave_indexes()
@@ -462,12 +486,12 @@ class SapGraphManager:
 
 		return False
 
-	def get_connected_slaves(self, arb_host):
+	def get_connected_slaves(self, slave_master_name):
 		slaves = {}
-		for nb_name in self.graph.neighbors(arb_host):
+		for nb_name in self.graph.neighbors(slave_master_name):
 			nb = self.get_node(nb_name)
 			if nb.node_type == Node_Type.slave:
-				slaves[self.graph[arb_host][nb_name]["name"]] = nb.unique_name
+				slaves[self.graph[slave_master_name][nb_name]["name"]] = nb.unique_name
 				
 		return slaves
 

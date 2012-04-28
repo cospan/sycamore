@@ -9,7 +9,7 @@ class GenXilnx(Gen):
 	"""Generate the Xilnx Build script"""
 
 	def __init__(self):
-		print "in GenXilnx"
+		#print "in GenXilnx"
 		return
 
 	def gen_script(self, tags = {}, buf = "", debug = False):

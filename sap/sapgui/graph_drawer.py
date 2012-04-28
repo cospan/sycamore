@@ -100,7 +100,7 @@ class GraphDrawer ( GraphDrawingArea ):
 		#initial prev_width, prev_height
 		self.prev_width = -1
 		self.prev_height = -1
-		self.recalculate = False
+		self.regenerate_boxes = False
 
 		ps_count = self.sgm.get_number_of_slaves(Slave_Type.peripheral)
 		ms_count = self.sgm.get_number_of_slaves(Slave_Type.memory)
@@ -386,92 +386,165 @@ class GraphDrawer ( GraphDrawingArea ):
 		for i in range (0, ms_count):
 			self.boxes["mslaves"].append(box())
 
-		self.recalculate = True
+		self.regenerate_boxes = True
 
 
-	def calculate_box_sizes(self, width, height):
+	def generate_boxes(self, width, height):
 		column_width = self.get_column_width(width)
 
 
 		#trash can
 		b = self.boxes["trash"]
-		b.width = column_width * self.box_width_ratio
-		b.height = b.width * self.box_height_ratio
-		b.x = column_width + (column_width - b.width) / 2.0
-		b.y = height - b.height - ((column_width - b.width) / 2.0)
-		b.r = 1.0
-		b.g = 1.0
-		b.b = 1.0
+		b.set_name("Trash")
+
+		box_width = column_width * self.box_width_ratio
+		box_height = box_width * self.box_height_ratio
+		box_x = column_width + (column_width - box_width) / 2.0
+		box_y = height - box_height - ((column_width - box_width) / 2.0)
+
+		b.set_location_and_size(box_x, box_y, box_width, box_height)
+
+		b.set_color(1.0, 0.0, 0.0)
+
 
 		#host interface
 		b = self.boxes["host_interface"]
-		b.width = column_width * self.box_width_ratio
-		b.height = b.width * self.box_height_ratio
-		b.x = (column_width - b.width) / 2.0
-		b.y = (height / 2.0) - b.height / 2.0
-		b.r = 1.0
-		b.g = 0.0
-		b.b = 0.0
+		node = self.sgm.get_host_interface_node()
+		b.set_name(node.name)
+		box_width = column_width * self.box_width_ratio
+		box_height = box_width * self.box_height_ratio
+		box_x = (column_width - box_width) / 2.0
+		box_y = (height / 2.0) - box_height / 2.0
+
+		b.set_location_and_size(box_x, box_y, box_width, box_height)
+		b.set_color(0.0, 1.0, 0.0)
 
 		#master
 		b = self.boxes["master"]
-		b.width = column_width * self.box_width_ratio
-		b.height = height - (column_width - b.width)
-		b.x = (column_width - b.width) / 2.0 + column_width
-		b.y = (column_width - b.width) / 2.0
-		b.r = 1.0
-		b.g = 0.5
-		b.b = 0.0
+		b.set_name("Master")
+		box_width = column_width * self.box_width_ratio
+		box_height = height - (column_width - box_width)
+		box_x = (column_width - box_width) / 2.0 + column_width
+		box_y = (column_width - box_width) / 2.0
+
+		b.set_location_and_size(box_x, box_y, box_width, box_height)
+		b.set_color(1.0, 0.5, 0.0)
 
 		#periph interconnect
 		b = self.boxes["pic"]
-		b.width = column_width * self.box_width_ratio
-		b.height = (height / 2.0) - (column_width - b.width) 
-		b.x = (column_width - b.width) / 2.0 + 2 * column_width 
-		b.y = ((column_width - b.width) / 2.0) 
-		b.r = 1.0
-		b.g = 1.0
-		b.b = 0.0
+		b.set_name("Peripherals")
+		box_width = column_width * self.box_width_ratio
+		box_height = (height / 2.0) - (column_width - box_width) 
+		box_x = (column_width - box_width) / 2.0 + 2 * column_width 
+		box_y = ((column_width - box_width) / 2.0) 
+
+		b.set_location_and_size(box_x, box_y, box_width, box_height)
+		b.set_color(1.0, 1.0, 0.0)
 
 		#memory interconnect
 		b = self.boxes["mic"]
-		b.width = column_width * self.box_width_ratio 
-		b.height = (height / 2.0) - (column_width - b.width) 
-		b.x = (column_width - b.width) / 2.0 + (2 * column_width) 
-		b.y = (column_width - b.width) / 2.0 + height / 2.0 
-		b.r = 1.0
-		b.g = 1.0
-		b.b = 0.0
+		b.set_name("Memories")
+		box_width = column_width * self.box_width_ratio 
+		box_height = (height / 2.0) - (column_width - box_width) 
+		box_x = (column_width - box_width) / 2.0 + (2 * column_width) 
+		box_y = (column_width - box_width) / 2.0 + height / 2.0 
+
+		b.set_location_and_size(box_x, box_y, box_width, box_height)
+		b.set_color(1.0, 1.0, 0.0)
 
 
 
 		#peripheral slaves
 		for i in range (0, len(self.boxes["pslaves"])):
 			b = self.boxes["pslaves"][i]
-			b.width = column_width * self.box_width_ratio 
-			b.height = b.width * self.pslave_height_ratio  
-			b.x = (column_width - b.width) / 2.0 + (column_width * 3) 
-			b.y = (column_width - b.width) / 2.0 + \
-					i * ((column_width - b.width) + b.height)
-			b.r = 0.0
-			b.g = 0.0
-			b.b = 1.0
+			node = self.sgm.get_slave_at(i, Slave_Type.peripheral)
+			b.set_name(node.name)
+			box_width = column_width * self.box_width_ratio 
+			box_height = box_width * self.pslave_height_ratio  
+			box_x = (column_width - box_width) / 2.0 + (column_width * 3) 
+			box_y = (column_width - box_width) / 2.0 + \
+					i * ((column_width - box_width) + box_height)
 
+			b.set_location_and_size(box_x, box_y, box_width, box_height)
+			b.set_color(0.0, 0.0, 1.0)
 		
 
+			#setup the arbitrator masters
+			arbs = node.parameters["arbitrator_masters"]
+			arb_res = self.sgm.get_connected_slaves(node.unique_name)
+#			if self.debug:
+#				print "arbitrator masters: " + str(arbs)
+			s_name = ""
 
-		#memory slaves
+			if len(arb_res.keys()) > 0:
+				#were not a master
+				#bus some slave is attached to us
+				b.arb_slave = True
+
+
+			for i in range(0, len(arbs)):
+				arb = arbs[i]
+				is_connected = False
+#				if self.debug:
+#					print "arb: " + arb
+				b.arb_slave = False
+				for key in arb_res.keys():
+					if arb == key:
+						is_connected = True
+						s_name = arb_res[key]
+
+					if key not in arbs:
+						b.arb_slave = True
+
+				b.add_arbitrator_master(arb, is_connected, s_name) 
+				#memory slaves
+
 		for i in range (0, len(self.boxes["mslaves"])):
 			b = self.boxes["mslaves"][i]
-			b.width = column_width * self.box_width_ratio 
-			b.height = b.width * self.mslave_height_ratio  
-			b.x = (column_width - b.width) / 2.0 + (column_width * 3) 
-			b.y = (column_width - b.width) / 2.0 + \
-					i * ((column_width - b.width) + b.height) + \
+			node = self.sgm.get_slave_at(i, Slave_Type.memory)
+			b.set_name(node.name)
+			box_width = column_width * self.box_width_ratio 
+			box_height = box_width * self.mslave_height_ratio  
+			box_x = (column_width - box_width) / 2.0 + (column_width * 3) 
+			box_y = (column_width - box_width) / 2.0 + \
+					i * ((column_width - box_width) + box_height) + \
 					height / 2
-			b.r = 1.0
-			b.g = 0.0
-			b.b = 1.0
+
+			b.set_location_and_size(box_x, box_y, box_width, box_height)
+			b.set_color(1.0, 0.0, 1.0)
+
+
+			#setup the arbitrator masters
+			arbs = node.parameters["arbitrator_masters"]
+			arb_res = self.sgm.get_connected_slaves(node.unique_name)
+#			if self.debug:
+#				print "arbitrator masters: " + str(arbs)
+			s_name = ""
+
+			if len(arb_res.keys()) > 0:
+				#were not a master
+				#bus some slave is attached to us
+				b.arb_slave = True
+
+			for i in range(0, len(arbs)):
+				arb = arbs[i]
+				is_connected = False
+#				if self.debug:
+#					print "arb: " + arb
+
+				b.arb_slave = False
+				for key in arb_res.keys():
+					if arb == key:
+						is_connected = True
+						s_name = arb_res[key]
+#check
+					if key not in arbs:
+						b.arb_slave = True
+
+
+				b.add_arbitrator_master(arb, is_connected, s_name)
+
+				
 
 
 	def set_debug_mode(self, debug):
@@ -488,11 +561,12 @@ class GraphDrawer ( GraphDrawingArea ):
 			height != self.prev_height or \
 			self.prev_ps_count != ps_count or \
 			self.prev_ms_count != ms_count  or \
-			self.recalculate:
+			self.regenerate_boxes:
 			
-			print "calculate"
-			self.recalculate = False
-			self.calculate_box_sizes(width, height)
+			if self.debug:
+				print "calculate"
+			self.regenerate_boxes = False
+			self.generate_boxes(width, height)
 
 		#save the previous values
 		self.prev_width = width
@@ -502,9 +576,6 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.prev_ms_count = ms_count
 
 	
-		cr = self.cr
-		column_width = self.get_column_width(width)
-
 		#if debug flag enabled write the debug in the top left
 		if self.debug:
 			self.display_debug(width, height)
@@ -525,42 +596,23 @@ class GraphDrawer ( GraphDrawingArea ):
 		cr = self.cr
 		b = self.boxes["host_interface"]
 
-		self.draw_box(	b.x, b.y,
-						b.width, b.height,
-						text = "host interface",
-						r = b.r, g = b.g, b = b.b,
-						style = BOX_STYLE.OUTLINE)
+		self.draw_box(b, b.x, b.y, style = BOX_STYLE.OUTLINE)
 
 	def draw_master(self):
 		cr = self.cr
 		b = self.boxes["master"]
-		self.draw_box(	b.x, b.y,
-						b.width, b.height,
-						text = "master",
-						r = b.r, g = b.g, b = b.b,
-						style = BOX_STYLE.OUTLINE)
+		self.draw_box(b, b.x, b.y, style = BOX_STYLE.OUTLINE)
 
 
 	def draw_mem_interconnect(self):
 		cr = self.cr
 		b = self.boxes["mic"]
-		self.draw_box(	b.x, b.y,
-						b.width, b.height,
-						text = "memory ic",
-						r = b.r, g = b.g, b = b.b,
-						style = BOX_STYLE.OUTLINE)
-
-
-
+		self.draw_box(b, b.x, b.y, style = BOX_STYLE.OUTLINE)
 
 	def draw_periph_interconnect(self):
 		cr = self.cr
 		b = self.boxes["pic"]
-		self.draw_box(	b.x, b.y,
-						b.width, b.height,
-						text = "periph ic",
-						r = b.r, g = b.g, b = b.b,
-						style = BOX_STYLE.OUTLINE)
+		self.draw_box(b, b.x, b.y, style = BOX_STYLE.OUTLINE)
 
 
 	def draw_periph_slaves(self):
@@ -574,11 +626,7 @@ class GraphDrawer ( GraphDrawingArea ):
 			name = self.sgm.get_slave_name_at(i, Slave_Type.peripheral)
 			p = self.sgm.get_node(name)
 			b = self.boxes["pslaves"][i]
-			self.draw_box(	b.x, b.y,
-							b.width, b.height,
-							text = p.name,
-							r = b.r, g = b.g, b = b.b,
-							style = BOX_STYLE.OUTLINE)
+			self.draw_box(b, b.x, b.y, style = BOX_STYLE.OUTLINE)
 
 
 	def draw_mem_slaves(self):
@@ -591,11 +639,8 @@ class GraphDrawer ( GraphDrawingArea ):
 			name = self.sgm.get_slave_name_at(i, Slave_Type.memory)
 			p = self.sgm.get_node(name)
 			b = self.boxes["mslaves"][i]
-			self.draw_box(	b.x, b.y,
-							b.width, b.height,
-							text = p.name,
-							r = b.r, g = b.g, b = b.b,
-							style = BOX_STYLE.OUTLINE)
+
+			self.draw_box(b, b.x, b.y, style = BOX_STYLE.OUTLINE)
 
 	def draw_moving(self):
 		if self.moving == 0:
@@ -606,11 +651,8 @@ class GraphDrawer ( GraphDrawingArea ):
 
 		#draw trashcan
 		b = self.boxes["trash"]
-		self.draw_box(	b.x, b.y,
-						b.width, b.height,
-						text = "Trash",
-						r = b.r, g = b.g, b = b.b,
-						style = BOX_STYLE.OUTLINE)
+
+		self.draw_box(b, b.x, b.y, style = BOX_STYLE.OUTLINE)
 
 		#draw the node
 		node = self.selected_node
@@ -623,29 +665,25 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.mov_x = self.p_x - self.rel_x
 		self.mov_y = self.p_y - self.rel_y
 
-		self.draw_box(	self.mov_x, self.mov_y,
-						b.width, b.height,
-						text = node.name,
-						r = b.r, g = b.g, b = b.b,
-						style = BOX_STYLE.OUTLINE)
+		self.draw_box(b, self.mov_x, self.mov_y, style = BOX_STYLE.OUTLINE)
 
+	def draw_box (	self, box, x, y, style = BOX_STYLE.OUTLINE):
 
+#		x = box.x
+#		y = box.y
+		width = box.width
+		height = box.height
+		text = box.name
+		r = box.r
+		g = box.g
+		b = box.b
 
-	def draw_box (		self, 
-						x, y, 
-						width, height, 
-						text = "",
-						r = 0.0, g = 0.0, b = 0.0, 
-						style = BOX_STYLE.OUTLINE):
 		cr = self.cr
 		cr.set_source_rgb(r, g, b)
 		cr.rectangle(x, y, width, height)
-		if style == BOX_STYLE.SOLID:
-			cr.fill()
-			cr.stroke()
-		elif style == BOX_STYLE.OUTLINE:
+		cr.fill()
+		if style == BOX_STYLE.OUTLINE:
 			#how do I draw a box with an outline
-			cr.fill()
 			cr.set_line_width(2.0)
 			cr.rectangle(x, y, width, height)
 			cr.set_source_rgb(0.0, 0.0, 0.0)
@@ -670,6 +708,72 @@ class GraphDrawer ( GraphDrawingArea ):
 
 			cr.move_to(pos_x, pos_y)
 			cr.show_text(text)
+
+			if self.moving:
+				return
+
+		#if there are any icons draw them
+		if box.arb_slave:
+			#print "draw an the arbitrator slave"
+			#create a white box
+			cr.set_source_rgb(1.0, 1.0, 1.0)
+			cr.rectangle(x, y, box.arb_slave_width, height)
+			cr.fill()
+			cr.set_line_width(2.0)
+			cr.set_source_rgb(0.0, 0.0, 0.0)
+			cr.rectangle(x, y, box.arb_slave_width, height)
+			cr.stroke()
+			cr.set_source_rgb(0.0, 0.0, 0.0)
+			cr.set_font_size(10)
+			x_bearing, y_bearing, twidth, theight = cr.text_extents("AS")[:4]
+			text_x = 0.5 - twidth / 2 - x_bearing
+			text_y = 0.5 - theight / 2 - y_bearing
+
+			pos_x = x + (box.arb_slave_width / 2.0) + text_x
+			pos_y = y + (height / 2.0) + text_y
+			cr.move_to(pos_x, pos_y)
+			cr.show_text("AS")
+
+
+
+
+
+		for arb in box.arb_master.keys():
+			#print "drawing: " + arb
+			icon = box.arb_master[arb]
+			if icon.connected:
+				cr.set_source_rgb(1.0, 1.0, 1.0)
+			else:
+				cr.set_source_rgb(0.0, 0.0, 0.0)
+
+			cr.rectangle(icon.x, icon.y, icon.width, icon.height)
+			cr.fill()
+
+			if icon.connected:
+				cr.set_source_rgb(0.0, 0.0, 0.0)
+			else:
+				cr.set_source_rgb(1.0, 1.0, 1.0)
+
+			cr.set_font_size(10)
+			x_bearing, y_bearing, twidth, theight = cr.text_extents(arb)[:4]
+			text_x = 0.5 - twidth / 2 - x_bearing
+			text_y = 0.5 - theight / 2 - y_bearing
+
+			pos_x = icon.x + (icon.width / 2.0) + text_x
+			pos_y = icon.y + (icon.height / 2.0) + text_y
+			cr.move_to(pos_x, pos_y)
+			cr.show_text(arb)
+
+
+
+
+
+		cr.set_source_rgb(0.0, 0.0, 0.0)
+
+			#chck if the box is an arbitrator slave
+
+
+
 #			print "text pos (x, y) = %d, %d" % (x + text_x, y + text_y)
 		
 

@@ -267,6 +267,9 @@ class Test (unittest.TestCase):
 		arb_slave = ""
 		bus_name = ""
 
+		back = self.dbg
+#		self.dbg = True
+
 		for i in range (0, p_count):
 			name1 = self.sc.get_slave_name(sc.Slave_Type.peripheral, i)
 			if self.dbg:
@@ -287,12 +290,15 @@ class Test (unittest.TestCase):
 					bus_name = key
 					arb_slave = a_dict[key]
 
+		arb_slave_name = self.sc.get_slave_name_by_unique(arb_slave)
 		if self.dbg:
-			print "%s is connected to %s through %s" % (arb_host, arb_slave, bus_name)
-
-#XXX: Test if the arbitrator can be added
+			print "%s is connected to %s through %s" % (arb_host, arb_slave_name, bus_name)
 
 
+		self.dbg = False
+		self.assertEqual(arb_host, "console")
+		self.assertEqual(arb_slave_name, "mem1")
+		self.assertEqual(bus_name, "fb")
 
 
 	def test_save_config_file(self):

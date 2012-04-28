@@ -8,7 +8,7 @@ class GenProjectDefines(Gen):
 	"""Generate the top module for a project"""
 
 	def __init__(self):
-		print "in GenProjectDefines"
+		#print "in GenProjectDefines"
 		return
 
 	def gen_script (self, tags={}, buf="", debug = False):

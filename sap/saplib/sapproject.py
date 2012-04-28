@@ -178,7 +178,7 @@ class SapProject:
 				fdict = {"location":""}
 				file_dest = self.project_tags["BASE_DIR"] + "/rtl/bus/slave"
 				fn = self.project_tags["MEMORY"][mem]["filename"]
-				result = self.filegen.process_file(filename = fn, file_dict = fdict, directory = file_dest, debug = True)
+				result = self.filegen.process_file(filename = fn, file_dict = fdict, directory = file_dest)
 				if (not result):
 					print "Error: Failed to proecess memory file!: " + mem
 
@@ -200,15 +200,15 @@ class SapProject:
 
 		if debug:
 			print "copy over the dependencies..."
-		print "verilog files: "
-		for f in self.filegen.verilog_file_list:
-			print f
-		print "dependent files: "
-		for d in self.filegen.verilog_dependency_list:
-			fdict = {"location":""}
-			file_dest = self.project_tags["BASE_DIR"] + "/dependencies"
-			result = self.filegen.process_file(filename = d, file_dict = fdict, directory = file_dest)
-			print d
+			print "verilog files: "
+			for f in self.filegen.verilog_file_list:
+				print f
+			print "dependent files: "
+			for d in self.filegen.verilog_dependency_list:
+				fdict = {"location":""}
+				file_dest = self.project_tags["BASE_DIR"] + "/dependencies"
+				result = self.filegen.process_file(filename = d, file_dict = fdict, directory = file_dest)
+				print d
 		return True
 
 	def get_constraint_path (self, constraint_fname):

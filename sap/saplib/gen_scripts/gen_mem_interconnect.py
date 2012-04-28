@@ -8,7 +8,7 @@ class GenMemInterconnect(Gen):
 
 
 	def __init__(self):
-		print "in GenInterconnect"
+		#print "in GenInterconnect"
 		return
 
 	def gen_script (self, tags = {}, buf = "", debug=False):
@@ -51,7 +51,8 @@ class GenMemInterconnect(Gen):
 			key = tags["MEMORY"].keys()[i]
 			absfilename = saputils.find_rtl_file_location(tags["MEMORY"][key]["filename"])
 			slave_tags = saputils.get_module_tags(filename = absfilename, bus = "wishbone", keywords = slave_keywords)
-			print "slave tags: " + str(slave_tags)
+			if debug:
+				print "slave tags: " + str(slave_tags)
 			
 			mem_size = slave_tags["keywords"]["DRT_SIZE"].strip()
 			
@@ -168,7 +169,8 @@ class GenMemInterconnect(Gen):
 			int_block_buf = int_block_buf + "\t\tMEM_SEL_" + str(i) + ": begin\n\t\t\tm_int_o <= s" + str(i) + "_int_i;\n\t\tend\n";
 		int_block_buf = int_block_buf + "\t\tdefault: begin\n\t\t\tm_int_o <= 1\'hx;\n\t\tend\n\tendcase\nend\n\n"
 
-		print "buf: " + buf
+		if debug:
+			print "buf: " + buf
 
 		buf = template.substitute(	PORTS=port_buf, 
 									PORT_DEFINES=port_def_buf, 
@@ -178,7 +180,8 @@ class GenMemInterconnect(Gen):
 									ACK=ack_block_buf, 
 									INT=int_block_buf, 
 									MEM_PARAMS=param_buf)
-		print "buf: " + buf
+		if debug:
+			print "buf: " + buf
 
 		return buf
 
