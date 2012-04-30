@@ -441,6 +441,20 @@ class SapController:
 
 		return False
 		
+	def add_arbitrator_by_name(	self,
+								host_name,
+								arbitrator_name,
+								slave_name):
+
+		tags = self.sgm.get_parameters(host_name)
+		if arbitrator_name not in tags["arbitrator_masters"]:
+			return False
+
+		self.sgm.connect_nodes (host_name, slave_name)
+		self.sgm.set_edge_name(host_name, slave_name, arbitrator_name)
+		return True
+
+
 
 	def add_arbitrator(self, 	host_type, 
 								host_index, 
@@ -452,15 +466,32 @@ class SapController:
 		the slave
 		"""
 		h_name = self.sgm.get_slave_name_at(host_index, host_type)
-		tags = self.sgm.get_parameters(h_name)
+		#tags = self.sgm.get_parameters(h_name)
 		#print "h_name: " + h_name
-		if arbitrator_name not in tags["arbitrator_masters"]:
-			return False
+		#if arbitrator_name not in tags["arbitrator_masters"]:
+		#	return False
 
 		s_name = self.sgm.get_slave_name_at(slave_index, slave_type)
-		self.sgm.connect_nodes (h_name, s_name)
-		self.sgm.set_edge_name(h_name, s_name, arbitrator_name)
-		return True
+		#self.sgm.connect_nodes (h_name, s_name)
+		#self.sgm.set_edge_name(h_name, s_name, arbitrator_name)
+		#return True
+		return self.add_arbitrator_by_name(h_name, arbitrator_name, s_name)
+
+	def get_connected_arbitrator_slave(self, 
+											host_name,
+											arbitrator_name):
+		tags = self.sgm.get_parameters(host_name)
+		if arbitrator_name not in tags["arbitrator_masters"]:
+			SlaveError("This slave has no arbitrator masters")	
+
+		slaves = self.sgm.get_connected_slaves(host_name)
+		for arb_name in slaves.keys():
+			
+			slave = slaves[arb_name]
+			edge_name = self.sgm.get_edge_name(host_name, slave)
+			if edge_name == arbitrator_name:
+				return slave
+
 
 	def get_connected_arbitrator_name(self,	host_type,
 											host_index,
@@ -475,6 +506,20 @@ class SapController:
 		s_name = self.sgm.get_slave_name_at(slave_index, slave_type)
 		return self.get_edge_name(h_name, s_name)
 
+	def remove_arbitrator_by_arb_master(	self,
+											host_name,
+											arb_name):
+		slave_name = self.get_connected_arbitrator_slave(	host_name, arb_name)
+
+		self.remove_arbitrator_by_name(host_name, slave_name)
+
+		
+
+	def remove_arbitrator_by_name(	self,
+									host_name,
+									slave_name):
+
+		self.sgm.disconnect_nodes(host_name, slave_name)
 
 	def remove_arbitrator(self,	host_type,
 								host_index,
@@ -485,7 +530,7 @@ class SapController:
 		"""
 		h_name = gm.get_slave_name_at(host_index, host_type)
 		s_name = gm.get_slave_name_at(slave_index, slave_type)
-		self.sgm.disconnect_nodes(h_name, s_name)
+		remove_arbitrator_by_name(h_name, s_name)
 
 
 	def is_active_arbitrator_host(self, host_type, host_index):

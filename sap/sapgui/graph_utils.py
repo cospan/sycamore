@@ -79,6 +79,12 @@ class box:
 		self.arb_master[name].slave = slave_name
 		self.generate_icons()
 
+	def get_connected_slave(self, name):
+		if name not in self.arb_master.keys():
+			raise GUI_Erro("arbitrator is not in box")
+
+		return self.arb_master[name].slave
+
 	def disconnect_arbitrator_master(self, name):
 		if name not in self.arb_master.keys():
 			raise GUI_Error("arbitrator is not in box")	
@@ -107,11 +113,17 @@ class box:
 		"""
 		for key in self.arb_master.keys():
 			arb = self.arb_master[key]
+#			print "working on : " + key
 			if 	arb.x <= x and x <= (arb.x + arb.width) and \
-				arb.y <= y and y <= (arb.y + arb.width):
+				arb.y <= y and y <= (arb.y + arb.height):
+#				print "X: %f <= %f <= %f" % (arb.x, x, (arb.x + arb.width))
+#				print "Y: %f <= %f <= %f" % (arb.y, y, (arb.y + arb.height))
 				return True
 
-			return False
+		return False
+
+	def get_arb_master_names(self):
+		return self.arb_master.keys()
 
 	def get_arb_master_name(self, x, y):
 		"""
@@ -121,10 +133,10 @@ class box:
 		for key in self.arb_master.keys():
 			arb = self.arb_master[key]
 			if 	arb.x <= x and x <= (arb.x + arb.width) and \
-				arb.y <= y and y <= (arb.y + arb.width):
-				return arb.name
+				arb.y <= y and y <= (arb.y + arb.height):
+				return key
 
-			return None
+		return None
 
 	def is_arb_master_connected(self, name):
 		if name not in self.arb_master.keys():

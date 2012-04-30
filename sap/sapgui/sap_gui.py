@@ -65,23 +65,82 @@ class SapGuiController:
 		self.gd.set_slave_move_callback(self.on_slave_move)
 		self.gd.set_slave_remove_callback(self.on_slave_remove)
 		self.gd.set_slave_select_callback(self.on_slave_selected)
+		self.gd.set_slave_arbitrator_select_callback(self.on_arbitrator_master_selected)
+		self.gd.set_back_selected(self.on_back_selected)
+		self.gd.set_arb_connect(self.on_arbitrator_connected)
+		self.gd.set_arb_disconnect(self.on_arbitrator_disconnect)
 
 		builderfile = "sap_gui.glade"
+		bus_view_file = "bus_view.glade"
 		windowname = "Sap IDE"
 		builder = gtk.Builder()
 		builder.add_from_file(builderfile)
+		builder.add_from_file(bus_view_file)
 
 		#register the callbacks
 		builder.connect_signals(self)
 
 		self.window = builder.get_object("main_window")
+
 		self.main_view = builder.get_object("mainhpanel") 
 
 
 		self.project_view = builder.get_object("project_view")
 		self.project_view.set_size_request(150, 200)
+
 		self.gd.set_size_request(400, 200)
 		self.gd.show()
+
+
+
+
+		"""
+#new stuff
+		self.bus_view = builder.get_object("bus_hpan")
+		self.slave_prop = builder.get_object("prop_slave_vpan")
+		self.main_view.add2(self.bus_view)
+		self.bus_view.add1(self.gd)
+
+
+#slave icon view and property view
+		self.slave_icon_view = siv.SlaveIconView()
+		#self.slave_icon_view.show()
+		bus_type = self.sc.get_bus_type()
+		slave_file_list = saputils.get_slave_list(bus_type)	
+		slave_dict = {}
+		for slave in slave_file_list:
+			slave_tags = saputils.get_module_tags(slave, bus_type)
+			name = slave_tags["module"]
+			slave_dict[name] = {}
+			slave_dict[name]["filename"] = slave
+			slave_dict[name]["r"] = 0.0
+			slave_dict[name]["g"] = 0.0
+			slave_dict[name]["b"] = 1.0
+			
+
+		self.slave_icon_view.set_slave_list(slave_dict)
+		self.slave_icon_view.set_size_request(-1, 300)
+		self.slave_icon_view.set_slave_icon_selected_callback(self.on_slave_icon_selected)
+
+		self.slave_prop.add1(self.slave_icon_view)
+
+		self.property_view = pv.PropertyView()
+		self.property_view.show_all()
+		self.property_view.set_size_request(-1, 100)
+
+
+		self.property_view = pv.PropertyView()
+		self.slave_prop.add2(self.property_view)
+		self.bus_view.show_all()
+
+
+#end new stuff
+		"""
+
+
+
+
+
 
 		self.graph_pane = gtk.HPaned()
 		self.graph_pane.show()
@@ -127,6 +186,13 @@ class SapGuiController:
 
 		self.graph_pane.add2(self.prop_slave_view)
 
+
+
+
+
+
+
+
 		self.window.connect("destroy", gtk.main_quit)
 		self.window.show()
 		return
@@ -148,6 +214,58 @@ class SapGuiController:
 		module_name = tags["module"]
 		filename = sf.find_module_filename(module_name) 
 		self.property_view.set_node(module_name, filename,  tags)
+
+	def on_arbitrator_connected(	self,
+									host_name,
+									arb_master,
+									slave_name):
+		"""
+		called when a user connects an arbitrator bus to a slave
+		"""
+		current_slave = self.sc.get_connected_arbitrator_slave(host_name, arb_master)
+		if current_slave is not None and current_slave != slave_name:
+			#disconnect previous slave
+			self.sc.remove_arbitrator_by_name(host_name, current_slave)
+
+		self.sc.add_arbitrator_by_name (host_name, arb_master, slave_name)
+		self.gd.force_update()
+
+
+	def on_arbitrator_disconnect(self, slave_name, arb_master):
+		"""
+		called when a user disconnects an arbitrator bus
+		"""
+		self.sc.remove_arbitrator_by_arb_master(slave_name, arb_master)
+		self.gd.set_arbitrator_view(	slave_name,
+										arb_master,
+										"",
+										True)
+
+		self.gd.force_update()
+
+
+
+
+	def on_arbitrator_master_selected(self, slave_name, arb_master, connected_slave):
+		"""
+		whenever a user selects an arbitrator master within a slave
+		change the view to the arbitrator view
+		"""
+
+		print "%s of %s selectd is connected to %s" % (arb_master, slave_name, connected_slave)
+
+		self.gd.set_arbitrator_view(	slave_name,
+										arb_master,
+										connected_slave,
+										True)
+		self.gd.force_update()
+
+	def on_back_selected(self):
+		self.gd.set_arbitrator_view(	"",
+										"",
+										"",
+										False)
+		self.gd.force_update()
 
 	def on_slave_selected(self, name, tags):
 		"""

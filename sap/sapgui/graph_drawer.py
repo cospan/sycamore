@@ -94,6 +94,9 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.boxes["pslaves"] = []
 		self.boxes["mslaves"] = []
 		self.boxes["trash"] = box()
+		self.boxes["arbitrator"] = box()
+		self.boxes["back"] = box()
+		self.boxes["remove"] = box()
 
 		self.temp_box = box()
 
@@ -141,6 +144,10 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.slave_remove_callback = None
 		self.slave_move_callback = None
 		self.slave_select_callback = None
+		self.slave_arbitrator_select_callback = None
+		self.back_selected_callback = None
+		self.arbitrator_connected_callback = None
+		self.arbitrator_disconnected_callback = None
 		self.new_slave = 0
 
 
@@ -152,6 +159,13 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.drag_dest_add_text_targets()
 
 		self.connect("drag-data-received", self.on_drag_data_received)
+
+		self.en_arb_view = False
+		self.selected_master = ""
+		self.selected_master_node = None
+		self.selected_arb_master = ""
+		self.connected_slave = ""
+
 
 
 	def on_drag_data_received(self, widget, drag_content, x, y, data, info, my_data):
@@ -190,6 +204,8 @@ class GraphDrawer ( GraphDrawingArea ):
 		if (self.slave_add_callback is not None):
 			self.slave_add_callback(text, drop_type, drop_index)
 
+	def set_slave_arbitrator_select_callback(self, slave_arbitrator_select_callback):
+		self.slave_arbitrator_select_callback = slave_arbitrator_select_callback
 
 	def set_slave_select_callback(self, slave_select_callback):
 		self.slave_select_callback = slave_select_callback
@@ -203,7 +219,21 @@ class GraphDrawer ( GraphDrawingArea ):
 	def set_slave_move_callback(self, slave_move_callback):
 		self.slave_move_callback = slave_move_callback
 
+	def set_back_selected(self, back_selected):
+		self.back_selected_callback = back_selected
+
+	def set_arb_connect(self, arb_connect):
+		self.arbitrator_connected_callback = arb_connect
+
+	def set_arb_disconnect(self, arb_disconnect):
+		self.arbitrator_disconnected_callback = arb_disconnect
+
 	def can_node_move(self, node):
+
+		#cannot move when in arbitrator view
+		if self.en_arb_view:
+			return False
+
 		#can only moved 
 		if node is None:
 			return False
@@ -254,6 +284,7 @@ class GraphDrawer ( GraphDrawingArea ):
 
 		return True
 
+
 	def in_trash_can(self):
 		cw = self.get_column_width(self.prev_width)
 		b = self.boxes["trash"]
@@ -268,9 +299,6 @@ class GraphDrawer ( GraphDrawingArea ):
 			return False
 		return True
 
-
-
-		
 
 	def stop_moving (self):
 		if self.moving == 0:
@@ -348,16 +376,65 @@ class GraphDrawer ( GraphDrawingArea ):
 												node.slave_index,
 												drop_type,
 												drop_index)
-		
 	
 	def button_press(self):
 		node_name = self.get_selected_name(self.p_x, self.p_y)
 		if len(node_name) > 0:
+			if node_name == "back":
+				self.back_selected_callback()
+				return
+			
+			if node_name == "remove":
+				print "remove selected"
+				self.arbitrator_disconnected_callback( \
+										self.selected_master,
+										self.selected_arb_master)
+				return
+
+			if self.en_arb_view:
+
+				column_width = self.get_column_width(self.prev_width)
+				#reject any button hits outside of column 3
+				if self.p_x < (column_width * 3):
+					return
+
+				sn = self.selected_node
+				#print "m, a, s: %s, %s, %s" % (self.selected_master, self.selected_arb_master, node_name)
+				self.arbitrator_connected_callback(	self.selected_master,
+													self.selected_arb_master,
+													node_name)
+			
+
+
 			self.selected_node = self.sgm.get_node(node_name)
 			sn = self.selected_node
 			name = sn.name
 			tags = self.sgm.get_parameters(node_name)
-			#get the index of the slave
+			arb_master = ""
+
+			#check to see if an arbitrator master was selected
+			if self.is_arbitrator_master_selected(\
+									node_name, \
+									self.p_x,  \
+									self.p_y):
+				arb_master = self.get_arbitrator_master_selected( \
+									node_name, \
+									self.p_x, \
+									self.p_y)
+
+				#print "arbitrator master: %s selected"% (arb_master)
+				self.selected_master_node = sn
+				
+				b = None
+				if sn.slave_type == Slave_Type.peripheral:
+					b = self.boxes["pslaves"][sn.slave_index]
+
+				else:
+					b = self.boxes["mslaves"][sn.slave_index]
+
+				connected_slave = b.get_connected_slave(arb_master)
+				
+				self.slave_arbitrator_select_callback(node_name, arb_master, connected_slave)
 
 			self.slave_select_callback(	name,
 										tags)
@@ -387,6 +464,7 @@ class GraphDrawer ( GraphDrawingArea ):
 			self.boxes["mslaves"].append(box())
 
 		self.regenerate_boxes = True
+		#self.generate_boxes(self.prev_width, self.prev_height)
 
 
 	def generate_boxes(self, width, height):
@@ -406,36 +484,73 @@ class GraphDrawer ( GraphDrawingArea ):
 
 		b.set_color(1.0, 0.0, 0.0)
 
+		#back button
+		b = self.boxes["back"]
+		b.set_name("Back")
+		box_width = column_width * self.box_width_ratio / 2.0
+		box_height = box_width * 2.0 * self.box_height_ratio
+		box_x = ((column_width - box_width) / 2.0) + box_width / 2.0
+		box_y = height / 2.0 - box_height / 2.0
 
-		#host interface
-		b = self.boxes["host_interface"]
-		node = self.sgm.get_host_interface_node()
-		b.set_name(node.name)
-		box_width = column_width * self.box_width_ratio
+		b.set_location_and_size(box_x, box_y, box_width, box_height)
+
+		b.set_color(1.0, 1.0, 1.0)
+
+		#remove button
+		b = self.boxes["remove"]
+		b.set_name("Remove")
+		box_width = column_width * self.box_width_ratio / 2.0
 		box_height = box_width * self.box_height_ratio
-		box_x = (column_width - box_width) / 2.0
-		box_y = (height / 2.0) - box_height / 2.0
+		box_x = ((column_width - box_width) / 2.0) + 2 * column_width
+		box_y = 0
 
 		b.set_location_and_size(box_x, box_y, box_width, box_height)
-		b.set_color(0.0, 1.0, 0.0)
 
-		#master
-		b = self.boxes["master"]
-		b.set_name("Master")
-		box_width = column_width * self.box_width_ratio
-		box_height = height - (column_width - box_width)
-		box_x = (column_width - box_width) / 2.0 + column_width
-		box_y = (column_width - box_width) / 2.0
+		b.set_color(1.0, 0.0, 0.0)
 
-		b.set_location_and_size(box_x, box_y, box_width, box_height)
-		b.set_color(1.0, 0.5, 0.0)
+
+
+		if self.en_arb_view == False:
+			#host interface
+			b = self.boxes["host_interface"]
+			node = self.sgm.get_host_interface_node()
+			b.set_name(node.name)
+			box_width = column_width * self.box_width_ratio
+			box_height = box_width * self.box_height_ratio
+			box_x = (column_width - box_width) / 2.0
+			box_y = (height / 2.0) - box_height / 2.0
+
+			b.set_location_and_size(	box_x, 
+										box_y, 
+										box_width, 
+										box_height)
+			b.set_color(0.0, 1.0, 0.0)
+
+			#master
+			b = self.boxes["master"]
+			b.set_name("Master")
+			box_width = column_width * self.box_width_ratio
+			box_height = height - (column_width - box_width)
+			box_x = (column_width - box_width) / 2.0 + column_width
+			box_y = (column_width - box_width) / 2.0
+
+			b.set_location_and_size(	box_x, 
+										box_y, 
+										box_width, 
+										box_height)
+			b.set_color(1.0, 0.5, 0.0)
 
 		#periph interconnect
 		b = self.boxes["pic"]
 		b.set_name("Peripherals")
 		box_width = column_width * self.box_width_ratio
 		box_height = (height / 2.0) - (column_width - box_width) 
-		box_x = (column_width - box_width) / 2.0 + 2 * column_width 
+
+		box_x = 0
+		if self.en_arb_view:
+			box_x = (column_width - box_width) / 2.0 
+		else:
+			box_x = (column_width - box_width) / 2.0 + 2 * column_width 
 		box_y = ((column_width - box_width) / 2.0) 
 
 		b.set_location_and_size(box_x, box_y, box_width, box_height)
@@ -446,7 +561,12 @@ class GraphDrawer ( GraphDrawingArea ):
 		b.set_name("Memories")
 		box_width = column_width * self.box_width_ratio 
 		box_height = (height / 2.0) - (column_width - box_width) 
-		box_x = (column_width - box_width) / 2.0 + (2 * column_width) 
+
+		box_x = 0
+		if self.en_arb_view:
+			box_x = (column_width - box_width) / 2.0 
+		else:
+			box_x = (column_width - box_width) / 2.0 + (2 * column_width) 
 		box_y = (column_width - box_width) / 2.0 + height / 2.0 
 
 		b.set_location_and_size(box_x, box_y, box_width, box_height)
@@ -461,7 +581,8 @@ class GraphDrawer ( GraphDrawingArea ):
 			b.set_name(node.name)
 			box_width = column_width * self.box_width_ratio 
 			box_height = box_width * self.pslave_height_ratio  
-			box_x = (column_width - box_width) / 2.0 + (column_width * 3) 
+			box_x = (column_width - box_width) / 2.0 + \
+					(column_width * 3) 
 			box_y = (column_width - box_width) / 2.0 + \
 					i * ((column_width - box_width) + box_height)
 
@@ -481,9 +602,20 @@ class GraphDrawer ( GraphDrawingArea ):
 				#bus some slave is attached to us
 				b.arb_slave = True
 
+			#the DRT should never be an arbitrator slave
+			if self.en_arb_view and i == 0:
+				box_x = (column_width - box_width) / 2.0 + \
+						(column_width * 1) 
 
-			for i in range(0, len(arbs)):
-				arb = arbs[i]
+				b.set_location_and_size(	box_x,
+											box_y,
+											box_width,
+											box_height)
+
+
+
+			for j in range(0, len(arbs)):
+				arb = arbs[j]
 				is_connected = False
 #				if self.debug:
 #					print "arb: " + arb
@@ -495,10 +627,42 @@ class GraphDrawer ( GraphDrawingArea ):
 
 					if key not in arbs:
 						b.arb_slave = True
+						continue
 
+				if self.en_arb_view:
+					if 	self.selected_master_node == node or \
+						s_name == self.connected_slave or \
+						i == 0:
+	
+						box_x = (column_width - box_width) / 2.0 + \
+							(column_width * 1) 
+
+						b.set_location_and_size(	box_x,
+													box_y,
+													box_width,
+													box_height)
+
+
+				print "add arbitrator master"
 				b.add_arbitrator_master(arb, is_connected, s_name) 
-				#memory slaves
 
+			#generate an arbitrator box if this is the selected slave
+			if self.en_arb_view and self.connected_slave == node.unique_name:
+				print "generting arbitrator box"
+				b = self.boxes["arbitrator"]
+
+				box_x = (column_width - box_width) / 2.0 + \
+						(column_width * 2) 
+
+				b.set_color(1.0, 1.0, 1.0)
+				b.set_location_and_size(	box_x,
+											box_y,
+											box_width,
+											box_height)
+
+
+
+		#memory slaves
 		for i in range (0, len(self.boxes["mslaves"])):
 			b = self.boxes["mslaves"][i]
 			node = self.sgm.get_slave_at(i, Slave_Type.memory)
@@ -540,11 +704,39 @@ class GraphDrawer ( GraphDrawingArea ):
 #check
 					if key not in arbs:
 						b.arb_slave = True
+						continue
+
+	
+					if self.en_arb_view:
+						if 	self.selected_master_node == node or \
+							s_name == self.connected_slave:
+
+							box_x = (column_width - box_width) / 2.0 + \
+							(column_width * 1) 
+
+							b.set_location_and_size(	box_x,
+														box_y,
+														box_width,
+														box_height)
 
 
-				b.add_arbitrator_master(arb, is_connected, s_name)
 
-				
+					b.add_arbitrator_master(arb, is_connected, s_name)
+
+			#generate an arbitrator box if this is the selected slave
+			if self.en_arb_view and self.connected_slave == node.unique_name:
+				print "generting (mem)arbitrator box"
+				b = self.boxes["arbitrator"]
+				b.name = "arbitrator"
+
+				box_x = (column_width - box_width) / 2.0 + \
+						(column_width * 2) 
+
+				b.set_color(1.0, 1.0, 1.0)
+				b.set_location_and_size(	box_x,
+											box_y,
+											box_width,
+											box_height)
 
 
 	def set_debug_mode(self, debug):
@@ -581,7 +773,39 @@ class GraphDrawer ( GraphDrawingArea ):
 			self.display_debug(width, height)
 
 		#self.draw_wb_lines(width, height)
+		if self.en_arb_view:
+			self.draw_arbitrator_view(width, height)
+		else:
+			self.draw_bus_view(width, height)
+
+	def set_arbitrator_view(self, node_name, arb_master, connected_slave, enable):
+		"""
+		enables or disables arbitrator view
+		the calling functio must specify the in the selected
+		node and the connected slave (or empty string if not
+		connected)
+		"""
+		self.selected_master = node_name
+		self.selected_arb_master = arb_master
+		self.connected_slave = connected_slave
+		self.en_arb_view = enable
+
 		
+	def draw_arbitrator_view(self, width, height):
+		self.draw_mem_interconnect()
+		self.draw_periph_interconnect()
+		self.draw_periph_slaves()
+		self.draw_mem_slaves()
+		if len(self.connected_slave) != 0:
+			self.draw_arbitrator()
+			self.draw_remove()
+
+		self.draw_back()
+		self.draw_connections(width, height)
+	
+		return
+
+	def draw_bus_view(self, width, height):
 		self.draw_host_interface()
 		self.draw_master()
 		self.draw_mem_interconnect()
@@ -590,7 +814,41 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.draw_mem_slaves()
 		self.draw_connections(width, height)
 		self.draw_moving()
+		return
 
+	def draw_arbitrator(self):	
+		b = self.boxes["arbitrator"]
+		self.draw_box(b, b.x, b.y, style = BOX_STYLE.OUTLINE)
+
+	def draw_remove(self):
+		b = self.boxes["remove"]
+		sm = self.selected_master_node
+		bm = None
+		if sm.slave_type == Slave_Type.peripheral:
+			bm = self.boxes["pslaves"][sm.slave_index]
+		else:
+			bm = self.boxes["mslaves"][sm.slave_index]
+
+		b.y = bm.y
+		self.draw_box(b, b.x, b.y, style = BOX_STYLE.OUTLINE)
+
+	def draw_back(self):	
+		b = self.boxes["back"]
+		self.draw_box(b, b.x, b.y, style = BOX_STYLE.OUTLINE)
+		#draw the arrow
+		cr = self.cr
+		cr.set_line_cap(cairo.LINE_CAP_ROUND)
+		
+		cr.set_line_width(5.0)
+		cr.set_source_rgb(0.0, 0.0, 0.0)
+		cr.move_to (b.x, b.y + b.height / 2.0)
+		cr.line_to (b.x - b.width, b.y + b.height / 2.0)
+		cr.line_to (b.x - b.width / 2.0, b.y)
+		cr.move_to (b.x - b.width,b.y +  b.height / 2.0)
+		cr.line_to (b.x - b.width / 2.0, b.y + b.height)
+		cr.set_line_cap(cairo.LINE_CAP_BUTT)
+		cr.set_line_width(2.0)
+		cr.stroke
 
 	def draw_host_interface(self):	
 		cr = self.cr
@@ -831,10 +1089,6 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.debug_line("new slave: %6d" % self.new_slave)
 
 
-		
-
-
-
 	def get_column_width(self, screen_width=0.0):
 		#sanity check
 		if screen_width <= 1:
@@ -855,35 +1109,67 @@ class GraphDrawer ( GraphDrawingArea ):
 		m_b = self.boxes["master"]
 		pic_b = self.boxes["pic"]
 		mic_b = self.boxes["mic"]
+		ab = self.boxes["arbitrator"]
 
-		#generate host to master connection
-		cr.move_to (hi_b.x + hi_b.width, hi_b.y + hi_b.height / 2.0)
-		cr.line_to (m_b.x, m_b.y + m_b.height/2.0)
+		if self.en_arb_view == False:
+			#generate host to master connection
+			cr.move_to (hi_b.x + hi_b.width, hi_b.y + \
+						hi_b.height / 2.0)
+			cr.line_to (m_b.x, m_b.y + m_b.height/2.0)
 
-		#master to peripheral interconnect
-		cr.move_to (m_b.x + m_b.width, pic_b.y + pic_b.height / 2.0)
-		cr.line_to (pic_b.x, pic_b.y + pic_b.height / 2.0)
+			#master to peripheral interconnect
+			cr.move_to (m_b.x + m_b.width, pic_b.y + \
+						pic_b.height / 2.0)
+			cr.line_to (pic_b.x, pic_b.y + pic_b.height / 2.0)
 
-		#master to memory interconnect
-		cr.move_to (m_b.x + m_b.width, mic_b.y + mic_b.height / 2.0)
-		cr.line_to (mic_b.x, mic_b.y + mic_b.height / 2.0)
+			#master to memory interconnect
+			cr.move_to (m_b.x + m_b.width, mic_b.y + mic_b.height / 2.0)
+			cr.line_to (mic_b.x, mic_b.y + mic_b.height / 2.0)
 
 		#peripheral interconnect to peripheral slaves
 		for i in range (0, len(self.boxes["pslaves"])):
+			node = self.sgm.get_slave_at(i, Slave_Type.peripheral)
 			if self.moving and not (self.selected_node is None):
 				if self.selected_node.slave_type == Slave_Type.peripheral\
 					and self.selected_node.slave_index == i:
 					continue
+
 			b = self.boxes["pslaves"][i]
+
+			if self.en_arb_view:
+				arbs = b.get_arb_master_names()
+				for arb in arbs:
+					if b.is_arb_master_connected(arb):
+						s_name = b.get_name_of_connected_slave(arb)
+						if self.connected_slave == s_name:
+							#make a connection to the arbitrator
+							cr.move_to(b.x + b.width, b.y + b.height / 2.0)
+							cr.line_to(ab.x + ab.width / 2.0, b.y + b.height / 2.0)
+							if (b.y < ab.y):
+								cr.line_to(ab.x + ab.width / 2.0, ab.y)
+							else:
+								cr.line_to(ab.x + ab.width / 2.0, ab.y + b.height)
+
+
 			cr.move_to (pic_b.x + pic_b.width, \
 						(column_width - b.width) / 2.0 + \
 						i * ((column_width - b.width) + b.height) + \
 						b.height / 2.0)
 
-			cr.line_to (b.x, b.y + b.height / 2.0)
+			if self.en_arb_view and \
+				node.unique_name == self.connected_slave:
+				#check if this is a slave for the arbitrator
+				cr.line_to (ab.x, ab.y + ab.height / 2.0)
+
+				cr.move_to (ab.x + ab.width, ab.y + ab.height / 2.0)
+				cr.line_to (b.x, b.y + b.height / 2.0)
+
+			else:
+				cr.line_to (b.x, b.y + b.height / 2.0)
 
 		#memory interconnect to memory slaves
 		for i in range (0, len(self.boxes["mslaves"])):
+			node = self.sgm.get_slave_at(i, Slave_Type.memory)
 			if self.moving and not (self.selected_node is None):
 				if self.selected_node.slave_type == Slave_Type.memory \
 					and self.selected_node.slave_index == i:
@@ -895,8 +1181,16 @@ class GraphDrawer ( GraphDrawingArea ):
 						b.height / 2.0 +\
 						height / 2.0)
 
-			cr.line_to (b.x, b.y + b.height / 2.0)
+			if self.en_arb_view and \
+				node.unique_name == self.connected_slave:
+				#check if this is a slave for the arbitrator
+				cr.line_to (ab.x, ab.y + ab.height / 2.0)
 
+				cr.move_to (ab.x + ab.width, ab.y + ab.height / 2.0)
+				cr.line_to (b.x, b.y + b.height / 2.0)
+
+			else:
+				cr.line_to (b.x, b.y + b.height / 2.0)
 
 
 		cr.stroke()
@@ -904,16 +1198,27 @@ class GraphDrawer ( GraphDrawingArea ):
 	def get_selected_name(self, x, y):
 		name = ""
 
-		#check host interface
-		b = self.boxes["host_interface"]
-		if b.in_bounding_box(x, y):	
-			#return the name
-			name = gm.get_unique_name("Host Interface", Node_Type.host_interface)
+		if self.en_arb_view:	
+			b = self.boxes["back"]
+			if b.in_bounding_box(x, y):
+				name = "back"
+			
+			b = self.boxes["remove"]
+			if b.in_bounding_box(x, y):
+				name = "remove"
 		
-		#check master
-		b = self.boxes["master"]
-		if b.in_bounding_box(x, y):	
-			name = gm.get_unique_name("Master", Node_Type.master)
+		else:
+
+			#check host interface
+			b = self.boxes["host_interface"]
+			if b.in_bounding_box(x, y):	
+				#return the name
+				name = gm.get_unique_name("Host Interface", Node_Type.host_interface)
+		
+			#check master
+			b = self.boxes["master"]
+			if b.in_bounding_box(x, y):	
+				name = gm.get_unique_name("Master", Node_Type.master)
 
 		#check memory interconnect
 		b = self.boxes["mic"]
@@ -947,6 +1252,42 @@ class GraphDrawer ( GraphDrawingArea ):
 		return name
 
 
+	def is_arbitrator_master_selected(self, node_name, x, y):
+		#this could be done with just the x and y but
+		#this way reduces a lot of overhead of searching through each
+		#node
+		node = self.sgm.get_node(node_name)
+		slave_type = node.slave_type
+		slave_index = node.slave_index
+		b = None
+		if slave_type == Slave_Type.peripheral:
+			b = self.boxes["pslaves"][slave_index]
+		else:
+			b = self.boxes["mslaves"][slave_index]
+		
+		if b.in_arb_master_icon(x, y):
+			return True
+
+		return False
+
+	def get_arbitrator_master_selected(self, node_name, x, y):
+		#this could be done with just the x and y but
+		#this way reduces a lot of overhead of searching through each
+		#node
+		node = self.sgm.get_node(node_name)
+		slave_type = node.slave_type
+		slave_index = node.slave_index
+		b = None
+		if slave_type == Slave_Type.peripheral:
+			b = self.boxes["pslaves"][slave_index]
+		else:
+			b = self.boxes["mslaves"][slave_index]
+
+		return b.get_arb_master_name(x, y)
+		
+
+
+	
 
 
 def run (Widget):

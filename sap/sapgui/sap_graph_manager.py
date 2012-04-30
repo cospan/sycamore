@@ -491,8 +491,10 @@ class SapGraphManager:
 		for nb_name in self.graph.neighbors(slave_master_name):
 			nb = self.get_node(nb_name)
 			if nb.node_type == Node_Type.slave:
-				slaves[self.graph[slave_master_name][nb_name]["name"]] = nb.unique_name
+				edge_name = self.get_edge_name(slave_master_name, nb_name)
+				slaves[edge_name] = nb.unique_name
 				
+	
 		return slaves
 
 	def disconnect_nodes(self, node1_name, node2_name):

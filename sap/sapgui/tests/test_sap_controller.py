@@ -254,7 +254,6 @@ class Test (unittest.TestCase):
 
 
 	def test_arbitration(self):
-#XXX: Test if the arbitrator is loaded correctly
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/arb_example.json"	
 		self.sc.load_config_file(file_name)
 		self.sc.initialize_graph()
@@ -299,6 +298,118 @@ class Test (unittest.TestCase):
 		self.assertEqual(arb_host, "console")
 		self.assertEqual(arb_slave_name, "mem1")
 		self.assertEqual(bus_name, "fb")
+	
+
+
+
+	def test_get_connected_arbitration_slave(self):
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/arb_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+
+#XXX: Test if the arbitrator can be removed
+		p_count = self.sc.get_number_of_slaves(sc.Slave_Type.peripheral)
+		m_count = self.sc.get_number_of_slaves(sc.Slave_Type.memory)
+
+		arb_host = ""
+		arb_slave = ""
+		bus_name = ""
+		host_name = ""
+
+		back = self.dbg
+#		self.dbg = True
+
+		for i in range (0, p_count):
+
+			name1 = self.sc.get_slave_name(sc.Slave_Type.peripheral, i)
+			if self.dbg:
+				print "testing %s for arbitration..." % (name1)
+			if self.sc.is_active_arbitrator_host(sc.Slave_Type.peripheral, i):
+				arb_host = name1
+				host_name = self.sc.sgm.get_slave_at(sc.Slave_Type.peripheral, i).unique_name
+				a_dict = self.sc.get_arbitrator_dict(sc.Slave_Type.peripheral, i)
+				for key in a_dict.keys():
+					bus_name = key
+					arb_slave = a_dict[key]
+
+		for i in range (0, m_count):
+			name1 = self.sc.get_slave_name(sc.Slave_Type.memory, i)
+			if self.sc.is_active_arbitrator_host(sc.Slave_Type.memory, i):
+				host_name = self.sc.sgm.get_slave_at(sc.Slave_Type.peripheral, i).unique_name
+
+				arb_host = name1
+				a_dict = self.sc.get_arbitrator_dict(sc.Slave_Type.memory, i)
+				for key in a_dict.keys():
+					bus_name = key
+					arb_slave = a_dict[key]
+
+		arb_slave_name = self.sc.get_slave_name_by_unique(arb_slave)
+
+		if self.dbg:
+			print "%s is connected to %s through %s" % (arb_host, arb_slave_name, bus_name)
+
+
+		slave_name = self.sc.get_connected_arbitrator_slave(host_name, bus_name)
+		self.dbg = False
+		self.assertEqual(slave_name, "mem1_0_0")
+
+	def test_remove_arbitration_by_arbitrator(self):
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/arb_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+
+#XXX: Test if the arbitrator can be removed
+		p_count = self.sc.get_number_of_slaves(sc.Slave_Type.peripheral)
+		m_count = self.sc.get_number_of_slaves(sc.Slave_Type.memory)
+
+		arb_host = ""
+		arb_slave = ""
+		bus_name = ""
+		host_name = ""
+
+		back = self.dbg
+#		self.dbg = True
+
+		for i in range (0, p_count):
+
+			name1 = self.sc.get_slave_name(sc.Slave_Type.peripheral, i)
+			if self.dbg:
+				print "testing %s for arbitration..." % (name1)
+			if self.sc.is_active_arbitrator_host(sc.Slave_Type.peripheral, i):
+				arb_host = name1
+				host_name = self.sc.sgm.get_slave_at(sc.Slave_Type.peripheral, i).unique_name
+				a_dict = self.sc.get_arbitrator_dict(sc.Slave_Type.peripheral, i)
+				for key in a_dict.keys():
+					bus_name = key
+					arb_slave = a_dict[key]
+
+		for i in range (0, m_count):
+			name1 = self.sc.get_slave_name(sc.Slave_Type.memory, i)
+			if self.sc.is_active_arbitrator_host(sc.Slave_Type.memory, i):
+				host_name = self.sc.sgm.get_slave_at(sc.Slave_Type.peripheral, i).unique_name
+
+				arb_host = name1
+				a_dict = self.sc.get_arbitrator_dict(sc.Slave_Type.memory, i)
+				for key in a_dict.keys():
+					bus_name = key
+					arb_slave = a_dict[key]
+
+		arb_slave_name = self.sc.get_slave_name_by_unique(arb_slave)
+
+		if self.dbg:
+			print "%s is connected to %s through %s" % (arb_host, arb_slave_name, bus_name)
+
+
+		slave_name = self.sc.get_connected_arbitrator_slave(host_name, bus_name)
+		self.dbg = False
+		self.assertEqual(slave_name, "mem1_0_0")
+
+		self.sc.remove_arbitrator_by_arb_master(host_name, bus_name)
+
+		slave_name = self.sc.get_connected_arbitrator_slave(host_name, bus_name)
+		self.assertIsNone(slave_name)
+
+
 
 
 	def test_save_config_file(self):
