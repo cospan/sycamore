@@ -45,6 +45,7 @@ class SapGuiController:
 		import graph_drawer
 		import slave_icon_view as siv
 		import property_view as pv
+		import project_view
 
 		#load the sap controller
 		self.sc = sc.SapController()
@@ -71,11 +72,9 @@ class SapGuiController:
 		self.gd.set_arb_disconnect(self.on_arbitrator_disconnect)
 
 		builderfile = "sap_gui.glade"
-		bus_view_file = "bus_view.glade"
 		windowname = "Sap IDE"
 		builder = gtk.Builder()
 		builder.add_from_file(builderfile)
-		builder.add_from_file(bus_view_file)
 
 		#register the callbacks
 		builder.connect_signals(self)
@@ -84,71 +83,15 @@ class SapGuiController:
 
 		self.main_view = builder.get_object("mainhpanel") 
 
-
-		self.project_view = builder.get_object("project_view")
-		self.project_view.set_size_request(150, 200)
-
-		self.gd.set_size_request(400, 200)
-		self.gd.show()
-
-
-
-
-		"""
-#new stuff
-		self.bus_view = builder.get_object("bus_hpan")
-		self.slave_prop = builder.get_object("prop_slave_vpan")
-		self.main_view.add2(self.bus_view)
-		self.bus_view.add1(self.gd)
-
-
-#slave icon view and property view
-		self.slave_icon_view = siv.SlaveIconView()
-		#self.slave_icon_view.show()
-		bus_type = self.sc.get_bus_type()
-		slave_file_list = saputils.get_slave_list(bus_type)	
-		slave_dict = {}
-		for slave in slave_file_list:
-			slave_tags = saputils.get_module_tags(slave, bus_type)
-			name = slave_tags["module"]
-			slave_dict[name] = {}
-			slave_dict[name]["filename"] = slave
-			slave_dict[name]["r"] = 0.0
-			slave_dict[name]["g"] = 0.0
-			slave_dict[name]["b"] = 1.0
-			
-
-		self.slave_icon_view.set_slave_list(slave_dict)
-		self.slave_icon_view.set_size_request(-1, 300)
-		self.slave_icon_view.set_slave_icon_selected_callback(self.on_slave_icon_selected)
-
-		self.slave_prop.add1(self.slave_icon_view)
-
-		self.property_view = pv.PropertyView()
-		self.property_view.show_all()
-		self.property_view.set_size_request(-1, 100)
-
-
-		self.property_view = pv.PropertyView()
-		self.slave_prop.add2(self.property_view)
-		self.bus_view.show_all()
-
-
-#end new stuff
-		"""
-
-
-
-
-
+		self.project_view = project_view.ProjectView(self.sc)
+		self.main_view.add(self.project_view)
+#		self.project_view = builder.get_object("project_view")
+#		self.project_view.set_size_request(150, 200)
 
 		self.graph_pane = gtk.HPaned()
 		self.graph_pane.show()
-
 		self.main_view.add(self.graph_pane)
-
 		self.prop_slave_view = gtk.VPaned()
-
 
 #slave icon view and property view
 		self.slave_icon_view = siv.SlaveIconView()
@@ -156,6 +99,7 @@ class SapGuiController:
 		bus_type = self.sc.get_bus_type()
 		slave_file_list = saputils.get_slave_list(bus_type)	
 		slave_dict = {}
+
 		for slave in slave_file_list:
 			slave_tags = saputils.get_module_tags(slave, bus_type)
 			name = slave_tags["module"]
@@ -164,7 +108,6 @@ class SapGuiController:
 			slave_dict[name]["r"] = 0.0
 			slave_dict[name]["g"] = 0.0
 			slave_dict[name]["b"] = 1.0
-			
 
 		self.slave_icon_view.set_slave_list(slave_dict)
 		self.slave_icon_view.set_size_request(-1, 300)
@@ -181,16 +124,15 @@ class SapGuiController:
 		self.prop_slave_view.set_size_request(200, -1)
 		self.prop_slave_view.show_all()
 
+
 		#add the graph drawer and property/slave list to the graph_pane
 		self.graph_pane.add1(self.gd)
-
+		self.gd.set_size_request(400, -1)
+		self.gd.show()
 		self.graph_pane.add2(self.prop_slave_view)
 
-
-
-
-
-
+		self.project_view.set_size_request(400, 100)
+		self.project_view.show()
 
 
 		self.window.connect("destroy", gtk.main_quit)
@@ -228,6 +170,12 @@ class SapGuiController:
 			self.sc.remove_arbitrator_by_name(host_name, current_slave)
 
 		self.sc.add_arbitrator_by_name (host_name, arb_master, slave_name)
+		self.gd.set_arbitrator_view(	slave_name,
+										arb_master,
+										slave_name,
+										True)
+
+
 		self.gd.force_update()
 
 
@@ -252,7 +200,7 @@ class SapGuiController:
 		change the view to the arbitrator view
 		"""
 
-		print "%s of %s selectd is connected to %s" % (arb_master, slave_name, connected_slave)
+		#print "%s of %s selectd is connected to %s" % (arb_master, slave_name, connected_slave)
 
 		self.gd.set_arbitrator_view(	slave_name,
 										arb_master,
@@ -295,11 +243,11 @@ class SapGuiController:
 		when a user visually drops a slave box into a valid location
 		in one of the slave buses this gets called
 		"""
-		print "entered on slave add"
+		#print "entered on slave add"
 		from saplib import saputils
 		from sap_controller import Slave_Type
 
-		print "filename: " + filename
+		#print "filename: " + filename
 		
 
 		#add the slave into the slave graph
@@ -314,7 +262,7 @@ class SapGuiController:
 		#check peripheral bus for the name
 		done = False
 		while not done:
-			print "checking names"
+			#print "checking names"
 			for i in range (0, p_count):
 				sname = self.sc.get_slave_name(Slave_Type.peripheral, i) 
 				if sname == name + str(name_index): 
@@ -342,7 +290,7 @@ class SapGuiController:
 		"""
 		when a user visually removes a slave box
 		"""
-		print "entered on slave remove"
+		#print "entered on slave remove"
 		#remove the slave from the slave graph
 		self.sc.remove_slave(slave_type, index)
 		self.gd.force_update()
@@ -356,7 +304,7 @@ class SapGuiController:
 		"""
 		when a previously existing slave is moved
 		"""
-		print "entered on_slave_move"
+		#print "entered on_slave_move"
 		if from_type == to_type and from_index == to_index:
 			return False
 

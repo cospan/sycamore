@@ -173,7 +173,8 @@ class GraphDrawer ( GraphDrawingArea ):
 		a slave has been dragged to this window and dropped
 		"""
 		text = data.get_text()
-		print "graph drawer received text: %s" % text
+		if self.debug:
+			print "graph drawer received text: %s" % text
 		if not self.in_slave_column(x, y):
 			return
 
@@ -385,7 +386,8 @@ class GraphDrawer ( GraphDrawingArea ):
 				return
 			
 			if node_name == "remove":
-				print "remove selected"
+				if self.debug:
+					print "remove selected"
 				self.arbitrator_disconnected_callback( \
 										self.selected_master,
 										self.selected_arb_master)
@@ -643,13 +645,16 @@ class GraphDrawer ( GraphDrawingArea ):
 													box_height)
 
 
-				print "add arbitrator master"
+				if self.debug:
+					print "add arbitrator master"
 				b.add_arbitrator_master(arb, is_connected, s_name) 
 
 			#generate an arbitrator box if this is the selected slave
 			if self.en_arb_view and self.connected_slave == node.unique_name:
-				print "generting arbitrator box"
+				if self.debug:
+					print "generting arbitrator box"
 				b = self.boxes["arbitrator"]
+				b.name = "arbitrator"
 
 				box_x = (column_width - box_width) / 2.0 + \
 						(column_width * 2) 
@@ -725,7 +730,8 @@ class GraphDrawer ( GraphDrawingArea ):
 
 			#generate an arbitrator box if this is the selected slave
 			if self.en_arb_view and self.connected_slave == node.unique_name:
-				print "generting (mem)arbitrator box"
+				if self.debug:
+					print "generting (mem)arbitrator box"
 				b = self.boxes["arbitrator"]
 				b.name = "arbitrator"
 

@@ -14,16 +14,16 @@ class GraphDrawingArea(gtk.DrawingArea):
 
 	def tick (self):
 		self.alloc = self.get_allocation()
-		rect = gtk.gdk.Rectangle (	self.alloc.x, \
-									self.alloc.y, \
+		if self.alloc.width < 0:
+			return True
+
+		if self.alloc.height < 0:
+			return True
+
+		rect = gtk.gdk.Rectangle (	0, \
+									0, \
 									self.alloc.width, \
 									self.alloc.height )
-
-
-#		print "Type: " + str(type(self))
-#		if type(self.window) is NoneType:
-#			return True
-#		else:
 		self.window.invalidate_rect ( rect, True )        
 
 		return True # Causes timeout to tick again
