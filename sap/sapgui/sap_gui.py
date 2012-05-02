@@ -83,14 +83,16 @@ class SapGuiController:
 
 		self.main_view = builder.get_object("mainhpanel") 
 
+		#add the project view
 		self.project_view = project_view.ProjectView(self.sc)
-		self.main_view.add(self.project_view)
-#		self.project_view = builder.get_object("project_view")
-#		self.project_view.set_size_request(150, 200)
+		self.project_view.set_size_request(200, -1)
+		self.main_view.pack1(self.project_view, True, False)
+		self.project_view.show()
+		self.main_view.show_all()
 
 		self.graph_pane = gtk.HPaned()
 		self.graph_pane.show()
-		self.main_view.add(self.graph_pane)
+		self.main_view.pack2(self.graph_pane, True, False)
 		self.prop_slave_view = gtk.VPaned()
 
 #slave icon view and property view
@@ -126,19 +128,30 @@ class SapGuiController:
 
 
 		#add the graph drawer and property/slave list to the graph_pane
-		self.graph_pane.add1(self.gd)
+#		self.graph_pane.add1(self.gd)
+		self.graph_pane.pack1(self.gd, True, False)
 		self.gd.set_size_request(400, -1)
 		self.gd.show()
-		self.graph_pane.add2(self.prop_slave_view)
+		self.graph_pane.pack2(self.prop_slave_view, True, False)
 
-		self.project_view.set_size_request(400, 100)
-		self.project_view.show()
 
 
 		self.window.connect("destroy", gtk.main_quit)
 		self.window.show()
 		return
 
+
+	def setup_project_panel_view(self):
+		print "setup the project panel"
+
+	def setup_project_properties_view(self):
+		print "setup the project properties view"
+
+	def setup_bus_view(self):
+		print "setup the bus view"
+
+	def setup_module_view(self):
+		print "setup the module view"
 
 	def on_slave_icon_selected(self, filename):
 		"""
