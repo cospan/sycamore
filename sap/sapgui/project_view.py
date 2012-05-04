@@ -111,15 +111,13 @@ class ProjectView(gtk.ScrolledWindow):
 
 	def on_item_change(self, widget, path, view_column): 
 		"""whenever an item is activated"""
-		print "item changed to: " + str(path)
+		#print "item changed to: " + str(path)
 		item = self.model[path]
 		itr = self.model.get_iter(path)
 		text = self.model.get_value(itr, 2)
-		print "text: " + str(text)
+		#print "text: " + str(text)
 		if self.project_item_selected_callback is not None:
 			self.project_item_selected_callback(text)
-
-
 
 	def setup_project_view(self):
 		"""
@@ -143,9 +141,9 @@ class ProjectView(gtk.ScrolledWindow):
 
 		#insert the host interface
 		name = "Host Interface"
-		un = self.sgm.get_host_interface_node().unique_name
+#		un = self.sgm.get_host_interface_node().unique_name
 		pixbuf = setup_box(name, 0.0, 1.0, 0.0)
-		self.model.append(bit, [name, pixbuf, un])
+		self.model.append(bit, [name, pixbuf, "host_interface"])
 
 		#insert the master
 		name = "Master"

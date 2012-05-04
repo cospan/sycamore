@@ -71,6 +71,8 @@ class SapGuiController:
 		self.gd.set_arb_connect(self.on_arbitrator_connected)
 		self.gd.set_arb_disconnect(self.on_arbitrator_disconnect)
 
+
+
 		builderfile = "sap_gui.glade"
 		windowname = "Sap IDE"
 		builder = gtk.Builder()
@@ -86,6 +88,8 @@ class SapGuiController:
 		#add the project view
 		self.project_view = project_view.ProjectView(self.sc)
 		self.project_view.set_size_request(200, -1)
+
+		self.project_view.set_project_item_callback(self.on_project_item_changed)
 		self.main_view.pack1(self.project_view, True, False)
 		self.project_view.show()
 		self.main_view.show_all()
@@ -134,12 +138,26 @@ class SapGuiController:
 		self.gd.show()
 		self.graph_pane.pack2(self.prop_slave_view, True, False)
 
-
-
 		self.window.connect("destroy", gtk.main_quit)
 		self.window.show()
 		return
 
+	def on_project_item_changed(self, project_text):
+		#print "project text: " + str(project_text)
+		if project_text == "project":
+			print "Project selected"
+		elif project_text == "bus":
+			print "Bus selected"
+		elif project_text == "host_interface":
+			print "host interface selected"
+		elif project_text == "master":
+			print "Master selected"
+		elif project_text == "peripherals":
+			print "Peripheral bus selected"
+		elif project_text == "memory":
+			print "Memory bus selected"
+		else:
+			print "Slave selected: " + str(project_text)
 
 	def setup_project_panel_view(self):
 		print "setup the project panel"
@@ -247,7 +265,6 @@ class SapGuiController:
 			filename = sf.find_module_filename(module_name) 
 			bus_type = self.sc.get_bus_type()
 
-		
 		self.property_view.set_node(name, filename, tags)
 		
 
@@ -288,15 +305,9 @@ class SapGuiController:
 					name_index += 1
 					continue
 			done = True
-
-
-
-
-
-		
-
 		self.sc.add_slave(name + str(name_index), filename, slave_type, index) 
 		self.gd.force_update()
+		self.project_view.setup_project_view()
 		return True
 
 	def on_slave_remove(self, slave_type, index):
@@ -307,6 +318,7 @@ class SapGuiController:
 		#remove the slave from the slave graph
 		self.sc.remove_slave(slave_type, index)
 		self.gd.force_update()
+		self.project_view.setup_project_view()
 		return True
 
 	def on_slave_move(	self, 
@@ -330,6 +342,7 @@ class SapGuiController:
 							to_index)
 
 		self.gd.force_update()
+		self.project_view.setup_project_view()
 		return True
 
 	def on_file_quit(self, widget):
