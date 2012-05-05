@@ -173,11 +173,22 @@ class Test (unittest.TestCase):
 
 		self.assertEqual(True, True)
 
+	def test_get_net_names(self):
+		filename = "lx9.ucf" 
+		netnames = saputils.get_net_names(filename, debug = self.dbg)
+		if self.dbg:
+			print "net names: "
+			for name in netnames:
+				print "\t%s" % name
+
+		self.assertIn("clk", netnames) 
+
 	def test_read_clk_with_period(self):
 		
 		filename = "sycamore_serial.ucf" 
 		clock_rate = saputils.read_clock_rate(filename, debug = self.dbg)
 		self.assertEqual(len(clock_rate) > 0, True)
+
 
 	def test_read_clk_with_timespec(self):
 		

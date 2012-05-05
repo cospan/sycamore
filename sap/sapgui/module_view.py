@@ -9,6 +9,8 @@ import os
 import sys
 import getopt 
 
+import saputils
+
 import sap_graph_manager as sgm
 import sap_controller as sc
 
@@ -41,9 +43,22 @@ class ModuleView:
 
 		self.slave_prop_view.pack_end(self.property_vbox, True, False)
 
-		self.port_table = builder.get_object("port_table")
-		self.pin_table = builder.get_object("pin_table")
 		self.connection_viewport = builder.get_object("connection_viewport")
+		self.port_tree = builder.get_object("port_tree")
+		self.pin_tree = builder.get_object("pin_tree")
+		self.bind_tree = builder.get_object("bind_tree")
+
+		self.port_tree.connect("row-activated", self.on_port_selected)
+		self.pin_tree.connect("row-activated", self.on_pin_selected)
+		self.bind_tree.connect("row-activated", self.on_bind_selected)
+
+		bind_button = builder.get_object("button_bind")
+		unbind_button = builder.get_object("button_unbind")
+
+		bind_button.connect("clicked", self.on_bind_clicked)
+		unbind_button.connect("clicked", self.on_unbind_clicked)
+
+	
 		self.user_name = builder.get_object("label_user_name")
 		self.module_name = builder.get_object("label_module_name")
 		self.author = builder.get_object("label_author")
@@ -64,14 +79,9 @@ class ModuleView:
 		self.property_update_button = None
 		self.property_update_callback = None
 
-
-
-
-	def button_unbind_clicked_cb(self, widget):
-		print "unbind"
-
-	def button_bind_clicked_cb(self, widget):
-		print "bind"
+		self.selected_port = None
+		self.selected_pin = None
+		self.selected_binding = None
 
 
 
@@ -113,7 +123,155 @@ class ModuleView:
 		#setup the properties view
 		self.setup_property_view()
 
+		self.setup_port_list()
+		self.setup_pin_list()
+		self.setup_bind_list()
+
+
+	def on_port_selected(self, widget, path, view_column):
+		print "port has been selected"
+
+	def on_pin_selected(self, widget, path, view_column):
+		print "pin has been selected"
+
+	def on_bind_selected(self, widget, path, view_column):
+		print "binding has been selected"
+
+
+
+	def on_bind_clicked(self, widget):
+		print "bind has been clicked"
 	
+	def on_unbind_clicked(self, widget):
+		print "unbind has been clicked"
+
+	#setup the ports/pins/binding
+	def setup_port_list(self):
+		print "setup port table"
+		pt = self.port_tree
+		pl = gtk.ListStore(str, str)
+		pt.set_model(pl)
+		pl.clear()
+
+		#create the columns
+		name_column = gtk.TreeViewColumn()
+		name_column.set_title("Name")
+		cell = gtk.CellRendererText()
+		name_column.pack_start(cell, True)
+		name_column.add_attribute(cell, "text", 0)
+
+		dir_column = gtk.TreeViewColumn()
+		dir_column.set_title("Direction")
+		cell = gtk.CellRendererText()
+		dir_column.pack_start(cell, True)
+		dir_column.add_attribute(cell, "text", 1)
+
+
+		#add the columns if they are needed
+		if pt.get_column(0) is None:
+			pt.insert_column(name_column, 0)
+
+		if pt.get_column(1) is None:
+			pt.insert_column(dir_column, 1)
+
+		for c in pt.get_columns():
+			print "columns: " + c.get_title()
+
+		ports = self.node.parameters["ports"]
+		ab_ms = self.node.parameters["arbitrator_masters"]
+		for port in ports.keys():
+
+			if port == "clk":
+				continue
+			if port == "rst":
+				continue
+			
+			if port.partition("_")[0] == "wbs":
+				continue
+
+			pre = port.partition("_")[0]
+			if pre in ab_ms:
+				continue
+
+
+			direction = ports[port]["direction"]
+			#print "port: %s, direction: %s" % (port, direction)
+			print "port[%s] = %s" % (port, str(ports[port]))
+			#pl.append([port, direction])
+			size = ports[port]["size"]
+
+			if size == 1:
+				it = pl.append()
+				pl.set(it, 0, port)
+				pl.set(it, 1, direction)
+
+			else:
+				min_value = 0
+				max_value = 1
+				if "min_val" in ports[port].keys():
+					min_value = ports[port]["min_val"]
+				if "max_val" in ports[port].keys():
+					max_value = ports[port]["max_val"]
+
+				for i in range(min_value, min_value + size):
+					it = pl.append()
+					p = port + str("[%d]" % i)
+					pl.set(it, 0, p)
+					pl.set(it, 1, direction)
+					
+				
+
+
+	def setup_pin_list(self):
+		print "setup pin list"
+		pt = self.pin_tree
+		pl = gtk.ListStore(str)
+		pt.set_model(pl)
+		pl.clear()
+
+		#create the columns
+		name_column = gtk.TreeViewColumn()
+		name_column.set_title("Name")
+		cell = gtk.CellRendererText()
+		name_column.pack_start(cell, True)
+		name_column.add_attribute(cell, "text", 0)
+
+		#add the columns if they are needed
+		if pt.get_column(0) is None:
+			pt.insert_column(name_column, 0)
+
+		#get a list of the nets in the constraint file
+		files = self.sc.get_constraint_file_names()
+		netnames = []
+		for f in files:
+			nn = saputils.get_net_names(f)	
+			for n in nn:
+				if n in netnames:
+					continue
+				netnames.append(n)
+
+		
+		#now I have a list of net names
+		for net in netnames:
+			if net == "clk":
+				continue
+			if net == "rst":
+				continue
+
+			it = pl.append()
+			pl.set(it, 0, net)
+
+
+	
+	def setup_bind_list(self):
+		print "setup bind table"
+		bt = self.bind_tree
+		bl = gtk.ListStore(str)
+		bt.set_model(bl)
+		bl.clear()
+	
+
+
 	def setup_property_view(self):
 	
 		self.property_vbox = gtk.VBox(False, 0)

@@ -15,6 +15,8 @@ Changes:
 04/22/2012
 	-Added the get_slave_list function that returns a list of the
 	available slave filenames
+05/05/2012 (Cinqo de mayo, Woot!)
+	-Added get_net_names to get all the names within a constraint file
 """
 
 
@@ -314,6 +316,79 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 					print "\t" + key + ":" + value
 
 	return tags
+
+
+
+def get_net_names(constraint_filename, debug = False):
+	"""
+	gets a list of net
+	"""
+	base_location = os.getenv("SAPLIB_BASE")
+	base_location = base_location + "/hdl/boards"
+	filename = ""
+	buf = ""
+	nets = []
+
+
+	if debug:
+		print "Looking for: " + constraint_filename
+	for root, dirs, names in os.walk(base_location):
+		if debug:
+			print "name: " + str(names)
+
+		if constraint_filename in names:
+			if debug:
+				print "found the file!"
+			filename =  os.path.join(root, constraint_filename)
+			break
+
+	if (len(filename) == 0):
+		if debug:
+			print "didn't find constraing file"
+		return ""
+
+	#open up the ucf file
+	try:
+		file_in = open(filename)
+		buf = file_in.read() 
+		file_in.close()
+	except:
+		#fail
+		if debug:
+			print "failed to open file: " + filename
+		return ""
+
+	if debug:
+		print "Opened up the UCF file"
+
+	lines = buf.splitlines()
+	#first search for the TIMESPEC keyword
+	for line in lines:
+		line = line.lower()
+		#get rid of comments
+		if ("#" in line):
+			line = line.partition("#")[0]
+
+		if "net" not in line:
+			continue
+
+		#split separate all space deliminated tokens
+		line = line.partition("net")[2].strip()
+		token = line.split()[0]
+		token = token.strip("\"")
+
+		token = token.replace('<', '[')
+		token = token.replace('>', ']')
+#		if debug:
+#			print "possible net name: " + token
+		
+		if token not in nets:
+			nets.append(token)
+
+
+
+	return nets
+			
 
 
 
