@@ -46,9 +46,12 @@ class SapGuiController:
 		import slave_icon_view as siv
 		import property_view as pv
 		import project_view
+		import module_view
 
 		#load the sap controller
 		self.sc = sc.SapController()
+		self.module_view = module_view.ModuleView(self.sc)
+		self.module_view.set_on_update_callback(self.on_properties_update)
 
 		try:
 			if len(filename) > 0:
@@ -84,6 +87,7 @@ class SapGuiController:
 		self.window = builder.get_object("main_window")
 
 		self.main_view = builder.get_object("mainhpanel") 
+		self.current_widget = None
 
 		#add the project view
 		self.project_view = project_view.ProjectView(self.sc)
@@ -96,7 +100,8 @@ class SapGuiController:
 
 		self.graph_pane = gtk.HPaned()
 		self.graph_pane.show()
-		self.main_view.pack2(self.graph_pane, True, False)
+		self.set_main_view(self.graph_pane)
+		#self.main_view.pack2(self.graph_pane, True, False)
 		self.prop_slave_view = gtk.VPaned()
 
 #slave icon view and property view
@@ -142,12 +147,19 @@ class SapGuiController:
 		self.window.show()
 		return
 
+	def set_main_view(self, widget):
+		if self.current_widget != None:
+			self.main_view.remove(self.current_widget)
+		self.main_view.pack2(widget, True, False)
+		self.current_widget = widget
+
 	def on_project_item_changed(self, project_text):
 		#print "project text: " + str(project_text)
 		if project_text == "project":
 			print "Project selected"
 		elif project_text == "bus":
 			print "Bus selected"
+			self.setup_bus_view()
 		elif project_text == "host_interface":
 			print "host interface selected"
 		elif project_text == "master":
@@ -158,6 +170,7 @@ class SapGuiController:
 			print "Memory bus selected"
 		else:
 			print "Slave selected: " + str(project_text)
+			self.setup_module_view(project_text)
 
 	def setup_project_panel_view(self):
 		print "setup the project panel"
@@ -167,9 +180,34 @@ class SapGuiController:
 
 	def setup_bus_view(self):
 		print "setup the bus view"
+		self.set_main_view(self.graph_pane)
+		#set the module view as the main view
+		
 
-	def setup_module_view(self):
+	def setup_module_view(self, module_name):
 		print "setup the module view"
+		gm = self.sc.get_graph_manager()
+		current_node = gm.get_node(module_name)
+		
+		self.module_view.setup(current_node)
+		self.set_main_view(self.module_view.get_frame())
+#		alloc = self.main_view.get_allocation()
+#		rect = gtk.gdk.Rectangle (	0, \
+#									0, \
+#									alloc.width, \
+#									alloc.height )
+#		self.main_view.invalidate_rect ( rect, True )        
+
+
+	def on_properties_update(self, unique_name, properties):
+		print "property update callback"
+		gm = self.sc.get_graph_manager()
+		node = gm.get_node(unique_name)
+		np = node.parameters["parameters"]
+
+		#go through all the properties
+		for key in properties.keys():
+			np[key] = properties[key]
 
 	def on_slave_icon_selected(self, filename):
 		"""

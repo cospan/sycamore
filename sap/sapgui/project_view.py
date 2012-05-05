@@ -87,16 +87,9 @@ class ProjectView(gtk.ScrolledWindow):
 		self.sc = sc
 		self.sgm = sc.get_graph_manager()
 
+		self.model = None
 
 		#setup the visual components
-
-		self.project_column = gtk.TreeViewColumn()
-		self.project_column.set_title("Projects")
-		cell = gtk.CellRendererText()
-		self.project_column.pack_start(cell, True)
-		self.project_column.add_attribute(cell, "text", 0)
-
-		self.model = None
 		self.project_tree = gtk.TreeView()
 
 #		self.set_size_request(200, -1)
@@ -123,6 +116,20 @@ class ProjectView(gtk.ScrolledWindow):
 		"""
 		generate all the nodes
 		"""
+		self.project_column = gtk.TreeViewColumn()
+		self.project_column.set_title("Project Tree")
+		cell = gtk.CellRendererText()
+		self.project_column.pack_start(cell, True)
+		self.project_column.add_attribute(cell, "text", 0)
+
+		self.project_image_column = gtk.TreeViewColumn()
+		self.project_image_column.set_title("Modules")
+		cell = gtk.CellRendererPixbuf()
+		self.project_image_column.pack_start(cell, True)
+		self.project_image_column.add_attribute(cell, "image", 1)
+
+
+
 		self.model = gtk.TreeStore(str, gtk.gdk.Pixbuf, str)
 		#insert the root node
 		name = self.sc.get_project_name()
@@ -178,7 +185,11 @@ class ProjectView(gtk.ScrolledWindow):
 			self.model.append(mit, [node.name, pixbuf, un])
 
 	
-		self.project_tree.append_column(self.project_column)
+		if self.project_tree.get_column(0) is None:
+			self.project_tree.append_column(self.project_column)
+
+#		if self.project_tree.get_column(1) is None:
+#			self.project_tree.insert_column(self.project_image_column, 1)
 
 		self.project_tree.set_model(self.model)
 

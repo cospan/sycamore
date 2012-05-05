@@ -13,6 +13,9 @@ class GraphDrawingArea(gtk.DrawingArea):
 
 
 	def tick (self):
+		if self.window is None:
+			return True
+
 		self.alloc = self.get_allocation()
 		if self.alloc.width < 0:
 			return True
