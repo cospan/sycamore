@@ -10,12 +10,15 @@ import sys
 import getopt 
 
 import saputils
+from sap_gui_error import GUI_Error
 
 import sap_graph_manager as sgm
 import sap_controller as sc
 
 from sap_graph_manager import Slave_Type
 from sap_graph_manager import Node_Type
+
+import status_text
 
 class ModuleView:
 	def __init__(self, sap_controller):
@@ -25,7 +28,7 @@ class ModuleView:
 		self.sc = sap_controller
 
 		#register the callbacks
-		builder.connect_signals(self)
+		#builder.connect_signals(self)
 
 		self.frame = builder.get_object("module_frame")
 
@@ -48,17 +51,15 @@ class ModuleView:
 		self.pin_tree = builder.get_object("pin_tree")
 		self.bind_tree = builder.get_object("bind_tree")
 
-		self.port_tree.connect("row-activated", self.on_port_selected)
-		self.pin_tree.connect("row-activated", self.on_pin_selected)
-		self.bind_tree.connect("row-activated", self.on_bind_selected)
+		#self.port_tree.connect("row-activated", self.on_port_selected)
+		#self.pin_tree.connect("row-activated", self.on_pin_selected)
+		#self.bind_tree.connect("row-activated", self.on_bind_selected)
 
-		bind_button = builder.get_object("button_bind")
-		unbind_button = builder.get_object("button_unbind")
+		self.port_tree.connect("cursor-changed", self.on_port_selected)
+		self.pin_tree.connect("cursor-changed", self.on_pin_selected)
+		self.bind_tree.connect("cursor-changed", self.on_bind_selected)
 
-		bind_button.connect("clicked", self.on_bind_clicked)
-		unbind_button.connect("clicked", self.on_unbind_clicked)
 
-	
 		self.user_name = builder.get_object("label_user_name")
 		self.module_name = builder.get_object("label_module_name")
 		self.author = builder.get_object("label_author")
@@ -69,6 +70,14 @@ class ModuleView:
 
 
 		self.module_icon.connect ( "expose_event", self.mi_expose_event )
+		bind_button = builder.get_object("button_bind")
+		unbind_button = builder.get_object("button_unbind")
+
+		bind_button.connect("clicked", self.on_bind_clicked)
+		unbind_button.connect("clicked", self.on_unbind_clicked)
+
+		self.s = status_text.StatusText()
+		
 		self.node = None
 		self.mi_cr = None
 		self.property_table = None
@@ -78,6 +87,8 @@ class ModuleView:
 		self.typad = 0
 		self.property_update_button = None
 		self.property_update_callback = None
+		self.bind_callback = None
+		self.unbind_callback = None
 
 		self.selected_port = None
 		self.selected_pin = None
@@ -86,6 +97,7 @@ class ModuleView:
 
 
 	def setup(self, node):
+		self.s.print_info(__file__, "%s loaded" % node.name)
 		self.clear()
 
 		if node is None:
@@ -128,26 +140,66 @@ class ModuleView:
 		self.setup_bind_list()
 
 
-	def on_port_selected(self, widget, path, view_column):
-		print "port has been selected"
+	def on_port_selected(self, tree):
+		itr = tree.get_selection().get_selected()[1]
+		try:
+			self.selected_port = tree.get_model().get_value(itr, 0)
+		except:
+			self.selected_port = None
+		#print "port value: " + self.selected_port
 
-	def on_pin_selected(self, widget, path, view_column):
-		print "pin has been selected"
+	def on_pin_selected(self, tree):
+		itr = tree.get_selection().get_selected()[1]
+		try:
+			self.selected_pin = tree.get_model().get_value(itr, 0)
+		except:
+			self.selected_pin = None
+		#print "pin %s selected" % self.selected_pin
 
-	def on_bind_selected(self, widget, path, view_column):
-		print "binding has been selected"
-
+	def on_bind_selected(self, tree):
+		itr = tree.get_selection().get_selected()[1]
+		try:
+			self.selected_binding = tree.get_model().get_value(itr, 0)
+		except:
+			self.selected_binding = None
+		#print "bind %s selected" % self.selected_binding
 
 
 	def on_bind_clicked(self, widget):
-		print "bind has been clicked"
+		#check if the port is selected
+		if self.selected_port is None:
+			self.s.print_error(__file__, "port has not been selected")
+#			raise GUI_Error("port is not selected")
+
+		#check if the pin is selected
+		if self.selected_pin is None:
+			self.s.print_error(__file__, "pin has not been selected")
+#			raise GUI_Error("pin is not selected")
+
+		#get the unique name of the module
+		uname = self.node.unique_name
+
+		self.bind_callback(uname, self.selected_port, self.selected_pin)
+		self.selected_port = None
+		self.selected_pin = None
+		self.setup_bind_list()
 	
 	def on_unbind_clicked(self, widget):
-		print "unbind has been clicked"
+		#print "unbind has been clicked"
+		if self.selected_binding is None:
+			self.s.print_error(__file__, "binding has not been selected")
+#			raise GUI_Error("binding is not selected")
+
+		#get the unique name of the module
+		uname = self.node.unique_name
+
+		self.unbind_callback(uname, self.selected_binding)
+		self.selected_binding = None
+		self.setup_bind_list()
 
 	#setup the ports/pins/binding
 	def setup_port_list(self):
-		print "setup port table"
+		#print "setup port table"
 		pt = self.port_tree
 		pl = gtk.ListStore(str, str)
 		pt.set_model(pl)
@@ -218,6 +270,8 @@ class ModuleView:
 					p = port + str("[%d]" % i)
 					pl.set(it, 0, p)
 					pl.set(it, 1, direction)
+
+
 					
 				
 
@@ -266,9 +320,51 @@ class ModuleView:
 	def setup_bind_list(self):
 		print "setup bind table"
 		bt = self.bind_tree
-		bl = gtk.ListStore(str)
+		bl = gtk.ListStore(str, str, str)
 		bt.set_model(bl)
 		bl.clear()
+
+		#create the columns
+		port_column = gtk.TreeViewColumn()
+		port_column.set_title("Module Port")
+		cell = gtk.CellRendererText()
+		port_column.pack_start(cell, True)
+		port_column.add_attribute(cell, "text", 0)
+
+		pin_column = gtk.TreeViewColumn()
+		pin_column.set_title("FPGA Pin")
+		cell = gtk.CellRendererText()
+		pin_column.pack_start(cell, True)
+		pin_column.add_attribute(cell, "text", 1)
+
+		dir_column = gtk.TreeViewColumn()
+		dir_column.set_title("Direction")
+		cell = gtk.CellRendererText()
+		dir_column.pack_start(cell, True)
+		dir_column.add_attribute(cell, "text", 2)
+
+		#add the columns if they are needed
+		if bt.get_column(0) is None:
+			bt.insert_column(port_column, 0)
+
+		if bt.get_column(1) is None:
+			bt.insert_column(pin_column, 1)
+
+		if bt.get_column(2) is None:
+			bt.insert_column(dir_column, 2)
+
+		bindings = self.node.bindings
+		for port in bindings.keys():
+			pin = bindings[port]["port"]
+			direction = bindings[port]["direction"]
+
+			it = bl.append()
+			bl.set(it, 0, port)
+			bl.set(it, 1, pin)
+			bl.set(it, 2, direction)
+
+
+
 	
 
 
@@ -329,6 +425,13 @@ class ModuleView:
 		self.property_update_button.connect("clicked",
 											self.on_property_update_callback)
 		self.property_vbox.show_all()
+
+
+	def set_on_bind_callback(self, bind_callback):
+		self.bind_callback = bind_callback
+
+	def set_on_unbind_callback(self, unbind_callback):
+		self.unbind_callback = unbind_callback
 
 	def set_on_update_callback(self, update_callback):
 		self.property_update_callback = update_callback

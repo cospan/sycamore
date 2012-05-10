@@ -5,25 +5,8 @@
 	"BUILD_TOOL":"xilinx",
 	"TEMPLATE":"wishbone_template.json",
 	"INTERFACE":{
-		"filename":"ft_host_interface.v"
-	},
-	"SLAVES":{
-		"gpio1":{
-			"filename":"wb_gpio.v"
-		},
-		"mem1":{
-			"filename":"wb_sdram.v"
-		}
-	},
-
-	"CONSTRAINTS":{
-		"constraint_files":[
-			"sycamore1_prototype.ucf"
-		],
-		"board":"sycamore1",
-		"device":"xc6slx9tqg144-3",
-		"invert_reset":true,
-		"bind": {
+		"filename":"ft_host_interface.v",
+		"bind":{
 			"ftdi_clk":{
 				"port":"ftdi_clk",
 				"direction":"input"
@@ -59,60 +42,84 @@
 			"ftdi_suspend_n":{
 				"port":"suspend_n",
 				"direction":"input"
-			},
-			"gpio1_gpio_out[1:0]":{
-				"port":"led[1:0]",
-				"direction":"output"
-			},
-			"gpio1_gpio_in[0]":{
-				"port":"button",
-				"direction":"input"
-			},
-
-			"mem1_sdram_clk":{
-				"port":"sdram_clk",
-				"direction":"output"
-			},
-			"mem1_sdram_cke":{
-				"port":"cke",
-				"direction":"output"
-			},
-			"mem1_sdram_cs_n":{
-				"port":"cs_n",
-				"direction":"output"
-			},
-			"mem1_sdram_ras_n":{
-				"port":"ras_n",
-				"direction":"output"
-			},
-			"mem1_sdram_cas_n":{
-				"port":"cas_n",
-				"direction":"output"
-			},
-			"mem1_sdram_we_n":{
-				"port":"we_n",
-				"direction":"output"
-			},
-			"mem1_sdram_bank[1:0]":{
-				"port":"ba[1:0]",
-				"direction":"output"
-			},
-			"mem1_sdram_addr[11:0]":{
-				"port":"a[11:0]",
-				"direction":"output"
-			},
-			"mem1_sdram_data[15:0]":{
-				"port":"dq[15:0]",
-				"direction":"inout"
-			},
-			"mem1_sdram_data_mask[1]":{
-				"port":"dqmh",
-				"direction":"output"
-			},
-			"mem1_sdram_data_mask[0]":{
-				"port":"dqml",
-				"direction":"output"
 			}
+		}
+	},
+	"SLAVES":{
+		"gpio1":{
+			"filename":"wb_gpio.v",
+			"bind":{
+				"gpio_out[1:0]":{
+					"port":"led[1:0]",
+					"direction":"output"
+				},
+				"gpio_in[0]":{
+					"port":"button",
+					"direction":"input"
+				}
+			}
+		},
+		"mem1":{
+			"filename":"wb_sdram.v",
+			"bind":{
+	
+				"sdram_clk":{
+					"port":"sdram_clk",
+					"direction":"output"
+				},
+				"sdram_cke":{
+					"port":"cke",
+					"direction":"output"
+				},
+				"sdram_cs_n":{
+					"port":"cs_n",
+					"direction":"output"
+				},
+				"sdram_ras_n":{
+					"port":"ras_n",
+					"direction":"output"
+				},
+				"sdram_cas_n":{
+					"port":"cas_n",
+					"direction":"output"
+				},
+				"sdram_we_n":{
+					"port":"we_n",
+					"direction":"output"
+				},
+				"sdram_bank[1:0]":{
+					"port":"ba[1:0]",
+					"direction":"output"
+				},
+				"sdram_addr[11:0]":{
+					"port":"a[11:0]",
+					"direction":"output"
+				},
+				"sdram_data[15:0]":{
+					"port":"dq[15:0]",
+					"direction":"inout"
+				},
+				"sdram_data_mask[1]":{
+					"port":"dqmh",
+					"direction":"output"
+				},
+				"sdram_data_mask[0]":{
+					"port":"dqml",
+					"direction":"output"
+				}
+
+			}
+		}
+	},
+
+	"CONSTRAINTS":{
+		"constraint_files":[
+			"sycamore1_prototype.ucf"
+		],
+		"board":"sycamore1",
+		"device":"xc6slx9tqg144-3",
+		"invert_reset":true,
+		"bind": {
 		}
 	}
 }

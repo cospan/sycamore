@@ -47,11 +47,14 @@ class SapGuiController:
 		import property_view as pv
 		import project_view
 		import module_view
+		import status_text
 
 		#load the sap controller
 		self.sc = sc.SapController()
 		self.module_view = module_view.ModuleView(self.sc)
 		self.module_view.set_on_update_callback(self.on_properties_update)
+		self.module_view.set_on_bind_callback(self.on_bind)
+		self.module_view.set_on_unbind_callback(self.on_unbind)
 
 		try:
 			if len(filename) > 0:
@@ -87,6 +90,13 @@ class SapGuiController:
 		self.window = builder.get_object("main_window")
 
 		self.main_view = builder.get_object("mainhpanel") 
+		
+		#instantiate the singleton
+		sv = builder.get_object("status_textview")
+		self.status = status_text.StatusText(sv) 
+#		self.status.set_print_level(3)
+		self.status.print_verbose(__file__, "Hello World!")
+
 		self.current_widget = None
 
 		#add the project view
@@ -208,6 +218,24 @@ class SapGuiController:
 		#go through all the properties
 		for key in properties.keys():
 			np[key] = properties[key]
+
+	def on_bind(self, unique_name, port, pin):
+		from saplib.saperror import SlaveError 
+		try:
+			self.sc.set_binding(unique_name, port, pin)
+		except SlaveError as se:
+			self.status.print_error(__file__, "binding failed")
+			return
+			#self.status.print_error(__file__, str(se))
+
+		self.status.print_info(__file__, "%s is bound to %s" % (port, pin))
+
+	def on_unbind(self, unique_name, port):
+		from saplib.saperror import SlaveError 
+		try:
+			self.sc.unbind_port(unique_name, port)
+		except SlaveError as se:
+			self.status.print_error(__file__, str(se))
 
 	def on_slave_icon_selected(self, filename):
 		"""

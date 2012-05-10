@@ -60,21 +60,6 @@ class Test (unittest.TestCase):
 		result = self.project.generate_project(file_name, debug=self.dbg)
 		self.assertEqual(result, True)
 
-	def test_query_slave(self):
-		"""test to see if we can query a slave"""
-		result = True
-		self.assertEqual(result, True)
-
-	def test_get_slave_meta_data(self):
-		"""test for the meta data within a slave file"""
-		result = True
-		self.assertEqual(result, True)
-
-	def test_query_handler(self):
-		"""determine in a handler exists"""
-		result = True
-		self.assertEqual(result, True)
-
 	def test_generate_arbitrators_none(self):
 		"""confirm that no arbitrators are generated with this project tag"""
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_v2.json"
@@ -134,11 +119,9 @@ class Test (unittest.TestCase):
 		arb_tags = saparbitrator.generate_arbitrator_tags(self.project.project_tags)
 		self.project.project_tags["ARBITRATORS"] = arb_tags
 	
-	
 		result = self.project.generate_arbitrators(debug = self.dbg)
 		self.assertEqual(result, 2)
 
-
-
 if __name__ == "__main__":
 	unittest.main()
+

@@ -65,6 +65,7 @@ class SapController:
 		#add the nodes that are always present
 		self.sgm.add_node(	"Host Interface", 
 							Node_Type.host_interface)
+
 		self.sgm.add_node(	"Master", 
 							Node_Type.master)
 		self.sgm.add_node(	"Memory", 
@@ -80,6 +81,7 @@ class SapController:
 		#get all the unique names for accessing nodes
 		hi_name = get_unique_name(	"Host Interface", 
 									Node_Type.host_interface) 
+
 		m_name = get_unique_name(	"Master",
 									Node_Type.master)
 		mi_name = get_unique_name(	"Memory",
@@ -126,10 +128,15 @@ class SapController:
 
 
 				
-				self.add_slave(	slave_name,
-								file_name,
-								Slave_Type.peripheral)
+				uname = self.add_slave(	slave_name,
+										file_name,
+										Slave_Type.peripheral)
 
+				#add the bindings from the config file
+				skeys = self.project_tags["SLAVES"][slave_name].keys()
+				if "bind" in skeys:
+					bindings = self.project_tags["SLAVES"][slave_name]["bind"]
+					self.sgm.set_config_bindings(uname, bindings)
 
 		#load all the memory slaves
 		sm_count = self.sgm.get_number_of_memory_slaves()
@@ -141,20 +148,30 @@ class SapController:
 
 				file_name = self.project_tags["MEMORY"][slave_name]["filename"]
 				file_name = saputils.find_rtl_file_location(file_name)
-				self.add_slave(		slave_name,
-									file_name,
-									Slave_Type.memory,
-									slave_index = -1)
+				uname =	self.add_slave(	slave_name,
+										file_name,
+										Slave_Type.memory,
+										slave_index = -1)
+
+				#add the bindings from the config file
+				mkeys = self.project_tags["MEMORY"][slave_name].keys()
+				if "bind" in mkeys:
+					bindings = self.project_tags["MEMORY"][slave_name]["bind"]
+					self.sgm.set_config_bindings(uname, bindings)
+
 
 		#check if there is a host insterface defined
 		if "INTERFACE" in self.project_tags:
 			file_name = saputils.find_rtl_file_location(self.project_tags["INTERFACE"]["filename"])
 			parameters = saputils.get_module_tags(	filename = file_name, bus=self.get_bus_type())
+			self.set_host_interface(parameters["module"])
+			if "bind" in self.project_tags["INTERFACE"].keys():
+				self.sgm.set_config_bindings(hi_name,
+							self.project_tags["INTERFACE"]["bind"])
+
+
 			self.sgm.set_parameters(hi_name, parameters)
 
-
-
-#XXX: Go through all the slaves and connect any arbitrators
 		if "SLAVES" in self.project_tags:
 			for host_name in self.project_tags["SLAVES"].keys():
 				if "BUS" in self.project_tags["SLAVES"][host_name].keys():
@@ -418,6 +435,140 @@ class SapController:
 		self.sgm.set_parameters(hi_name, parameters)
 		return True
 
+	def get_master_bind_dict(self):
+		"""
+		combine the dictionary from
+			project
+			host interface
+			peripheral slaves
+			memory slaves
+		"""
+		bind_dict = {}
+		
+		#get project bindings
+		pb = self.project_tags["CONSTRAINTS"]["bind"]
+		for key in pb.keys():
+			bind_dict[key] = pb[key]
+
+		#get host interface bindings
+		hib = self.project_tags["INTERFACE"]
+		for key in hib["bind"].keys():
+			bind_dict[key] = hib["bind"][key]
+
+		#get all the peripheral slave bindings
+		for slave_name in self.project_tags["SLAVES"].keys():
+			slave = self.project_tags["SLAVES"][slave_name]
+			for key in slave["bind"].keys():
+				bind_dict[key] = slave["bind"][key]
+
+
+		#get all the memory slave bindings
+		for memory_name in self.project_tags["SLAVES"].keys():
+			slave = self.project_tags["SLAVES"][memory_name]
+			for key in slave["bind"].keys():
+				bind_dict[key] = slave["bind"][key]
+
+		return bind_dict
+
+
+	def set_binding(self, node_name, port_name, pin_name):
+		"""
+		add a binding between the port and the pin
+		"""
+		node = self.sgm.get_node(node_name)
+		ports = node.parameters["ports"]
+
+		pn = port_name.partition("[")[0]
+		if ":" in port_name:
+			raise SlaveError("Sorry I don't support vectors yet :( port_name = %s" % port_name)
+
+
+
+		if pn not in ports.keys():
+			raise SlaveError("port %s is not in node %s" % (port_name, node.name))
+
+		
+		#if pin_name not in pt:
+		#	raise SlaveError("pin %s is not in the constraints" % (pin_name))
+
+		direction = ports[pn]["direction"]
+
+#		bind_dict = node.bindings
+		bind_dict = self.get_master_bind_dict()
+		print "bind dict keys: " + str(bind_dict.keys())
+		for port_name in bind_dict.keys():
+			if port_name == bind_dict[port_name]["port"]:
+#		if port_name in bind_dict.keys():
+			
+				raise SlaveError("port %s is already bound")
+
+		#also check if there is a vector in the binding list
+		#and see if I'm in range of that vector
+		for key in bind_dict.keys():
+			low = -1
+			high = -1
+			index = -1
+			key_index = -1
+
+			if pn not in key:
+				continue
+
+			index = port_name.partition("[")[2]
+			if len(index) > 0:
+					
+				index = index.partition("]")[0]
+				if ":" in index:
+					raise SlaveError("Sorry I don't support vectors yet :( port_name = %s" % port_name)
+
+				index = int(index)
+			else:
+				index = -1
+
+			print "index: " + str(index)
+
+
+			if "[" in key:
+				key_index = key.partition("[")[2]
+				key_index = key_index.partition("]")[0]
+				if ":" in key_index:
+					low, nothing, high = key_index.partition(":")
+					low = int(low)
+					high = int(high)
+					key_index = -1
+				else:
+					key_index = int(key_index)
+
+			#either the binding has no [] (index) or it is a range
+			if key_index == -1:
+				#if the index has no [] (no index) or it is a range 
+				if index == -1:
+					#bad
+					raise SlaveError("Conflict with the binding %s and the port %s" % (key, port_name))
+
+				if index >= low and index <= high:
+					raise SlaveError("Conflict with the binding %s and the port %s" % (key, port_name))
+				
+			if key_index == index:
+				raise SlaveError("Conflict with the binding %s and the port %s" % (key, port_name))
+					
+		
+		bind_dict[port_name] = {}
+		bind_dict[port_name]["port"] = pin_name
+		bind_dict[port_name]["direction"] = direction
+
+
+	def unbind_port(self, node_name, port_name):
+		"""
+		remove a binding with the port name
+		"""
+		node = self.sgm.get_node(node_name)
+		bind_dict = node.bindings
+		bind_dict[port_name] = {}
+		if port_name not in bind_dict.keys():
+			raise SlaveError("port %s is not in the binding dictionary for node %s" % (port_name, node.name))
+		del bind_dict[port_name]
+
+
 	def get_host_interface_name(self):
 		hi_name = get_unique_name(	"Host Interface", 
 									Node_Type.host_interface) 
@@ -656,7 +807,7 @@ class SapController:
 
 
 
-		return
+		return uname 
 
 	def remove_slave(self, slave_type = Slave_Type.peripheral, slave_index=0):
 		"""

@@ -47,7 +47,20 @@ class Test (unittest.TestCase):
 		self.sc.set_config_file_location(home_dir + "/test_out.json")
 		self.sc.generate_project()
 		
+#XXX: How do I actually test out the project generation?
 		self.assertEqual(True, True)
+
+	def test_get_master_bind_dict(self):
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		bind_dict = self.sc.get_master_bind_dict()
+
+#		for key in bind_dict.keys():
+#			print "key: " + key
+
+		self.assertIn("phy_uart_in", bind_dict.keys())
+
+		
 
 	def test_project_location(self):
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	

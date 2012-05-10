@@ -230,8 +230,8 @@ class SapProject:
 		"""recursively generate all directories and files"""
 		if (parent_dict[key].has_key("dir") and parent_dict[key]["dir"]):
 			#print "found dir"
-			if (key == "arbitrators" and ("ARBITRATORS" in self.project_tags.keys() ) and (len(self.project_tags["ARBITRATORS"].keys()) > 0)):
-				return True
+#			if (key == "arbitrators" and ("ARBITRATORS" in self.project_tags.keys() ) and (len(self.project_tags["ARBITRATORS"].keys()) > 0)):
+#				return True
 			saputils.create_dir(parent_dir + "/" + key)
 			if (parent_dict[key].has_key("files")):
 				for sub_key in parent_dict[key]["files"]:
@@ -246,24 +246,6 @@ class SapProject:
 
 		return True
 
-	def query_slave(self, slave_name=""):
-		"""Using the template structure determing if the slave exists"""
-		#using the bus template find the location of the slave folders
-
-		#see if the name matches up to any of the files
-		#"name".v or "name".vhd
-		return False
-
-	def get_slave_meta_data(self, slave_name=""):
-		"""get the data that will be used for the DRT"""
-		#look for data within the verilog or VHDL file (verilog only right now)
-		return None
-	
-	def query_handler(self, handler_name=""):
-		"""see if a handler exists"""
-		return False
-
-	
 	def generate_arbitrators(self, debug=False):
 		#tags have already been set for this class
 		if (not saparbitrator.is_arbitrator_required(self.project_tags, False)):

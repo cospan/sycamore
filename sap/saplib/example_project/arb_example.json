@@ -5,7 +5,18 @@
 	"BUILD_TOOL":"xilinx",
 	"TEMPLATE":"wishbone_template.json",
 	"INTERFACE":{
-		"filename":"uart_io_handler.v"
+		"filename":"uart_io_handler.v",
+		"bind": {
+			"phy_uart_in":{
+				"port":"RX",
+				"direction":"input"
+			},
+			"phy_uart_out":{
+				"port":"TX",
+				"direction":"output"
+			}
+		}
+
 	},
 	"SLAVES":{
 		"console":{
@@ -28,15 +39,7 @@
 		],
 		"board":"xilinx-s3esk",
 		"device":"xc3s500efg320",
-		"bind": {
-			"phy_uart_in":{
-				"port":"RX",
-				"direction":"input"
-			},
-			"phy_uart_out":{
-				"port":"TX",
-				"direction":"output"
-			}
+		"bind":{
 		}
 	}
 }

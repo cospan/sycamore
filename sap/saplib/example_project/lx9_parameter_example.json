@@ -5,7 +5,17 @@
 	"BUILD_TOOL":"xilinx",
 	"TEMPLATE":"wishbone_template.json",
 	"INTERFACE":{
-		"filename":"uart_io_handler.v"
+		"filename":"uart_io_handler.v",
+		"bind":{
+			"phy_uart_in":{
+				"port":"uart_rx",
+				"direction":"input"
+			},
+			"phy_uart_out":{
+				"port":"uart_tx",
+				"direction":"output"
+			}
+		}
 	},
 	"SLAVES":{
 		"gpio1":{
@@ -13,6 +23,16 @@
 			"PARAMETERS":{
 				"INTERRUPT_MASK":"1",
 				"INTERRUPT_EDGE":"2"
+			},
+			"bind":{
+				"gpio_out[3:0]":{
+					"port":"led[3:0]",
+					"direction":"output"
+				},
+				"gpio_in[3:0]":{
+					"port":"gpio[3:0]",
+					"direction":"input"
+				}
 			}
 		}
 	},
@@ -24,22 +44,6 @@
 		"board":"lx9_microboard",
 		"device":"xc6slx9csg324-2",
 		"bind": {
-			"phy_uart_in":{
-				"port":"uart_rx",
-				"direction":"input"
-			},
-			"phy_uart_out":{
-				"port":"uart_tx",
-				"direction":"output"
-			},
-			"gpio1_gpio_out[3:0]":{
-				"port":"led[3:0]",
-				"direction":"output"
-			},
-			"gpio1_gpio_in[3:0]":{
-				"port":"gpio[3:0]",
-				"direction":"input"
-			}
 		}
 	}
 }

@@ -11,6 +11,7 @@ from graph_utils import box
 import sap_graph_manager as gm
 from sap_graph_manager import Node_Type
 from sap_graph_manager import Slave_Type
+import status_text
 
 
 def enum(*sequential, **named):
@@ -99,6 +100,7 @@ class GraphDrawer ( GraphDrawingArea ):
 		self.boxes["remove"] = box()
 
 		self.temp_box = box()
+		self.status = status_text.StatusText()
 
 		#initial prev_width, prev_height
 		self.prev_width = -1
@@ -204,6 +206,13 @@ class GraphDrawer ( GraphDrawingArea ):
 
 		if (self.slave_add_callback is not None):
 			self.slave_add_callback(text, drop_type, drop_index)
+
+		
+		f = text.rpartition("/")[2]
+		tp = "memory"
+		if drop_type == Slave_Type.peripheral:
+			tp = "peripheral"
+		self.status.print_info(__file__, "droping slave %s in the %s bus at %d" % (f, tp, drop_index))
 
 	def set_slave_arbitrator_select_callback(self, slave_arbitrator_select_callback):
 		self.slave_arbitrator_select_callback = slave_arbitrator_select_callback

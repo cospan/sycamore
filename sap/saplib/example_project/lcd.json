@@ -5,11 +5,56 @@
 	"BUILD_TOOL":"xilinx",
 	"TEMPLATE":"wishbone_template.json",
 	"INTERFACE":{
-		"filename":"uart_io_handler.v"
+		"filename":"uart_io_handler.v",
+		"bind":{
+			"phy_uart_in":{
+				"port":"rx",
+				"direction":"input"
+			},
+			"phy_uart_out":{
+				"port":"tx",
+				"direction":"output"
+			}
+
+		}
 	},
 	"SLAVES":{
 		"lcd_panel":{
-			"filename":"tft.v"
+			"filename":"tft.v",
+			"bind":{
+				"red[7:0]":{
+					"port":"tft_red[7:0]",
+					"direction":"output"
+				},
+				"green[7:0]":{
+					"port":"tft_green[7:0]",
+					"direction":"output"
+				},
+				"blue[7:0]":{
+					"port":"tft_blue[7:0]",
+					"direction":"output"
+				},
+				"disp_en":{
+					"port":"tft_disp_en",
+					"direction":"output"
+				},
+				"hsync":{
+					"port":"tft_hsync",
+					"direction":"output"
+				},
+				"vsync":{
+					"port":"tft_vsync",
+					"direction":"output"
+				},
+				"data_en":{
+					"port":"tft_data_en",
+					"direction":"output"
+				},
+				"pclk":{
+					"port":"tft_pclk",
+					"direction":"output"
+				}
+			}
 		}
 	},
 
@@ -20,46 +65,6 @@
 		"board":"xilinx-s3esk",
 		"device":"xc3s500efg320",
 		"bind": {
-			"lcd_panel_red[7:0]":{
-				"port":"tft_red[7:0]",
-				"direction":"output"
-			},
-			"lcd_panel_green[7:0]":{
-				"port":"tft_green[7:0]",
-				"direction":"output"
-			},
-			"lcd_panel_blue[7:0]":{
-				"port":"tft_blue[7:0]",
-				"direction":"output"
-			},
-			"lcd_panel_disp_en":{
-				"port":"tft_disp_en",
-				"direction":"output"
-			},
-			"lcd_panel_hsync":{
-				"port":"tft_hsync",
-				"direction":"output"
-			},
-			"lcd_panel_vsync":{
-				"port":"tft_vsync",
-				"direction":"output"
-			},
-			"lcd_panel_data_en":{
-				"port":"tft_data_en",
-				"direction":"output"
-			},
-			"lcd_panel_pclk":{
-				"port":"tft_pclk",
-				"direction":"output"
-			},
-			"phy_uart_in":{
-				"port":"rx",
-				"direction":"input"
-			},
-			"phy_uart_out":{
-				"port":"tx",
-				"direction":"output"
-			}
 		}
 	}
 }

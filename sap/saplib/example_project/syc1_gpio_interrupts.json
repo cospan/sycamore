@@ -5,22 +5,8 @@
 	"BUILD_TOOL":"xilinx",
 	"TEMPLATE":"wishbone_template.json",
 	"INTERFACE":{
-		"filename":"ft_host_interface.v"
-	},
-	"SLAVES":{
-		"gpio1":{
-			"filename":"wb_gpio.v"
-		}
-	},
-
-	"CONSTRAINTS":{
-		"constraint_files":[
-			"sycamore1.ucf"
-		],
-		"board":"sycamore1",
-		"device":"xc6slx9tqg144-3",
-		"invert_reset":true,
-		"bind": {
+		"filename":"ft_host_interface.v",
+		"bind":{
 			"ftdi_clk":{
 				"port":"ftdi_clk",
 				"direction":"input"
@@ -56,15 +42,33 @@
 			"ftdi_suspend_n":{
 				"port":"suspend_n",
 				"direction":"input"
-			},
-			"gpio1_gpio_out[1:0]":{
-				"port":"led[1:0]",
-				"direction":"output"
-			},
-			"gpio1_gpio_in[0]":{
-				"port":"button",
-				"direction":"input"
 			}
+		}
+	},
+	"SLAVES":{
+		"gpio1":{
+			"filename":"wb_gpio.v",
+			"bind":{
+				"gpio_out[1:0]":{
+					"port":"led[1:0]",
+					"direction":"output"
+				},
+				"gpio_in[0]":{
+					"port":"button",
+					"direction":"input"
+				}
+			}
+		}
+	},
+
+	"CONSTRAINTS":{
+		"constraint_files":[
+			"sycamore1.ucf"
+		],
+		"board":"sycamore1",
+		"device":"xc6slx9tqg144-3",
+		"invert_reset":true,
+		"bind": {
 		}
 	}
 }

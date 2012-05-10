@@ -42,7 +42,7 @@ class SapNode:
 	slave_type = Slave_Type.peripheral
 	slave_index = 0
 	parameters={}
-	constraints={}
+	bindings={}
 
 	def copy(self):
 		nn = SapNode()
@@ -52,7 +52,7 @@ class SapNode:
 		nn.slave_type = self.slave_type
 		nn.slave_index = self.slave_index
 		nn.parameters = self.parameters
-		nn.constraints = self.constraints
+		nn.bindings = self.bindings
 		return nn
 	
 
@@ -571,6 +571,10 @@ class SapGraphManager:
 		g = self.get_nodes_dict()
 		return g[name].parameters
 		
+	def set_config_bindings(self, name, bindings):
+		node = self.get_node(name)
+		node.bindings = bindings
+
 	def bind_pin_to_port(self, name, port, pin, debug = False):
 		"""
 		binds the specific port to a pin
