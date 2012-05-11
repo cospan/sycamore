@@ -61,10 +61,10 @@ def test (arg):
 		print "All tests"
 		tl = unittest.TestLoader()
 		pt = tl.discover(sys.path[0] + "/tests", pattern = 'test*.py')
-		print "package tests: "
-		print dir (pt)
+		#print "package tests: "
+		#print dir (pt)
 		print "number of test cases: " + str(pt.countTestCases())
-		print pt._tests
+		#print pt._tests
 		pt.debug()
 	else:
 		testfiles.append(arg)

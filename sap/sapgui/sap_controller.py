@@ -301,70 +301,68 @@ class SapController:
 		"""
 		sets the name of the board to use
 		"""
-		if "CONSTRAINTS" not in self.project_tags.keys():
-			self.project_tags["CONSTRAINTS"] = {}
-
-		if "board" not in self.project_tags["CONSTRAINTS"].keys():
-			self.project_tags["CONSTRAINTS"]["board"] = ""
+		if "board" not in self.project_tags.keys():
+			self.project_tags["board"] = ""
 				
-		self.project_tags["CONSTRAINTS"]["board"] = board_name
+		self.project_tags["board"] = board_name
 	
 	def get_board_name(self):
-		if "CONSTRAINTS" in self.project_tags.keys():
-			if "board" in self.project_tags["CONSTRAINTS"].keys():
-				return self.project_tags["CONSTRAINTS"]["board"]
+		if "board" in self.project_tags.keys():
+				return self.project_tags["board"]
 
 		return "undefined"
 	
-	def set_constraint_file_name(self, constraint_file_name):
-		"""
-		sets the constraint file name
-		"""
-		if "CONSTRAINTS" not in self.project_tags.keys():
-			self.project_tags["CONSTRAINTS"] = {}
+#	def set_constraint_file_name(self, constraint_file_name):
+#		"""
+#		sets the constraint file name
+#		"""
+#		if "CONSTRAINTS" not in self.project_tags.keys():
+#			self.project_tags["CONSTRAINTS"] = {}
+#
+#		if "constraint_files" not in self.project_tags["CONSTRAINTS"].keys():
+#			self.project_tags["CONSTRAINTS"]["constraint_files"] = []
+#
+#		self.project_tags["CONSTRAINTS"]["constraint_files"] = [constraint_file_name]
 
-		if "constraint_files" not in self.project_tags["CONSTRAINTS"].keys():
-			self.project_tags["CONSTRAINTS"]["constraint_files"] = []
-
-		self.project_tags["CONSTRAINTS"]["constraint_files"] = [constraint_file_name]
-
-	def append_constraint_file_name(self, constraint_file_name):
-		if "CONSTRAINTS" not in self.project_tags.keys():
-			self.project_tags["CONSTRAINTS"] = {}
-
-		if "constraint_files" not in self.project_tags["CONSTRAINTS"].keys():
-			self.project_tags["CONSTRAINTS"]["constraint_files"] = []
-
-		self.project_tags["CONSTRAINTS"]["constraints_files"].append(constraint_file_name)
+#	def append_constraint_file_name(self, constraint_file_name):
+#		if "CONSTRAINTS" not in self.project_tags.keys():
+#			self.project_tags["CONSTRAINTS"] = {}
+#
+#		if "constraint_files" not in self.project_tags["CONSTRAINTS"].keys():
+#			self.project_tags["CONSTRAINTS"]["constraint_files"] = []
+#
+#		self.project_tags["CONSTRAINTS"]["constraints_files"].append(constraint_file_name)
 	
 	def get_constraint_file_names(self):
-		if "CONSTRAINTS" in self.project_tags.keys():
-			if "constraint_files" in self.project_tags["CONSTRAINTS"].keys():
-				return self.project_tags["CONSTRAINTS"]["constraint_files"]
-
-
+		import saputils
+		board_dict = saputils.get_board_config(self.project_tags["board"])
+		return board_dict["constraint_files"]
+#		if "CONSTRAINTS" in self.project_tags.keys():
+#			if "constraint_files" in self.project_tags["CONSTRAINTS"].keys():
+#				return self.project_tags["CONSTRAINTS"]["constraint_files"]
 		return []
 	
-	def set_fpga_part_number(self, fpga_part_number):
-		"""
-		sets the part number, this is used when generating
-		the project
-		"""
-		if "CONSTRAINTS" not in self.project_tags.keys():
-			self.project_tags["CONSTRAINTS"] = {}
-
-		if "device" not in self.project_tags["CONSTRAINTS"].keys():
-			self.project_tags["CONSTRAINTS"]["device"] = ""
-
-		self.project_tags["CONSTRAINTS"]["device"] = fpga_part_number
+#	def set_fpga_part_number(self, fpga_part_number):
+#		"""
+#		sets the part number, this is used when generating
+#		the project
+#		"""
+#		if "CONSTRAINTS" not in self.project_tags.keys():
+#			self.project_tags["CONSTRAINTS"] = {}
+#
+#		if "device" not in self.project_tags["CONSTRAINTS"].keys():
+#			self.project_tags["CONSTRAINTS"]["device"] = ""
+#
+#		self.project_tags["CONSTRAINTS"]["device"] = fpga_part_number
 
 	def get_fpga_part_number(self):
-		if "CONSTRAINTS" in self.project_tags.keys():
-			if "device" in self.project_tags["CONSTRAINTS"].keys():
-				return self.project_tags["CONSTRAINTS"]["device"]
+		import saputils
+		board_dict = saputils.get_board_config(self.project_tags["board"])
+		return board_dict["fpga_part_number"]
 
-		return "undefined"
-	
+#		if "CONSTRAINTS" in self.project_tags.keys():
+#			if "device" in self.project_tags["CONSTRAINTS"].keys():
+#				return self.project_tags["CONSTRAINTS"]["device"]
 
 	def new_design(self):
 		"""
@@ -383,11 +381,13 @@ class SapController:
 		self.project_tags["INTERFACE"]["filename"] = "uart_io_handler.v"
 		self.project_tags["SLAVES"] = {}
 		self.project_tags["MEMORY"] = {}
-		self.project_tags["CONSTRAINTS"] = {}
-		self.project_tags["CONSTRAINTS"]["constraint_files"] = []
-		self.project_tags["CONSTRAINTS"]["board"] = ""
-		self.project_tags["CONSTRAINTS"]["device"] = ""
-		self.project_tags["CONSTRAINTS"]["bind"] = {}
+		self.project_tags["board"] = "sycamore1"
+		self.project_tags["bind"] = {}
+#		self.project_tags["CONSTRAINTS"] = {}
+#		self.project_tags["CONSTRAINTS"]["constraint_files"] = []
+#		self.project_tags["CONSTRAINTS"]["board"] = ""
+#		self.project_tags["CONSTRAINTS"]["device"] = ""
+#		self.project_tags["CONSTRAINTS"]["bind"] = {}
 
 
 		return
@@ -446,7 +446,7 @@ class SapController:
 		bind_dict = {}
 		
 		#get project bindings
-		pb = self.project_tags["CONSTRAINTS"]["bind"]
+		pb = self.project_tags["bind"]
 		for key in pb.keys():
 			bind_dict[key] = pb[key]
 
@@ -494,7 +494,7 @@ class SapController:
 		direction = ports[pn]["direction"]
 
 		bind_dict = self.get_master_bind_dict()
-		print "bind dict keys: " + str(bind_dict.keys())
+		#print "bind dict keys: " + str(bind_dict.keys())
 		for pname in bind_dict.keys():
 			if port_name == bind_dict[pname]["port"]:
 #		if port_name in bind_dict.keys():
@@ -522,7 +522,7 @@ class SapController:
 			else:
 				index = -1
 
-			print "index: " + str(index)
+			#print "index: " + str(index)
 
 
 			if "[" in key:
@@ -554,7 +554,7 @@ class SapController:
 		bind_dict[port_name] = {}
 		bind_dict[port_name]["port"] = pin_name
 		bind_dict[port_name]["direction"] = direction
-		print "setting up %s to pin %s as an %s" % (port_name, pin_name, direction)
+		#print "setting up %s to pin %s as an %s" % (port_name, pin_name, direction)
 
 
 	def unbind_port(self, node_name, port_name):
