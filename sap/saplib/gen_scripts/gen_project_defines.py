@@ -26,7 +26,9 @@ class GenProjectDefines(Gen):
 		template = Template(buf) 
 		vendor_string = "VENDOR_FPGA"
 
-		if (tags["BUILD_TOOL"] == "xilinx"):
+		board_dict = saputils.get_board_config(tags["board"])
+		if board_dict["build_tool"] == "xilinx":
+		#if (tags["BUILD_TOOL"] == "xilinx"):
 			buf = template.safe_substitute(VENDOR_FPGA = "VENDOR_XILINX")
 			vendor_string = "VENDOR_XILINX"
 

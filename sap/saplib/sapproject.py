@@ -124,8 +124,11 @@ class SapProject:
 				print "failed to read in project config file"
 			return False
 		
+		board_dict = saputils.get_board_config(self.project_tags["board"])
+		cfiles = board_dict["constraint_files"]
 		#extrapolate the bus template
-		self.project_tags["CLOCK_RATE"] = saputils.read_clock_rate(self.project_tags["CONSTRAINTS"]["constraint_files"][0])
+#XXX: Need to check all the constraint files
+		self.project_tags["CLOCK_RATE"] = saputils.read_clock_rate(cfiles[0])
 		result = self.read_template(self.project_tags["TEMPLATE"])
 		if (not result):
 			if (debug):
@@ -183,12 +186,12 @@ class SapProject:
 					print "Error: Failed to proecess memory file!: " + mem
 
 		#Copy the user specified constraint files to the constraints directory
-		for constraint_fname in self.project_tags["CONSTRAINTS"]["constraint_files"]:
+		for constraint_fname in cfiles:
 			sap_abs_base = os.getenv("SAPLIB_BASE")
 			abs_proj_base = saputils.resolve_linux_path(self.project_tags["BASE_DIR"])
 			constraint_path = self.get_constraint_path(constraint_fname)
 			if (len(constraint_path) == 0):
-				print "Couldn't find constraint: " + constraint_fname + ", searched in current directory and " + sap_abs_base + " /hdl/" + self.project_tags["CONSTRAINTS"]["board"]
+				print "Couldn't find constraint: " + constraint_fname + ", searched in current directory and " + sap_abs_base + " /hdl/" + self.project_tags["board"]
 				continue
 			shutil.copy (constraint_path, abs_proj_base + "/constraints/" + constraint_fname)
 
@@ -213,7 +216,7 @@ class SapProject:
 
 	def get_constraint_path (self, constraint_fname):
 		sap_abs_base = os.getenv("SAPLIB_BASE")
-		board_name	= self.project_tags["CONSTRAINTS"]["board"]
+		board_name	= self.project_tags["board"]
 		sap_abs_base = saputils.resolve_linux_path(sap_abs_base)
 		if (exists(os.getcwd() + "/" + constraint_fname)):
 			return os.getcwd() + "/" + constraint_fname

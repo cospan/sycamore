@@ -2,7 +2,8 @@
 	"board_name":"LX9 Microboard",
 	"vendor":"Avnet",
 	"fpga_part_number":"xc6slx9csg324-2",
-	"config_files":[
+	"build_tool":"xilinx",
+	"constraint_files":[
 		"lx9.ucf"
 	],
 	"invert_reset":false

@@ -1,7 +1,7 @@
 {
 	"BASE_DIR":"~/projects/sycamore_projects",
+	"board":"xilinx-s3esk",
 	"PROJECT_NAME":"example_project",
-	"BUILD_TOOL":"xilinx",
 	"TEMPLATE":"wishbone_template.json",
 	"INTERFACE":{
 		"filename":"uart_io_handler.v",
@@ -50,14 +50,6 @@
 			"filename":"wb_bram.v"
 		}
 	},
-
-	"CONSTRAINTS":{
-		"constraint_files":[
-			"sycamore_serial.ucf"
-		],
-		"board":"xilinx-s3esk",
-		"device":"xc3s500efg320",
-		"bind": {
-		}
+	"bind": {
 	}
 }

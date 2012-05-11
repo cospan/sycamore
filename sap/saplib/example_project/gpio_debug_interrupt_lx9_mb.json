@@ -1,7 +1,7 @@
 {
 	"BASE_DIR":"~/projects/sycamore_projects",
+	"board":"lx9_microboard",
 	"PROJECT_NAME":"example_project",
-	"BUILD_TOOL":"xilinx",
 	"TEMPLATE":"wishbone_template.json",
 	"INTERFACE":{
 		"filename":"uart_io_handler.v",
@@ -32,13 +32,6 @@
 		}
 	},
 
-	"CONSTRAINTS":{
-		"constraint_files":[
-			"lx9.ucf"
-		],
-		"board":"lx9_microboard",
-		"device":"xc6slx9csg324-2",
-		"bind":{
-		}
+	"bind":{
 	}
 }

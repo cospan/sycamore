@@ -36,6 +36,8 @@ class GenTop(Gen):
 
 	def gen_script (self, tags = {}, buf = "", debug = False):
 		"""Generate the Top Module"""
+		board_dict = saputils.get_board_config(tags["board"])
+		invert_reset = board_dict["invert_reset"]
 		en_mem_bus = False
 		slave_list = tags["SLAVES"]
 		if "MEMORY" in tags:
@@ -51,7 +53,7 @@ class GenTop(Gen):
 
 
 #add the global tags
-		self.bindings = self.tags["CONSTRAINTS"]["bind"]
+		self.bindings = self.tags["bind"]
 #add the interface bindings directly
 		if "bind" in self.tags["INTERFACE"]:
 			for if_name in self.tags["INTERFACE"]["bind"]:
@@ -112,7 +114,7 @@ class GenTop(Gen):
 		#self.wires.append("clk_in")
 		wr_buf = wr_buf + "\tinput\t\t\trst;\n"
 		self.wires.append("rst")
-		if ("invert_reset" in tags["CONSTRAINTS"] and tags["CONSTRAINTS"]["invert_reset"] == True):
+		if invert_reset:
 			#print "found invert reset!"
 			wr_buf += "\twire\t\t\trst_n;\n"
 			self.wires.append("rst_n")
@@ -266,7 +268,7 @@ class GenTop(Gen):
 		wi_buf = "\twishbone_interconnect wi (\n"
 
 		wi_buf = wi_buf + "\t\t.clk(clk),\n"
-		if ("invert_reset" in tags["CONSTRAINTS"] and tags["CONSTRAINTS"]["invert_reset"] == True):
+		if invert_reset:
 			wi_buf = wi_buf + "\t\t.rst(rst_n),\n\n"
 		else: 
 			wi_buf = wi_buf + "\t\t.rst(rst),\n\n"
@@ -314,7 +316,7 @@ class GenTop(Gen):
 
 			wmi_buf = wmi_buf + "\t\t.clk(clk),\n"
 
-			if ("invert_reset" in tags["CONSTRAINTS"] and tags["CONSTRAINTS"]["invert_reset"] == True):
+			if invert_reset:
 				wmi_buf = wmi_buf + "\t\t.rst(rst_n),\n\n"
 			else:
 				wmi_buf = wmi_buf + "\t\t.rst(rst),\n\n"
@@ -362,7 +364,7 @@ class GenTop(Gen):
 		wm_buf = wm_buf + "\twishbone_master wm (\n"
 		wm_buf = wm_buf + "\t\t.clk(clk),\n"
 
-		if ("invert_reset" in tags["CONSTRAINTS"] and tags["CONSTRAINTS"]["invert_reset"] == True):
+		if invert_reset:
 			wm_buf = wm_buf + "\t\t.rst(rst_n),\n\n"
 		else:
 			wm_buf = wm_buf + "\t\t.rst(rst),\n\n"
@@ -465,7 +467,7 @@ class GenTop(Gen):
 					buf_bind = buf_bind + "\tassign\t" + self.bindings[key]["port"] + "\t=\t" + key + ";\n"
 
 
-		if ("invert_reset" in tags["CONSTRAINTS"] and tags["CONSTRAINTS"]["invert_reset"] == True):
+		if invert_reset:
 			buf_bind += "\tassign\trst_n\t\t=\t~rst;\n"
 
 
@@ -514,6 +516,9 @@ class GenTop(Gen):
 		"""Generate a buffer that attaches wishbone signals and 
 		return a buffer that can be used to generate the top module"""
 		slave_name = name
+
+		board_dict = saputils.get_board_config(self.tags["board"])
+		invert_reset = board_dict["invert_reset"]
 
 		parameter_buffer = ""
 		if (io_module == False):
@@ -676,7 +681,7 @@ class GenTop(Gen):
 						else:
 							if (port == "clk" or port == "rst"):
 								if (port == "rst"):
-									if ("CONSTRAINTS" in self.tags.keys() and "invert_reset" in self.tags["CONSTRAINTS"] and self.tags["CONSTRAINTS"]["invert_reset"] == True):
+									if invert_reset:
 										out_buf += "rst_n"
 									else:
 										out_buf += "rst"
@@ -692,7 +697,7 @@ class GenTop(Gen):
 					else:
 						if (port == "clk" or port == "rst"):
 							if (port == "rst"):
-								if ("CONSTRAINTS" in self.tags.keys() and "invert_reset" in self.tags["CONSTRAINTS"] and self.tags["CONSTRAINTS"]["invert_reset"] == True):
+								if invert_reset:
 									out_buf += "rst_n"
 								else:
 									out_buf += "rst"
@@ -720,6 +725,9 @@ class GenTop(Gen):
 
 	def generate_arbitrator_buffer(self, debug = False):
 		result = ""
+		board_dict = saputils.get_board_config(self.tags["board"])
+		invert_reset = board_dict["invert_reset"]
+
 		#self.wires 
 		arbitrator_count = 0
 		if (not saparbitrator.is_arbitrator_required(self.tags)):
@@ -861,7 +869,7 @@ class GenTop(Gen):
 
 			result += "\t" + arb_module + " " + arb_name + "(\n"
 			result += "\t\t.clk(clk),\n"
-			if ("invert_reset" in self.tags["CONSTRAINTS"] and self.tags["CONSTRAINTS"]["invert_reset"] == True):
+			if invert_reset:
 				result += "\t\t.rst(rst_n),\n"
 			else: 
 				result += "\t\t.rst(rst),\n"

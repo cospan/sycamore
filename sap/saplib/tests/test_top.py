@@ -161,7 +161,8 @@ class Test (unittest.TestCase):
 			self.assertEqual(False, True)
 
 		self.gen.tags = tags
-		self.gen.bindings = self.gen.tags["CONSTRAINTS"]["bind"]
+		self.gen.bindings = self.gen.tags["bind"]
+		#self.gen.bindings = self.gen.tags["CONSTRAINTS"]["bind"]
 
 		result = self.gen.generate_buffer(name="mem1", index=2, module_tags = mtags, debug=self.dbg) 
 
@@ -207,6 +208,29 @@ class Test (unittest.TestCase):
 
 		absfilepath = saputils.find_rtl_file_location("uart_io_handler.v")
 		#print "uart_io_handler.v location: " + absfilepath
+		tags = {}
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/example_project/mem_example.json"
+			filein = open(filename)
+			filestr = filein.read()
+			tags = json.loads(filestr)
+
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+
+		try:
+			filename = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/wishbone_top.v"
+			filein = open(filename)
+			top_buffer = filein.read()
+			filein.close()
+		except IOError as err:
+			print "File Error: " + str(err)
+			self.assertEqual(False, True)
+
+		#print "buf: " + top_buffer
+		self.gen.tags = tags
+
 
 		tags = saputils.get_module_tags(filename = absfilepath, bus="wishbone") 
 		self.gen.wires=[
@@ -246,7 +270,8 @@ class Test (unittest.TestCase):
 			self.assertEqual(False, True)
 
 		self.gen.tags = tags
-		self.gen.bindings = self.gen.tags["CONSTRAINTS"]["bind"]
+		self.gen.bindings = self.gen.tags["bind"]
+		#self.gen.bindings = self.gen.tags["CONSTRAINTS"]["bind"]
 
 		result = self.gen.generate_buffer(name = "uio", module_tags = mtags, io_module = True, debug=self.dbg) 
 		buf = result

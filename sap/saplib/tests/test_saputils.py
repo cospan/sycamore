@@ -43,6 +43,17 @@ class Test (unittest.TestCase):
 		
 		self.assertEqual(len(output_buffer) > 0, True)
 			
+
+	def test_get_board_config(self):
+		"""
+		gets the board configuration dictionary given the board
+		name
+		"""
+		boardname = "sycamore1"
+		board_dict = saputils.get_board_config(boardname, debug = False)
+		self.assertEqual(board_dict["board_name"], "Sycamore 1")
+
+		
 	def test_find_rtl_file_location(self):
 		"""give a filename that should be in the RTL"""
 

@@ -4,6 +4,7 @@ import string
 import glob
 import sappreproc
 import saparbitrator
+import json
 
 """utilites that don't really belong in any of the sap classes"""
 
@@ -17,6 +18,8 @@ Changes:
 	available slave filenames
 05/05/2012 (Cinqo de mayo, Woot!)
 	-Added get_net_names to get all the names within a constraint file
+05/10/2012
+	-Added get_board_config to get all the configuration for a specified board
 """
 
 
@@ -317,6 +320,58 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 
 	return tags
 
+def get_board_config (board_name, debug = False):
+	"""
+	returns a dictionary of board specific
+	information in a dictionary forma
+	"""
+	base_location = os.getenv("SAPLIB_BASE")
+	base_location = base_location + "/hdl/boards"
+	filename = ""
+	buf = ""
+	board_dict = {}
+
+	if debug:
+		print "Looking for: " + board_name
+
+	for root, dirs, names in os.walk(base_location):
+		if debug:
+			print "Dirs: " + str(dirs)
+
+		if board_name in dirs:
+			if debug:
+				print "Found the directory"
+
+			filename = os.path.join(root, board_name)
+			filename += "/config.json"
+			if debug:
+				print "filename: %s" % filename
+			break
+	
+	if len(filename) == 0:
+		if debug:
+			print "didn't find board config file"
+		return {}
+
+
+	#open up the config file
+	try:
+		file_in = open(filename)
+		buf = file_in.read() 
+		board_dict = json.loads(buf)
+		file_in.close()
+	except:
+		#fail
+		if debug:
+			print "failed to open file: " + filename
+		return ""
+
+	if debug:
+		print "Opened up the board config file for %s" % (board_name)
+
+#for debug
+	return board_dict
+
 
 
 def get_net_names(constraint_filename, debug = False):
@@ -344,7 +399,7 @@ def get_net_names(constraint_filename, debug = False):
 
 	if (len(filename) == 0):
 		if debug:
-			print "didn't find constraing file"
+			print "didn't find constraint file"
 		return ""
 
 	#open up the ucf file
