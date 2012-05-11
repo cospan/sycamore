@@ -493,13 +493,11 @@ class SapController:
 
 		direction = ports[pn]["direction"]
 
-#		bind_dict = node.bindings
 		bind_dict = self.get_master_bind_dict()
 		print "bind dict keys: " + str(bind_dict.keys())
-		for port_name in bind_dict.keys():
-			if port_name == bind_dict[port_name]["port"]:
+		for pname in bind_dict.keys():
+			if port_name == bind_dict[pname]["port"]:
 #		if port_name in bind_dict.keys():
-			
 				raise SlaveError("port %s is already bound")
 
 		#also check if there is a vector in the binding list
@@ -552,9 +550,11 @@ class SapController:
 				raise SlaveError("Conflict with the binding %s and the port %s" % (key, port_name))
 					
 		
+		bind_dict = node.bindings
 		bind_dict[port_name] = {}
 		bind_dict[port_name]["port"] = pin_name
 		bind_dict[port_name]["direction"] = direction
+		print "setting up %s to pin %s as an %s" % (port_name, pin_name, direction)
 
 
 	def unbind_port(self, node_name, port_name):

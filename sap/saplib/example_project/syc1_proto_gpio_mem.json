@@ -116,7 +116,7 @@
 		"constraint_files":[
 			"sycamore1_prototype.ucf"
 		],
-		"board":"sycamore1",
+		"board":"sycamore1_prototype",
 		"device":"xc6slx9tqg144-3",
 		"invert_reset":true,
 		"bind": {

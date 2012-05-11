@@ -1,0 +1,9 @@
+{
+	"board_name":"Sycamore 1",
+	"vendor":"Cospan Design",
+	"fpga_part_number":"xc6slx9tqg144-3",
+	"config_files":[
+		"sycamore1.ucf"
+	],
+	"invert_reset":true
+}
