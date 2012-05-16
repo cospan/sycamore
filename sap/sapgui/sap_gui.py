@@ -50,6 +50,7 @@ class SapGuiController:
 		import module_view
 		import status_text
 		import open_dialog
+		import save_dialog
 
 		#load the sap controller
 		self.sc = sc.SapController()
@@ -65,6 +66,7 @@ class SapGuiController:
 		self.ppv.set_board_change_callback(self.on_board_changed)
 		self.ppv.set_constraint_change_callback(self.on_constraint_file_change)
 		self.open_dialog = open_dialog.OpenDialog()
+		self.save_dialog = save_dialog.SaveDialog()
 
 		try:
 			if len(filename) > 0:
@@ -203,23 +205,8 @@ class SapGuiController:
 						self.on_execute)		#callback
 
 
-
-#		builderfile = "open_dialog.glade"
-#		builder = gtk.Builder()
-#		builder.add_from_file(builderfile)
-		
-#		self.open_dialog = builder.get_object("open_dialog")
-#		self.preview_tree = builder.get_object("preview_tree")
-#		self.open_button = builder.get_object("open_button")
-#		self.open_cancel_button = builder.get_object("cancel_button")
-#		self.open_button.connect("clicked", self.on_open_clicked)
-#		self.open_cancel_button.connect("clicked", self.on_open_cancel_clicked)
-#		self.open_dialog.connect("selection-chnaged", on_file_selection_change)
-
 		self.window.connect("destroy", gtk.main_quit)
 		self.window.show()
-
-
 		return
 
 	def set_main_view(self, widget):
@@ -527,13 +514,24 @@ class SapGuiController:
 		opens up a file
 		"""
 		self.open_dialog.show()
+		filename = self.open_dialog.get_filename()
+		try:
+			if len(filename) > 0:
+				print "loading: " + filename
+				self.sc.load_config_file(filename)
+
+		except IOError as err:
+			print "Error loading file: " + str(err)
+
+		self.sc.initialize_graph()
+
 
 
 	def on_save(self, widget):
 		"""
 		saves a file
 		"""
-		print "save pressed"
+		self.save_dialog.show()
 
 	def on_execute(self, widget):
 		"""

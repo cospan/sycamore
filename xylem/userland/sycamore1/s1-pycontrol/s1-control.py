@@ -4,6 +4,7 @@ import sys
 import time
 import getopt 
 import os
+import string
 
 
 from bitbang.bitbang import BitBangController
@@ -11,6 +12,7 @@ from spi_flash import serialflash
 from fifo.fifo import FifoController
 
 from spi_flash import numonyx_flash
+from spi_flash import numonyx_flash_64MB
 
 
 """
@@ -18,6 +20,9 @@ from spi_flash import numonyx_flash
 	02/04/2012
 		added the feature to change to FIFO mode '-c'
 		added the feature to change to config mode '-x'
+	05/16/2012
+		added the "alt" command line feature that allows
+		users to specify vendor and product ID
 """
 
 """
@@ -43,6 +48,7 @@ def usage():
 	print ""
 	print "options:"
 	print "-h\t--help\t\t\t: displays this help"
+	print "-a\t--alt=VID:PID\t\t: alternate Vendor ID and Product ID (in hex)"
 	print "-v\t--verbose\t\t: print out lots of info"
 	print "-d\t--debug\t\t\t: enables debug settings"
 	print "-r\t--soft_reset\t\t: resets the internal state machine"
@@ -57,6 +63,9 @@ def usage():
 	print ""
 	print "\treset the FPGA and program without loading a new bin file"
 	print "\t\ts1-command.py -p"
+	print ""
+	print "\treset the FPGA and program without loading a new bin file on an alternate FTDI VID:PID"
+	print "\t\ts1-command.py --alt=0403:6010 -p"
 	print ""
 	print "\treset the internal state machine of the FPGA"
 	print "\t\ts1-command.py -r"
@@ -180,12 +189,12 @@ def main(argv):
 		sys.exit(1)
 
 	
-	s1 = Sycamore1()
+	s1 = Sycamore1(idVendor = 0x0403, idProduct = 0x6010)
 
 	opts = None
 	args = None
 	try:
-		opts, args = getopt.getopt(argv, "hvdrpcxz:", ["help", "verbose", "debug", "soft_reset", "program", "comm", "config", "read_back"])
+		opts, args = getopt.getopt(argv, "ha:vdrpcxz:", ["help", "alt", "verbose", "debug", "soft_reset", "program", "comm", "config", "read_back"])
 
 	except getopt.GetoptError, err:
 		print err
@@ -197,6 +206,12 @@ def main(argv):
 		if opt in ("-h", "--help"):
 			usage()
 			sys.exit()
+
+		elif opt in ("-a", "--alt"):
+			print "Using alternate VID PID %s" % (arg)
+			vid = string.atoi(arg.partition(":")[0], 16)
+			pid = string.atoi(arg.partition(":")[2], 16)
+			s1 = Sycamore1(idVendor = vid, idProduct = pid) 
 
 		elif opt in ("-v", "--verbose"):
 			print "Verbose flag enabled"

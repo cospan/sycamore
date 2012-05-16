@@ -21,18 +21,22 @@ class OpenDialog:
 		self.status = status_text.StatusText()
 		self.filename = ""
 
+	def get_filename(self):
+		return self.filename
 
 	def on_open_clicked(self, widget):
+		self.filename = ""
 		f = self.open_dialog.get_filenames()
-		if len(f) > 0:
-			self.filename = f[0]
-			self.status.print_info(__file__, "File %s open" % str(f[0]))
-			self.hide()
-		else:
+		if len(f) == 0:
 			self.status.print_warning(__file__, "No file selected")
+
+		self.filename = f[0]
+		self.status.print_info(__file__, "File %s open" % str(f[0]))
+		self.hide()
 		print "open clicked"
 
 	def on_cancel_clicked(self, widget):
+		self.filename = ""
 		print "canceled"
 		self.open_dialog.hide()
 
