@@ -170,11 +170,11 @@ class Test (unittest.TestCase):
 		#harder dependency
 		filename = "wb_sdram.v"
 		result = self.sapfile.resolve_dependencies(filename, debug = self.dbg)
-		print "\n\n\n\n"
-		print "dependency for " + filename
+		#print "\n\n\n\n"
+		#print "dependency for " + filename
 		for d in self.sapfile.verilog_dependency_list:
 			print d
-		print "\n\n\n\n"
+		#print "\n\n\n\n"
 
 		self.assertEqual(result, True)
 

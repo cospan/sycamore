@@ -20,6 +20,8 @@ Changes:
 	-Added get_net_names to get all the names within a constraint file
 05/10/2012
 	-Added get_board_config to get all the configuration for a specified board
+05/12/2012
+	-Added get_board_names to get all the board names
 """
 
 
@@ -320,6 +322,51 @@ def get_module_tags(filename="", bus="", keywords = [], debug=False):
 
 	return tags
 
+
+def get_board_names (debug = False):
+	"""
+	returns a list of all the board names
+	"""
+	base_location = os.getenv("SAPLIB_BASE")
+	base_location = base_location + "/hdl/boards"
+	boards = []
+	
+	for root, dirs, names in os.walk(base_location):
+		if debug:
+			print "Dirs: " + str(dirs)
+
+		for bn in dirs:
+			boards.append(bn)
+
+	return boards
+
+
+def get_constraint_filenames (board_name, debug = False):
+	"""
+	returns a list of ucf files for the specified board
+	name
+	"""
+	base_location = os.getenv("SAPLIB_BASE")
+	base_location = base_location + "/hdl/boards/" + board_name
+	cfiles = []
+	for root, dirs, names in os.walk(base_location):
+		if debug:
+			print "names: " + str(names)
+
+		for name in names:
+			s = name.partition(".")[2].lower()
+
+			if debug:
+				print "last: " + s	
+			if s == "ucf":
+				cfiles.append(name)	
+				if debug:
+					print "constraint file: %s" % name
+
+	return cfiles
+	
+
+	
 def get_board_config (board_name, debug = False):
 	"""
 	returns a dictionary of board specific

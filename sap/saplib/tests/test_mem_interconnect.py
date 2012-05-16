@@ -43,7 +43,7 @@ class Test (unittest.TestCase):
 			obj = getattr(self.gen_module, name)
 			if isclass(obj) and issubclass(obj, Gen) and obj is not Gen:
 				self.gen = obj()
-				print "found " + name
+#				print "found " + name
 				
 		#self.gen = self.gen_module.Gen()
 		result = self.gen.gen_script(tags, buf = interconnect_buffer)
@@ -56,7 +56,7 @@ class Test (unittest.TestCase):
 		except IOError as err:
 			print "File Error: " + str(err)
 
-		print result
+#		print result
 		self.assertEqual(len(result) > 0, True)
 			
 

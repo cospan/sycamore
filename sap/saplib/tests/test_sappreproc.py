@@ -20,11 +20,11 @@ class Test (unittest.TestCase):
 		import sappreproc
 		import saputils
 		filename = saputils.find_rtl_file_location("wb_ddr.v")
-		print "filename: " + filename
+		#print "filename: " + filename
 		filestring = ""
 		try:
 			f = open(filename)
-			print "opened file"
+#			print "opened file"
 			filestring = f.read()
 			f.close()
 		except:
@@ -126,7 +126,7 @@ class Test (unittest.TestCase):
 		define_dict = sappreproc.generate_define_table(filestring)
 		result = sappreproc.evaluate_range("val[(48 -12):0]", debug = self.dbg)
 		
-		print "final result: " + result
+#		print "final result: " + result
 		self.assertEqual(result == "val[36:0]", True)
 
 

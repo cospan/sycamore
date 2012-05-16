@@ -124,8 +124,18 @@ class SapProject:
 				print "failed to read in project config file"
 			return False
 		
+
 		board_dict = saputils.get_board_config(self.project_tags["board"])
-		cfiles = board_dict["constraint_files"]
+		cfiles = []
+		pt = self.project_tags
+		if "constraint_files" in pt.keys():
+			cfiles = pt["constraint_files"]
+
+		#if the user didn't specify any constraint files
+		#load the default
+		if len(cfiles) == 0:
+			cfiles = board_dict["default_constraint_files"]
+
 		#extrapolate the bus template
 #XXX: Need to check all the constraint files
 		self.project_tags["CLOCK_RATE"] = saputils.read_clock_rate(cfiles[0])

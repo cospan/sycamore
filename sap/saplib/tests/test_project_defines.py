@@ -23,7 +23,7 @@ class Test (unittest.TestCase):
 			obj = getattr(self.gen_module, name)
 			if isclass(obj) and issubclass(obj, Gen) and obj is not Gen:
 				self.gen = obj()
-				print "found" + name
+#				print "found" + name
 		try:
 			filename = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"
 			filein = open(filename)
@@ -49,7 +49,7 @@ class Test (unittest.TestCase):
 
 		self.tags["CLOCK_RATE"] = "50000000"
 		result = self.gen.gen_script(tags = self.tags, buf=ioh_buf, debug = self.dbg)
-		print "out_buf: \n" + result
+#		print "out_buf: \n" + result
 		self.assertEqual(len(result) > 0, True)
 
 

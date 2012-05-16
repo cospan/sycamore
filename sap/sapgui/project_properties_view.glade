@@ -2,30 +2,6 @@
 <interface>
   <requires lib="gtk+" version="2.24"/>
   <!-- interface-naming-policy project-wide -->
-  <object class="GtkListStore" id="liststore_board_name">
-    <columns>
-      <!-- column-name Board Nmae -->
-      <column type="str"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="liststore_buildtool">
-    <columns>
-      <!-- column-name Build Tool -->
-      <column type="str"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="liststore_bus_template">
-    <columns>
-      <!-- column-name Bus Type -->
-      <column type="str"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="liststore_configuration_files">
-    <columns>
-      <!-- column-name Configuration Files -->
-      <column type="str"/>
-    </columns>
-  </object>
   <object class="GtkFrame" id="project_property_view">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -65,7 +41,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkTable" id="table2">
+              <object class="GtkTable" id="property_table">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="n_rows">6</property>
@@ -102,7 +78,7 @@
                   <object class="GtkLabel" id="label_ne_build_tool">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Build Tool Vendor</property>
+                    <property name="label" translatable="yes">Vendor Tools</property>
                   </object>
                   <packing>
                     <property name="top_attach">1</property>
@@ -112,24 +88,10 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkComboBox" id="combobox_build_tool">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="model">liststore_buildtool</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                    <property name="top_attach">1</property>
-                    <property name="bottom_attach">2</property>
-                    <property name="y_options">GTK_FILL</property>
-                  </packing>
-                </child>
-                <child>
                   <object class="GtkLabel" id="label_ne_template">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Bus Template</property>
+                    <property name="label" translatable="yes">Bus Type</property>
                   </object>
                   <packing>
                     <property name="top_attach">2</property>
@@ -173,40 +135,11 @@
                   <packing>
                     <property name="top_attach">5</property>
                     <property name="bottom_attach">6</property>
-                    <property name="x_options">GTK_EXPAND</property>
                     <property name="y_options">GTK_FILL</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkComboBox" id="combobox_bus_template">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="model">liststore_bus_template</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                    <property name="top_attach">2</property>
-                    <property name="bottom_attach">3</property>
-                    <property name="y_options">GTK_FILL</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkComboBox" id="combobox_board_name">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="model">liststore_board_name</property>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                    <property name="top_attach">3</property>
-                    <property name="bottom_attach">4</property>
-                    <property name="y_options">GTK_FILL</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="label_board_name">
+                  <object class="GtkLabel" id="label_fpga_pn">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label" translatable="yes">Part Number</property>
@@ -220,17 +153,29 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkTreeView" id="treeview_configuration_files">
+                  <object class="GtkTable" id="table_cfiles">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="model">liststore_configuration_files</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <placeholder/>
+                    </child>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
                     <property name="right_attach">2</property>
                     <property name="top_attach">5</property>
                     <property name="bottom_attach">6</property>
+                    <property name="y_options">GTK_FILL</property>
                   </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
                 </child>
               </object>
               <packing>

@@ -22,7 +22,7 @@ class Test (unittest.TestCase):
 			obj = getattr(self.gen_module, name)
 			if isclass(obj) and issubclass(obj, Gen) and obj is not Gen:
 				self.gen = obj()
-				print "found " + name
+#				print "found " + name
 		return
 
 	def test_xilinx_gen(self):
@@ -48,7 +48,7 @@ class Test (unittest.TestCase):
 			self.assertEquals(True, False)
 
 		result = self.gen.gen_script(tags, buf = xbuf) 
-		print "out buf: " + result
+#		print "out buf: " + result
 		self.assertEquals(len(result) > 0, True)
 		return
 

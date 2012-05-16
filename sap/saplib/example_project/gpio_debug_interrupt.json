@@ -49,5 +49,8 @@
 			"port":"led[7:0]",
 			"direction":"output"
 		}
-	}
+	},
+	"constraint_files":[
+	]
+
 }

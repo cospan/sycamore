@@ -36,11 +36,16 @@ class SapController:
 			json_string = filein.read()
 			filein.close()
 		except IOError as err:
-			print "File Error: " + str(err)
-			return False
+			raise IOError(str(err))
+#			print "File Error: " + str(err)
+#			return False
 
 		self.project_tags = json.loads(json_string)
 		self.filename = file_name
+		self.build_tool = {}
+		pt = self.project_tags
+		bn = pt["board"]
+		self.board_dict = saputils.get_board_config(bn)
 		return True
 
 	def set_config_file_location(self, file_name):
@@ -287,15 +292,17 @@ class SapController:
 	def get_project_name(self):
 		return self.project_tags["PROJECT_NAME"]
 
-	def set_vendor_tools(self, vendor_tool):
-		"""
-		sets the vendor build tool, currently only
-		Xilinx is supported
-		"""
-		self.project_tags["BUILD_TOOL"] = vendor_tool
+#	def set_vendor_tools(self, vendor_tool):
+#		"""
+#		sets the vendor build tool, currently only
+#		Xilinx is supported
+#		"""
+#		self.project_tags["BUILD_TOOL"] = vendor_tool
 
 	def get_vendor_tools(self):
-		return self.project_tags["BUILD_TOOL"]
+#		board_dict = saputils.get_board_config(self.project_tags["board"])
+#		return board_dict["build_tool"]
+		return self.board_dict["build_tool"]
 
 	def set_board_name(self, board_name):
 		"""
@@ -305,60 +312,54 @@ class SapController:
 			self.project_tags["board"] = ""
 				
 		self.project_tags["board"] = board_name
+		self.board_dict = saputils.get_board_config(board_name)
 	
 	def get_board_name(self):
 		if "board" in self.project_tags.keys():
 				return self.project_tags["board"]
 
 		return "undefined"
-	
-#	def set_constraint_file_name(self, constraint_file_name):
-#		"""
-#		sets the constraint file name
-#		"""
-#		if "CONSTRAINTS" not in self.project_tags.keys():
-#			self.project_tags["CONSTRAINTS"] = {}
-#
-#		if "constraint_files" not in self.project_tags["CONSTRAINTS"].keys():
-#			self.project_tags["CONSTRAINTS"]["constraint_files"] = []
-#
-#		self.project_tags["CONSTRAINTS"]["constraint_files"] = [constraint_file_name]
 
-#	def append_constraint_file_name(self, constraint_file_name):
-#		if "CONSTRAINTS" not in self.project_tags.keys():
-#			self.project_tags["CONSTRAINTS"] = {}
-#
-#		if "constraint_files" not in self.project_tags["CONSTRAINTS"].keys():
-#			self.project_tags["CONSTRAINTS"]["constraint_files"] = []
-#
-#		self.project_tags["CONSTRAINTS"]["constraints_files"].append(constraint_file_name)
-	
 	def get_constraint_file_names(self):
-		import saputils
-		board_dict = saputils.get_board_config(self.project_tags["board"])
-		return board_dict["constraint_files"]
-#		if "CONSTRAINTS" in self.project_tags.keys():
-#			if "constraint_files" in self.project_tags["CONSTRAINTS"].keys():
-#				return self.project_tags["CONSTRAINTS"]["constraint_files"]
-		return []
-	
-#	def set_fpga_part_number(self, fpga_part_number):
-#		"""
-#		sets the part number, this is used when generating
-#		the project
-#		"""
-#		if "CONSTRAINTS" not in self.project_tags.keys():
-#			self.project_tags["CONSTRAINTS"] = {}
-#
-#		if "device" not in self.project_tags["CONSTRAINTS"].keys():
-#			self.project_tags["CONSTRAINTS"]["device"] = ""
-#
-#		self.project_tags["CONSTRAINTS"]["device"] = fpga_part_number
+		board_name = self.project_tags["board"]
+		return saputils.get_constraint_filenames(board_name)
+
+	def add_project_constraint_file(self, constraint_file):
+		pt = self.project_tags
+		cfiles = pt["constraint_files"]
+		if constraint_file not in cfiles:
+			cfiles.append(constraint_file)
+
+	def remove_project_constraint_file(self, constraint_file):
+		pt = self.project_tags
+		cfiles = pt["constraint_files"]
+		if constraint_file in cfiles:
+			cfiles.remove(constraint_file)
+
+	def set_project_constraint_files(self, constraint_files):
+		#print "project constraint files: " + str(constarint_files)
+		self.project_tags["constraint_files"] = constraint_files
+
+	def get_project_constraint_files(self):
+		"""
+		if the user has specified constraint files then return that
+		list, otherwise get the default constraint files from
+		the board config file and populate the user constraint
+		files with that and then return that
+		"""
+		pt = self.project_tags	
+		if "constraint_files" in pt.keys():
+			if len(pt["constraint_files"]) == 0: 
+				#user has not specified constraint files so load the default values
+				pt["constraint_files"] = self.board_dict["default_constraint_files"]
+
+		return pt["constraint_files"]
 
 	def get_fpga_part_number(self):
-		import saputils
-		board_dict = saputils.get_board_config(self.project_tags["board"])
-		return board_dict["fpga_part_number"]
+#		import saputils
+#		board_dict = saputils.get_board_config(self.project_tags["board"])
+#		return board_dict["fpga_part_number"]
+		return self.board_dict["fpga_part_number"]
 
 #		if "CONSTRAINTS" in self.project_tags.keys():
 #			if "device" in self.project_tags["CONSTRAINTS"].keys():
@@ -383,13 +384,7 @@ class SapController:
 		self.project_tags["MEMORY"] = {}
 		self.project_tags["board"] = "sycamore1"
 		self.project_tags["bind"] = {}
-#		self.project_tags["CONSTRAINTS"] = {}
-#		self.project_tags["CONSTRAINTS"]["constraint_files"] = []
-#		self.project_tags["CONSTRAINTS"]["board"] = ""
-#		self.project_tags["CONSTRAINTS"]["device"] = ""
-#		self.project_tags["CONSTRAINTS"]["bind"] = {}
-
-
+		self.project_tags["constraint_files"] = []
 		return
 
 	def set_bus_type(self, bus_type):

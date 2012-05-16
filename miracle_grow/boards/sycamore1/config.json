@@ -3,7 +3,7 @@
 	"vendor":"Cospan Design",
 	"fpga_part_number":"xc6slx9tqg144-3",
 	"build_tool":"xilinx",
-	"constraint_files":[
+	"default_constraint_files":[
 		"sycamore1.ucf"
 	],
 	"invert_reset":true

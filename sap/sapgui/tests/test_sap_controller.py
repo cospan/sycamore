@@ -82,9 +82,9 @@ class Test (unittest.TestCase):
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
 		self.sc.load_config_file(file_name)
 
-		self.sc.set_vendor_tools("altera")
+		#self.sc.set_vendor_tools("altera")
 		result = self.sc.get_vendor_tools()
-		self.assertEqual(result, "altera")
+		self.assertEqual(result, "xilinx")
 
 	def test_board_name(self):
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
@@ -101,7 +101,20 @@ class Test (unittest.TestCase):
 #		self.sc.set_constraint_file_name("bored of writing unit tests")
 		result = self.sc.get_constraint_file_names()
 
-		self.assertEqual(result[0], "s3esk_ddr.ucf")
+		self.assertEqual(result[0], "s3esk_sycamore.ucf")
+
+	def test_add_remove_constraint(self):
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.add_project_constraint_file("test file")
+		result = self.sc.get_project_constraint_files()
+		self.assertIn("test file", result)
+		self.sc.remove_project_constraint_file("test file")	
+
+		result = self.sc.get_project_constraint_files()
+		self.assertNotIn("test file", result)
+
+
 #
 #	def test_fpga_part_number(self):
 #		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	

@@ -192,7 +192,11 @@ class SapFile:
 		return True
 
 	def resolve_dependencies(self, filename, debug = False):
-		"""given a filename determine if there are any modules it depends on, recursively search for any files found in order to extrapolate all dependencies"""
+		"""
+		given a filename determine if there are any modules it depends on, 
+		recursively search for any files found in order to extrapolate all 
+		dependencies
+		"""
 		result = True
 		ldebug = debug
 		if debug:

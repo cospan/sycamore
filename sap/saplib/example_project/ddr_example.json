@@ -78,5 +78,8 @@
 	},
 
 	"bind":{
-	}
+	},
+	"constraint_files":[
+		"s3esk_ddr.ucf"
+	]
 }

@@ -44,6 +44,10 @@ class Test (unittest.TestCase):
 		self.assertEqual(len(output_buffer) > 0, True)
 			
 
+	def test_get_constraint_filenames(self):
+		cfiles = saputils.get_constraint_filenames("sycamore1")
+		self.assertIn("sycamore1.ucf", cfiles)
+
 	def test_get_board_config(self):
 		"""
 		gets the board configuration dictionary given the board
@@ -52,6 +56,13 @@ class Test (unittest.TestCase):
 		boardname = "sycamore1"
 		board_dict = saputils.get_board_config(boardname, debug = False)
 		self.assertEqual(board_dict["board_name"], "Sycamore 1")
+
+	def test_get_board_names(self):
+		"""
+		gets all the board names
+		"""
+		boards = saputils.get_board_names(debug = self.dbg)
+		self.assertIn("sycamore1", boards)
 
 		
 	def test_find_rtl_file_location(self):

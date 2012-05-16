@@ -3,7 +3,7 @@
 	"vendor":"Leaf Labs",
 	"fpga_part_number":"xc3s500efg320",
 	"build_tool":"xilinx",
-	"constraint_files":[
+	"default_constraint_files":[
 		"oak.ucf"
 	],
 	"invert_reset":false

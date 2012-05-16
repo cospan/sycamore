@@ -46,8 +46,10 @@ class SapGuiController:
 		import slave_icon_view as siv
 		import property_view as pv
 		import project_view
+		import project_properties_view as ppv
 		import module_view
 		import status_text
+		import open_dialog
 
 		#load the sap controller
 		self.sc = sc.SapController()
@@ -55,6 +57,14 @@ class SapGuiController:
 		self.module_view.set_on_update_callback(self.on_properties_update)
 		self.module_view.set_on_bind_callback(self.on_bind)
 		self.module_view.set_on_unbind_callback(self.on_unbind)
+
+		self.ppv = ppv.ProjectPropertiesView(self.sc)
+		self.ppv.set_project_name_change_callback(self.on_project_name_changed)
+		self.ppv.set_vendor_tool_change_callback(self.on_vendor_tools_changed)
+		self.ppv.set_bus_change_callback(self.on_bus_template_changed)
+		self.ppv.set_board_change_callback(self.on_board_changed)
+		self.ppv.set_constraint_change_callback(self.on_constraint_file_change)
+		self.open_dialog = open_dialog.OpenDialog()
 
 		try:
 			if len(filename) > 0:
@@ -88,7 +98,6 @@ class SapGuiController:
 		builder.connect_signals(self)
 
 		self.window = builder.get_object("main_window")
-
 		self.main_view = builder.get_object("mainhpanel") 
 		
 		#instantiate the singleton
@@ -153,8 +162,64 @@ class SapGuiController:
 		self.gd.show()
 		self.graph_pane.pack2(self.prop_slave_view, True, False)
 
+		#setup the toolbar
+		self.main_toolbar = builder.get_object("main_toolbar")
+		tb = self.main_toolbar
+
+		#open
+		icon = gtk.image_new_from_stock(gtk.STOCK_OPEN, 1)
+		tb.append_item(
+						"Open",					#label
+						"Open a config file",	#tooltip
+						"Open a config file",	#private tooltip
+						icon,					#icon
+						self.on_open)			#callback
+
+		#save
+		icon = gtk.image_new_from_stock(gtk.STOCK_SAVE, 1)
+		tb.append_item(
+						"Save",					#label
+						"Save a config file",	#tooltip
+						"Save a config file",	#private tooltip
+						icon,					#icon
+						self.on_save)			#callback
+
+		#properties
+		icon = gtk.image_new_from_stock(gtk.STOCK_PROPERTIES, 1)
+		tb.append_item(
+						"Properties",			#label
+						"Set Properties",		#tooltip
+						"Set Properties",		#private tooltip
+						icon,					#icon
+						self.on_properties)		#callback
+
+		#execute
+		icon = gtk.image_new_from_stock(gtk.STOCK_EXECUTE, 1)
+		tb.append_item(
+						"Execute",				#label
+						"Set Execute",			#tooltip
+						"Set Execute",			#private tooltip
+						icon,					#icon
+						self.on_execute)		#callback
+
+
+
+#		builderfile = "open_dialog.glade"
+#		builder = gtk.Builder()
+#		builder.add_from_file(builderfile)
+		
+#		self.open_dialog = builder.get_object("open_dialog")
+#		self.preview_tree = builder.get_object("preview_tree")
+#		self.open_button = builder.get_object("open_button")
+#		self.open_cancel_button = builder.get_object("cancel_button")
+#		self.open_button.connect("clicked", self.on_open_clicked)
+#		self.open_cancel_button.connect("clicked", self.on_open_cancel_clicked)
+#		self.open_dialog.connect("selection-chnaged", on_file_selection_change)
+
 		self.window.connect("destroy", gtk.main_quit)
 		self.window.show()
+
+
 		return
 
 	def set_main_view(self, widget):
@@ -163,10 +228,51 @@ class SapGuiController:
 		self.main_view.pack2(widget, True, False)
 		self.current_widget = widget
 
+	def on_project_name_changed(self, project_name):
+		"""
+		project name has changed
+		"""
+		self.sc.set_project_name(project_name)
+		self.ppv.setup()
+
+	def on_vendor_tools_changed(self, vendor_tool_name):
+		"""
+		user changed the vendor tools
+		"""
+		print "not implemented yet!"
+		self.status.print_error(__file__, "setting vendor tool is not implemented yet")
+		self.ppv.setup()
+
+	def on_bus_template_changed(self, bus_template_name):
+		"""
+		user chagned the bus template
+		"""
+		self.sc.set_bus_type(bus_template_name)
+		self.ppv.setup()
+	
+	def on_board_changed(self, board_name):
+		"""
+		user selected a different board
+		"""
+		self.set_board_name(board_name)
+		self.ppv.setup()
+
+	def on_constraint_file_change(self, constraint_file, enable):
+		"""
+		user enabled or disabled a constraint file
+		"""
+		if enable:
+			self.sc.add_project_constraint_file(constraint_file)
+		else:
+			self.sc.remove_project_constraint_file(constraint_file)
+
+		self.ppv.setup()
+
 	def on_project_item_changed(self, project_text):
 		#print "project text: " + str(project_text)
 		if project_text == "project":
 			print "Project selected"
+			self.setup_project_panel_view()
 		elif project_text == "bus":
 			print "Bus selected"
 			self.setup_bus_view()
@@ -184,6 +290,8 @@ class SapGuiController:
 
 	def setup_project_panel_view(self):
 		print "setup the project panel"
+		self.ppv.setup()
+		self.set_main_view(self.ppv.get_frame())
 
 	def setup_project_properties_view(self):
 		print "setup the project properties view"
@@ -414,6 +522,32 @@ class SapGuiController:
 	def on_file_quit(self, widget):
 		gtk.main_quit()
 
+	def on_open(self, widget):
+		"""
+		opens up a file
+		"""
+		self.open_dialog.show()
+
+
+	def on_save(self, widget):
+		"""
+		saves a file
+		"""
+		print "save pressed"
+
+	def on_execute(self, widget):
+		"""
+		starts execution
+		"""
+		print "play pressed"
+
+	def on_properties(self, widget):
+		"""
+		edits sapgui properties
+		"""
+		print "properties pressed"
+
+
 
 def main(argv):
 	os.environ["SAPLIB_BASE"] = sys.path[0] + "/../saplib"
@@ -458,6 +592,8 @@ def main(argv):
 	app = SapGuiController(filename)
 	gtk.main()
 
+
+	
 
 
 if __name__ == "__main__":
