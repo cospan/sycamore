@@ -16,7 +16,11 @@ class SaveDialog:
 		self.cancel_button.connect("clicked", self.on_cancel_clicked)
 		
 		self.status = status_text.StatusText()
+		self.save_cb = None
 		self.filename = ""
+
+	def set_slave_callback(self, save_cb):
+		self.save_cb = save_cb 
 
 	def show(self):
 		self.save_dialog.show()
@@ -30,6 +34,8 @@ class SaveDialog:
 		self.filename = f[0]
 		self.status.print_info(__file__, "Saving %s" % str(self.filename))
 		self.save_dialog.hide()
+		if self.save_cb is not None:
+			self.save_cb(self.filename)
 
 	def on_cancel_clicked(self, widget):
 		self.save_dialog.hide()

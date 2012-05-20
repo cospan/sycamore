@@ -53,6 +53,7 @@ class Test (unittest.TestCase):
 	def test_get_master_bind_dict(self):
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	
 		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
 		bind_dict = self.sc.get_master_bind_dict()
 
 #		for key in bind_dict.keys():
@@ -148,6 +149,54 @@ class Test (unittest.TestCase):
 		m_count = self.sc.get_number_of_slaves(sc.Slave_Type.memory)
 		self.assertEqual(p_count, 2)
 		self.assertEqual(m_count, 1)
+
+	def test_apply_stave_tags_to_project(self):
+		file_name = os.getenv("SAPLIB_BASE") + "/example_project/arb_example.json"	
+		self.sc.load_config_file(file_name)
+		self.sc.initialize_graph()
+		#this example only attaches one of the two arbitrators
+
+		#attach the second arbitrator
+		filename = saputils.find_rtl_file_location("tft.v") 
+		slave_name = self.sc.add_slave(	"tft1",
+										filename,
+										sc.Slave_Type.peripheral)
+
+
+
+		host_name = self.sc.sgm.get_slave_name_at(sc.Slave_Type.peripheral, 1)
+		arb_master = "lcd"
+
+		self.sc.add_arbitrator_by_name(	host_name,
+										arb_master,
+										slave_name)
+
+		#add a binding for the tft screen
+		self.sc.set_binding(	slave_name,
+								"data_en",
+								"lcd_e")
+
+		#now we have something sigificantly different than what was
+		#loaded in
+		self.sc.set_project_name("arbitrator_project")
+		self.sc.apply_slave_tags_to_project()
+		pt = self.sc.project_tags
+
+		#check to see if the new slave took
+		self.assertIn("tft1", pt["SLAVES"].keys())
+
+		#check to see if the arbitrator was set up
+		self.assertIn("lcd", pt["SLAVES"]["console"]["BUS"].keys())
+
+		#check to see if the arbitrator is attached to the slave
+		self.assertEqual("tft1", pt["SLAVES"]["console"]["BUS"]["lcd"])
+
+		#check to see if the binding was written
+		self.assertIn("data_en", pt["SLAVES"]["tft1"]["bind"].keys())
+
+		home_dir = saputils.resolve_linux_path("~")
+		self.sc.save_config_file(home_dir + "/arb_test_out.json")
+
 
 	def test_set_host_interface(self):
 		file_name = os.getenv("SAPLIB_BASE") + "/example_project/gpio_example.json"	

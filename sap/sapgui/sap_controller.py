@@ -46,6 +46,7 @@ class SapController:
 		pt = self.project_tags
 		bn = pt["board"]
 		self.board_dict = saputils.get_board_config(bn)
+		self.get_project_constraint_files()
 		return True
 
 	def set_config_file_location(self, file_name):
@@ -139,9 +140,17 @@ class SapController:
 
 				#add the bindings from the config file
 				skeys = self.project_tags["SLAVES"][slave_name].keys()
+#				print "adding bindings"
+#				if "bind" not in skeys:
+#					self.project_tags["SLAVES"][slave_name]["bind"] = {}
+
 				if "bind" in skeys:
+#					print "found binding"
+					bindings = {}
 					bindings = self.project_tags["SLAVES"][slave_name]["bind"]
 					self.sgm.set_config_bindings(uname, bindings)
+				else:
+					self.project_tags["SLAVES"][slave_name]["bind"] = {}
 
 		#load all the memory slaves
 		sm_count = self.sgm.get_number_of_memory_slaves()
@@ -163,6 +172,8 @@ class SapController:
 				if "bind" in mkeys:
 					bindings = self.project_tags["MEMORY"][slave_name]["bind"]
 					self.sgm.set_config_bindings(uname, bindings)
+				else:
+					self.project_tags["MEMORY"][slave_name]["bind"] = {}
 
 
 		#check if there is a host insterface defined
@@ -173,7 +184,8 @@ class SapController:
 			if "bind" in self.project_tags["INTERFACE"].keys():
 				self.sgm.set_config_bindings(hi_name,
 							self.project_tags["INTERFACE"]["bind"])
-
+			else:
+				self.project_tags["INTERFACE"]["bind"] = {}
 
 			self.sgm.set_parameters(hi_name, parameters)
 
@@ -262,6 +274,7 @@ class SapController:
 
 		#if there are no slaves on the memory interconnect
 		#then don't generate the structure in the JSON file for it
+
 		json_string = json.dumps(self.project_tags, sort_keys=True, indent = 4)
 		try:
 			file_out = open(file_name, 'w')
@@ -272,6 +285,110 @@ class SapController:
 			return False
 
 		return True
+
+	def apply_slave_tags_to_project(self, debug = False):
+		"""
+		apply the slave tags to the project tags
+		"""
+		#get all the slaves
+		p_count = self.get_number_of_slaves(Slave_Type.peripheral)
+		m_count = self.get_number_of_slaves(Slave_Type.memory)
+#		bind_dict = self.get_master_bind_dict()
+
+		for i in range(0, p_count):
+			sc_slave = self.sgm.get_slave_at(i, Slave_Type.peripheral) 
+			uname = sc_slave.unique_name
+			name = sc_slave.name
+			#print "name: " + str(name)
+			if name == "DRT":
+				continue
+			if name not in self.project_tags["SLAVES"].keys():
+				self.project_tags["SLAVES"][name] = {}
+
+			pt_slave = self.project_tags["SLAVES"][name]
+			if "bind" not in pt_slave.keys():
+				pt_slave["bind"] = {}
+
+			#overrite the current arbitrator dictionary	
+			if "BUS" in pt_slave.keys():
+				pt_slave["BUS"] = {}
+				
+			if "arbitrator_masters" in sc_slave.parameters.keys():
+
+				ams = sc_slave.parameters["arbitrator_masters"]
+				if len(ams) > 0:
+					#add the BUS keyword to the arbitrator master
+					pt_slave["BUS"] = {}
+					#add all the items from the sc version
+					for a in ams:
+						if debug:
+							print "arbitrator name: %s" % a
+						arb_slave = self.get_connected_arbitrator_slave(uname, a)
+
+						arb_name = self.sgm.get_node(arb_slave).name
+						if arb_slave is not None:
+							pt_slave["BUS"][a] = arb_name
+					#pt_slave["BUS"]
+
+			#clear the current bindings in the project tags
+			pt_slave["bind"] = {}
+
+			bindings = self.sgm.get_node_bindings(uname)
+#			bind = sc_slave.bindings
+			#print "bind id: " + str(id(bindings))
+			if debug:
+				print "bind contents: " + str(bindings)
+			for p in bindings.keys():
+				pt_slave["bind"][p] = {}
+				pt_slave["bind"][p]["port"] = bindings[p]["pin"]
+				pt_slave["bind"][p]["direction"] = bindings[p]["direction"]
+
+
+#Memory BUS
+		for i in range(0, m_count):
+			sc_slave = self.sgm.get_slave_at(i, Slave_Type.memory) 
+			uname = sc_slave.unique_name
+			name = sc_slave.name
+			#print "name: " + str(name)
+			if name not in self.project_tags["MEMORY"].keys():
+				self.project_tags["MEMORY"][name] = {}
+
+			pt_slave = self.project_tags["MEMORY"][name]
+			if "bind" not in pt_slave.keys():
+				pt_slave["bind"] = {}
+
+			#overrite the current arbitrator dictionary	
+			if "BUS" in pt_slave.keys():
+				pt_slave["BUS"] = {}
+				
+			if "arbitrator_masters" in sc_slave.parameters.keys():
+
+				ams = sc_slave.parameters["arbitrator_masters"]
+				if len(ams) > 0:
+					#add the BUS keyword to the arbitrator master
+					pt_slave["BUS"] = {}
+					#add all the items from the sc version
+					for a in ams:
+						if debug:
+							print "arbitrator name: %s" % a
+						arb_slave = self.get_connected_arbitrator_slave(uname, a)
+
+						arb_name = self.sgm.get_node(arb_slave).name
+						if arb_slave is not None:
+							pt_slave["BUS"][a] = arb_name
+					#pt_slave["BUS"]
+
+			#clear the current bindings in the project tags
+			pt_slave["bind"] = {}
+
+			bindings = self.sgm.get_node_bindings(uname)
+			#print "bind id: " + str(id(bindings))
+			if debug:
+				print "bind contents: " + str(bindings)
+			for p in bindings.keys():
+				pt_slave["bind"][p] = {}
+				pt_slave["bind"][p]["port"] = bindings[p]["pin"]
+				pt_slave["bind"][p]["direction"] = bindings[p]["direction"]
 
 	def set_project_location(self, location):
 		"""
@@ -438,6 +555,7 @@ class SapController:
 			peripheral slaves
 			memory slaves
 		"""
+#		print "get_master_bind_dict"
 		bind_dict = {}
 		
 		#get project bindings
@@ -446,22 +564,44 @@ class SapController:
 			bind_dict[key] = pb[key]
 
 		#get host interface bindings
-		hib = self.project_tags["INTERFACE"]
-		for key in hib["bind"].keys():
-			bind_dict[key] = hib["bind"][key]
+		hi_name = get_unique_name(	"Host Interface", 
+									Node_Type.host_interface) 
+
+		hib = self.sgm.get_node_bindings(hi_name)
+
+#		print "hib id: " + str(id(hib))
+#		hib = self.sgm.get_host_interface_node().bindings
+#		hib = self.project_tags["INTERFACE"]
+		for key in hib.keys():
+			bind_dict[key] = hib[key]
+#		for key in hib["bind"].keys():
+#			bind_dict[key] = hib["bind"][key]
 
 		#get all the peripheral slave bindings
-		for slave_name in self.project_tags["SLAVES"].keys():
-			slave = self.project_tags["SLAVES"][slave_name]
-			for key in slave["bind"].keys():
-				bind_dict[key] = slave["bind"][key]
+		p_count = self.get_number_of_slaves(Slave_Type.peripheral)
+		m_count = self.get_number_of_slaves(Slave_Type.memory)
 
+		for i in range(0, p_count):
+			slave = self.sgm.get_slave_at(i, Slave_Type.peripheral) 
+			pb = self.sgm.get_node_bindings(slave.unique_name)
+			for key in pb.keys():
+				bind_dict[key] = pb[key]
+
+#			slave = self.project_tags["SLAVES"][slave_name]
+#			for key in slave["bind"].keys():
+#				bind_dict[key] = slave["bind"][key]
 
 		#get all the memory slave bindings
-		for memory_name in self.project_tags["SLAVES"].keys():
-			slave = self.project_tags["SLAVES"][memory_name]
-			for key in slave["bind"].keys():
-				bind_dict[key] = slave["bind"][key]
+		for i in range(0, m_count):
+			slave = self.sgm.get_slave_at(i, Slave_Type.memory)
+			mb = self.sgm.get_node_bindings(slave.unique_name)
+			for key in mb.keys():
+				bind_dict[key] = mb[key]
+
+#		for memory_name in self.project_tags["SLAVES"].keys():
+#			slave = self.project_tags["SLAVES"][memory_name]
+#			for key in slave["bind"].keys():
+#				bind_dict[key] = slave["bind"][key]
 
 		return bind_dict
 
@@ -491,7 +631,7 @@ class SapController:
 		bind_dict = self.get_master_bind_dict()
 		#print "bind dict keys: " + str(bind_dict.keys())
 		for pname in bind_dict.keys():
-			if port_name == bind_dict[pname]["port"]:
+			if port_name == bind_dict[pname]["pin"]:
 #		if port_name in bind_dict.keys():
 				raise SlaveError("port %s is already bound")
 
@@ -545,10 +685,11 @@ class SapController:
 				raise SlaveError("Conflict with the binding %s and the port %s" % (key, port_name))
 					
 		
-		bind_dict = node.bindings
-		bind_dict[port_name] = {}
-		bind_dict[port_name]["port"] = pin_name
-		bind_dict[port_name]["direction"] = direction
+#		bind_dict = node.bindings
+		self.sgm.bind_port(node_name, port_name, pin_name)
+#		bind_dict[port_name] = {}
+#		bind_dict[port_name]["port"] = pin_name
+#		bind_dict[port_name]["direction"] = direction
 		#print "setting up %s to pin %s as an %s" % (port_name, pin_name, direction)
 
 
@@ -556,12 +697,13 @@ class SapController:
 		"""
 		remove a binding with the port name
 		"""
-		node = self.sgm.get_node(node_name)
-		bind_dict = node.bindings
-		bind_dict[port_name] = {}
-		if port_name not in bind_dict.keys():
-			raise SlaveError("port %s is not in the binding dictionary for node %s" % (port_name, node.name))
-		del bind_dict[port_name]
+#		node = self.sgm.get_node(node_name)
+#		bind_dict = node.bindings
+#		bind_dict[port_name] = {}
+#		if port_name not in bind_dict.keys():
+#			raise SlaveError("port %s is not in the binding dictionary for node %s" % (port_name, node.name))
+		self.sgm.unbind_port(node_name, port_name)
+#		del bind_dict[port_name]
 
 
 	def get_host_interface_name(self):
@@ -637,6 +779,8 @@ class SapController:
 			edge_name = self.sgm.get_edge_name(host_name, slave)
 			if edge_name == arbitrator_name:
 				return slave
+
+		return None
 
 
 	def get_connected_arbitrator_name(self,	host_type,

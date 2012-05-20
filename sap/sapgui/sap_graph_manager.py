@@ -44,6 +44,15 @@ class SapNode:
 	parameters={}
 	bindings={}
 
+	def __init__(self):
+		self.name = ""
+		self.unique_name = ""
+		self.node_type = Node_Type.slave
+		self.slave_type = Slave_Type.peripheral
+		self.slave_index = 0
+		self.parameters={}
+		self.bindings={}
+
 	def copy(self):
 		nn = SapNode()
 		nn.name = self.name
@@ -52,7 +61,7 @@ class SapNode:
 		nn.slave_type = self.slave_type
 		nn.slave_index = self.slave_index
 		nn.parameters = self.parameters
-		nn.bindings = self.bindings
+		nn.bindings = self.bindings.copy()
 		return nn
 	
 
@@ -76,6 +85,7 @@ class SapGraphManager:
 		node.name = name
 		node.node_type = node_type 
 		node.slave_type = slave_type
+		#print "add node bind id: " + str(id(node))
 
 		s_count = 0
 
@@ -573,16 +583,41 @@ class SapGraphManager:
 		
 	def set_config_bindings(self, name, bindings):
 		node = self.get_node(name)
-		node.bindings = bindings
+		node.bindings.clear()
+		for p in bindings.keys():
+			node.bindings[p] = {}
+			node.bindings[p]["pin"] = bindings[p]["port"]
+			node.bindings[p]["direction"] = bindings[p]["direction"]
 
-	def bind_pin_to_port(self, name, port, pin, debug = False):
-		"""
-		binds the specific port to a pin
-		"""
-		g = self.get_nodes_dict()
-		if debug:
-			print "Dictionary: " + str(g[name].parameters["ports"][port])
-		g[name].parameters["ports"][port]["port"] = pin
+
+	def bind_port (self, name, port, pin, debug = False):
+		node = self.get_node(name)
+		ports = node.parameters["ports"]
+		direction = ports[port]["direction"]
+		node.bindings[port] = {}
+		node.bindings[port]["pin"] = pin
+		node.bindings[port]["direction"] = direction
+
+	def unbind_port(self, name, port):
+		node = self.get_node(name)
+		if port not in node.bindings.keys():
+			raise SlaveError("port %s is not in the binding dictionary for node %s" % (port, name))
+
+		del(node.bindings[port])
+
+	def get_node_bindings (self, name):
+		node = self.get_node(name)
+		return node.bindings
+
+#	def bind_pin_to_port(self, name, port, pin, debug = False):
+#		"""
+#		binds the specific port to a pin
+#		"""
+#		g = self.get_nodes_dict()
+#		if debug:
+#			print "Dictionary: " + str(g[name].parameters["ports"][port])
+#		node = self.get_node(name)
+#		g[name].parameters["ports"][port]["port"] = pin
 
 
 

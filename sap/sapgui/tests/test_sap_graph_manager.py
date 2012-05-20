@@ -365,22 +365,22 @@ class Test (unittest.TestCase):
 		self.assertEqual(parameters["module"], "uart_io_handler")
 
 
-	def test_bind_pin_to_port(self):
-		self.sgm.add_node("uart", gm.Node_Type.host_interface)
-		uart_name = gm.get_unique_name("uart", gm.Node_Type.host_interface)
-
-		file_name = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/host_interface/uart/uart_io_handler.v"
-		parameters = saputils.get_module_tags(filename = file_name, bus="wishbone")
-
-		self.sgm.set_parameters(uart_name, parameters)
-		
-		self.sgm.bind_pin_to_port(uart_name, "phy_uart_in", "RX") 
-
-		parameters = None
-		parameters = self.sgm.get_parameters(uart_name)
-
-		#print "Dictionary: " + str(parameters["ports"]["phy_uart_in"])
-		self.assertEqual(parameters["ports"]["phy_uart_in"]["port"], "RX")
+#	def test_bind_pin_to_port(self):
+#		self.sgm.add_node("uart", gm.Node_Type.host_interface)
+#		uart_name = gm.get_unique_name("uart", gm.Node_Type.host_interface)
+#
+#		file_name = os.getenv("SAPLIB_BASE") + "/hdl/rtl/wishbone/host_interface/uart/uart_io_handler.v"
+#		parameters = saputils.get_module_tags(filename = file_name, bus="wishbone")
+#
+#		self.sgm.set_parameters(uart_name, parameters)
+#		
+#		self.sgm.bind_pin_to_port(uart_name, "phy_uart_in", "RX") 
+#
+#		parameters = None
+#		parameters = self.sgm.get_parameters(uart_name)
+#
+#		#print "Dictionary: " + str(parameters["ports"]["phy_uart_in"])
+#		self.assertEqual(parameters["ports"]["phy_uart_in"]["port"], "RX")
 
 	def test_move_peripheral_slave(self):
 		self.sgm.add_node("slave_1", gm.Node_Type.slave, gm.Slave_Type.peripheral, debug = self.dbg)

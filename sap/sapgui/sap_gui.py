@@ -51,6 +51,7 @@ class SapGuiController:
 		import status_text
 		import open_dialog
 		import save_dialog
+		import properties_dialog
 
 		#load the sap controller
 		self.sc = sc.SapController()
@@ -66,7 +67,10 @@ class SapGuiController:
 		self.ppv.set_board_change_callback(self.on_board_changed)
 		self.ppv.set_constraint_change_callback(self.on_constraint_file_change)
 		self.open_dialog = open_dialog.OpenDialog()
+		self.open_dialog.set_open_callback(self.on_open_cb)
 		self.save_dialog = save_dialog.SaveDialog()
+		self.save_dialog.set_slave_callback(self.on_save_cb)
+		self.properties_dialog = properties_dialog.PropertiesDialog()
 
 		try:
 			if len(filename) > 0:
@@ -106,7 +110,7 @@ class SapGuiController:
 		sv = builder.get_object("status_textview")
 		self.status = status_text.StatusText(sv) 
 #		self.status.set_print_level(3)
-		self.status.print_verbose(__file__, "Hello World!")
+		self.status.print_verbose(__file__, "Sap GUI Started!")
 
 		self.current_widget = None
 
@@ -514,6 +518,9 @@ class SapGuiController:
 		opens up a file
 		"""
 		self.open_dialog.show()
+		
+	def on_open_cb(self, filename):
+		print "openning a file"
 		filename = self.open_dialog.get_filename()
 		try:
 			if len(filename) > 0:
@@ -522,9 +529,13 @@ class SapGuiController:
 
 		except IOError as err:
 			print "Error loading file: " + str(err)
+			return
 
 		self.sc.initialize_graph()
-
+		self.gd.force_update()
+		self.setup_bus_view()
+		self.project_view.setup_project_view()
+		#self.ppv.setup()
 
 
 	def on_save(self, widget):
@@ -532,6 +543,10 @@ class SapGuiController:
 		saves a file
 		"""
 		self.save_dialog.show()
+
+	def on_save_cb(self, filename):
+		print "saving file %s" % filename
+		self.sc.save_config_file(filename)
 
 	def on_execute(self, widget):
 		"""
@@ -544,6 +559,7 @@ class SapGuiController:
 		edits sapgui properties
 		"""
 		print "properties pressed"
+		self.properties_dialog.show()
 
 
 

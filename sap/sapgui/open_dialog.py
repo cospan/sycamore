@@ -20,6 +20,11 @@ class OpenDialog:
 		self.open_dialog.connect("selection-changed", self.on_file_changed)
 		self.status = status_text.StatusText()
 		self.filename = ""
+		self.open_cb = None
+
+
+	def set_open_callback(self, open_cb):
+		self.open_cb = open_cb
 
 	def get_filename(self):
 		return self.filename
@@ -34,6 +39,8 @@ class OpenDialog:
 		self.status.print_info(__file__, "File %s open" % str(f[0]))
 		self.hide()
 		print "open clicked"
+		if self.open_cb is not None:
+			self.open_cb(self.filename)
 
 	def on_cancel_clicked(self, widget):
 		self.filename = ""
@@ -66,7 +73,9 @@ class OpenDialog:
 		try:
 			sc.load_config_file(filename)
 		except IOError as err:
-			print "%s is not a config file" % filename
+			#print "%s is not a config file" % filename
+			return
+		except:
 			return
 
 		sc.initialize_graph()
