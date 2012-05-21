@@ -60,7 +60,6 @@
             <property name="n_columns">2</property>
             <child>
               <object class="GtkLabel" id="label7">
-                <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">Remote Host</property>
               </object>
@@ -73,7 +72,6 @@
             </child>
             <child>
               <object class="GtkCheckButton" id="remote_checkbox">
-                <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
                 <property name="use_action_appearance">False</property>
@@ -171,7 +169,6 @@
         </child>
         <child>
           <object class="GtkTable" id="table2">
-            <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="n_rows">7</property>
             <property name="n_columns">2</property>

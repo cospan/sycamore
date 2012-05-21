@@ -2,6 +2,7 @@ import gtk
 import sap_controller
 import status_text
 import getpass
+import glob
 
 class PropertiesDialog:
 	def __init__(self):
@@ -47,6 +48,7 @@ class PropertiesDialog:
 		#attempt to auto detect the tool
 		print "auto detect"
 
+		
 	def on_cancel(self, widget):
 		self.prop_dialog.hide()
 		print "cancel"
