@@ -26,7 +26,7 @@ proc findVerilogFiles { dir } {
 }
 
 proc findUCFFiles { dir } {
-	set contents [glob -directory $dir *]
+	set contents [glob -nocomplain -directory $dir *]
 	set ucfSources [list]
 
 	foreach item $contents {
@@ -74,7 +74,7 @@ set_property design_mode RTL [get_filesets sources_1]
 #need to start in the base directory because there is a 'dependency' dir
 set verilogSources [findVerilogFiles $srcDir/rtl]
 #lappend verilogSources [findVerilogFiles $srcDir/dependencies]
-set contents [glob -directory $srcDir/dependencies *]
+set contents [glob -nocomplain -directory $srcDir/dependencies *]
 foreach item $contents {
 	if {[regexp {\.v$} $item]} {
 		lappend verilogSources $item

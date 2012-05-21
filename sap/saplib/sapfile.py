@@ -183,15 +183,15 @@ class SapFile:
 					print "Error: couldn't find dependency filename"
 					continue
 				f = self.find_module_filename(d)
-				if (not self.verilog_dependency_list.__contains__(f) and
-					not self.verilog_file_list.__contains__(f)):
+				if (f not in self.verilog_dependency_list and
+					f not in self.verilog_file_list):
 					if debug:
 						print "found dependency: " + f
 					self.verilog_dependency_list.append(f)
 				
 		return True
 
-	def resolve_dependencies(self, filename, debug = False):
+	def resolve_dependencies(self, filename, debug = True):
 		"""
 		given a filename determine if there are any modules it depends on, 
 		recursively search for any files found in order to extrapolate all 
