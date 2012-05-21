@@ -34,16 +34,12 @@ class GenXilnx(Gen):
 
 			
 			out_buf = temp_pre + " " + fpga_pn + "\n" + temp_buf.partition("\n")[2]
-#		buf_lines = buf.splitlines()
-#		for line in buf_lines:
-#			if (len(line.partition("set projName ")[2]) > 0):
-#				line = "set projName " + tags["PROJECT_NAME"]
-#			out_buf = out_buf + line + "\n"
 
-				
+		return out_buf
+
+		
 			
 		
-		return out_buf
 
 	def gen_name(self):
 		print "generate a Xilnx Generate project"

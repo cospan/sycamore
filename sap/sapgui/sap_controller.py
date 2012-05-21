@@ -343,6 +343,12 @@ class SapController:
 				pt_slave["bind"][p]["port"] = bindings[p]["pin"]
 				pt_slave["bind"][p]["direction"] = bindings[p]["direction"]
 
+			#add filenames
+			module = sc_slave.parameters["module"]
+			sf = sapfile.SapFile()
+			filename = sf.find_module_filename(module) 
+			pt_slave["filename"] = filename
+
 
 #Memory BUS
 		for i in range(0, m_count):
