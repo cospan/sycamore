@@ -7,8 +7,10 @@ import cairo
 from gtk.gdk  import Pixbuf
 
 import os
+import subprocess
 import sys
 import getopt 
+import build_controller
 
 #sap_gui.py
 
@@ -54,6 +56,19 @@ class SapGuiController:
 		import properties_dialog
 
 		#load the sap controller
+
+		builderfile = "sap_gui.glade"
+		windowname = "Sap IDE"
+		builder = gtk.Builder()
+		builder.add_from_file(builderfile)
+
+		#instantiate the singleton
+		sv = builder.get_object("status_textview")
+		self.status = status_text.StatusText(sv) 
+#		self.status.set_print_level(3)
+		self.status.print_verbose(__file__, "Sap GUI Started!")
+
+
 		self.sc = sc.SapController()
 		self.module_view = module_view.ModuleView(self.sc)
 		self.module_view.set_on_update_callback(self.on_properties_update)
@@ -72,13 +87,21 @@ class SapGuiController:
 		self.save_dialog.set_slave_callback(self.on_save_cb)
 		self.properties_dialog = properties_dialog.PropertiesDialog()
 
+		self.build_thread = None
+
 		try:
 			if len(filename) > 0:
-				print "loading: " + filename
+				self.status.print_info(__file__, "Loading: " + filename)
 				self.sc.load_config_file(filename)
 
+
 		except IOError as err:
+
+			self.status.print_error(__file__, "Failed to load")
 			print "Error loading file: " + str(err)
+			sys.exit(-1)
+
+		self.status.print_info(__file__, "Loaded File!")
 
 		self.sc.initialize_graph()
 
@@ -95,23 +118,13 @@ class SapGuiController:
 
 
 
-		builderfile = "sap_gui.glade"
-		windowname = "Sap IDE"
-		builder = gtk.Builder()
-		builder.add_from_file(builderfile)
-
 		#register the callbacks
 		builder.connect_signals(self)
 
 		self.window = builder.get_object("main_window")
 		self.main_view = builder.get_object("mainhpanel") 
 		
-		#instantiate the singleton
-		sv = builder.get_object("status_textview")
-		self.status = status_text.StatusText(sv) 
-#		self.status.set_print_level(3)
-		self.status.print_verbose(__file__, "Sap GUI Started!")
-
+		
 		self.current_widget = None
 
 		#add the project view
@@ -209,9 +222,18 @@ class SapGuiController:
 						self.on_execute)		#callback
 
 
-		self.window.connect("destroy", gtk.main_quit)
+		#self.window.connect("destroy", gtk.main_quit)
+		self.window.connect("destroy", self.sap_quit)
 		self.window.show()
+
+		self.filename = filename
+		gobject.timeout_add(50, self.build_tick)
 		return
+
+	def sap_quit(self, variable):
+		if self.build_thread is not None:
+			self.build_thread.kill()
+		gtk.main_quit()
 
 	def set_main_view(self, widget):
 		if self.current_widget != None:
@@ -546,6 +568,7 @@ class SapGuiController:
 
 	def on_save_cb(self, filename):
 		print "saving file %s" % filename
+		self.filename = filename
 		self.sc.save_config_file(filename)
 
 	def on_execute(self, widget):
@@ -553,6 +576,8 @@ class SapGuiController:
 		starts execution
 		"""
 		print "play pressed"
+		self.generate_project()
+
 
 	def on_properties(self, widget):
 		"""
@@ -561,6 +586,40 @@ class SapGuiController:
 		print "properties pressed"
 		self.properties_dialog.show()
 
+
+	def generate_project(self):
+		print "generating project"
+		from saplib import saplib
+		import saputils
+
+		saplib.generate_project(self.filename)
+		current_dir = os.getcwd()
+		project_dir = self.sc.get_project_location()
+		p = saputils.resolve_linux_path(project_dir)
+		print "project_dir: " + p
+#		os.chdir(p)
+#		out = subprocess.call(["bash", "./pa_no_gui.sh"])
+
+		ostream = None
+		estream = None
+		self.build_thread = build_controller.buildThread(	1, 
+															"Build Thread", 
+															p)
+		self.build_thread.start()
+
+
+		self.status.print_info(__file__, "started build thread")
+		
+		
+	def build_tick(self):
+		if self.build_thread is not None:
+			if self.build_thread.is_running():
+				status = self.build_thread.get_std_out()
+				if status is None:
+					return
+				print status
+
+		return True # Causes timeout to tick again
 
 
 def main(argv):
@@ -605,7 +664,6 @@ def main(argv):
 
 	app = SapGuiController(filename)
 	gtk.main()
-
 
 	
 

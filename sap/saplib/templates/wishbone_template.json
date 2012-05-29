@@ -10,6 +10,7 @@
 			"project_defines.v":{"location":"bus", "gen_script":"gen_project_defines"},
 			"build_scripts":{"dir":true,
 				"files":{
+					"xilinxutils.py":{"location":"."},
 					"generate_synth_drt.py":{}
 				}
 			},
