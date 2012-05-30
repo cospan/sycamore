@@ -13,34 +13,23 @@ class buildPseudoTerminal(object):
 		"""
 		Creates a spawned process
 		"""
+#		self.sub = subprocess.Popen(["bash", "/home/cospan/Projects/python/subprocess/demo.sh"],
 		self.sub = subprocess.Popen(["ls", "-l"],
-									bufsize = 4096,
 									stdout = subprocess.PIPE,
-									stderr = subprocess.PIPE)
+									stderr = subprocess.STDOUT)
 
 
 	def read(self):
-#		rlist = [self.sub.stdout]
-#		wlist = []
-#		elist = []
+		rlist = [self.sub.stdout]
+		wlist = []
+		elist = []
 				
-		newdata = self.sub.stdout.readline()
-		data = ""
-		if len(newdata) > 0:
-			data += newdata
-			newdata = self.sub.stdout.readline()
-
-		if len(data) == 0:
+		retval = select.select(rlist, wlist, elist, 0)[0]
+		if len (retval) == 0:
 			return None
 
-		return data
-	
-#		retval = select.select(rlist, wlist, elist, None)[0]
-#		if len (retval) == 0:
-#			return None
 
-
-#		return self.sub.stdout.readline()
+		return self.sub.stdout.readline()
 
 	def kill_child(self):
 		print "kill child"
@@ -64,11 +53,15 @@ if __name__ == "__main__":
 	p.run("ls -l")
 	print "child process created"
 	while p.is_running():
+		#data = p.sub.stdout.readlines()
 		data = p.read()
 		if data is None:
 			continue
-		#data = p.read()
-		print str(data)
+
+		print data,
+
+#		for d in data:
+#			print d,
 
 #	data = p.read()
 #	print str(data)
