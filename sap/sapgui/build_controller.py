@@ -1,61 +1,78 @@
 #! /usr/bin/env python
 
-import threading
-import time
 import subprocess
 import os
+import select
 
 
-class buildThread(threading.Thread):
-	
-	def __init__(self, threadID, name, project_dir):
-		threading.Thread.__init__(self)
-		self.threadID = threadID
-		self.name = name
-		self.project_dir = project_dir
+class buildPseudoTerminal(object):
+	def __init__(self):
 		self.sub = None
 
-
-	def run(self):
-		print "Starting " + self.name
-		#start the build
-		#os.chdir(self.project_dir)
-		os.chdir("/home/cospan/sandbox")
-
-#		self.sub = subprocess.Popen(["bash", "./pa_no_gui.sh"], 
-#		self.sub = subprocess.Popen(["ls", "-R"],
-		self.sub = subprocess.Popen(["bash", "./demo.sh"],
+	def run (self, command):
+		"""
+		Creates a spawned process
+		"""
+		self.sub = subprocess.Popen(["ls", "-l"],
+									bufsize = 4096,
 									stdout = subprocess.PIPE,
-									stderr = subprocess.PIPE,
-									shell = False)
-		output = self.get_std_out()
-		print "Done!, %s" % output
-		print "Thread finished"
+									stderr = subprocess.PIPE)
 
 
-	def get_std_out(self):
-		print "getting STD out!"
-		if self.sub is None:
+	def read(self):
+#		rlist = [self.sub.stdout]
+#		wlist = []
+#		elist = []
+				
+		newdata = self.sub.stdout.readline()
+		data = ""
+		if len(newdata) > 0:
+			data += newdata
+			newdata = self.sub.stdout.readline()
+
+		if len(data) == 0:
 			return None
-		print "reading sub"
-		output, error,  = self.sub.communicate()
-		#print "output: %s" % output
-		return output
+
+		return data
+	
+#		retval = select.select(rlist, wlist, elist, None)[0]
+#		if len (retval) == 0:
+#			return None
+
+
+#		return self.sub.stdout.readline()
+
+	def kill_child(self):
+		print "kill child"
+		self.sub.kill()
 
 	def is_running(self):
-		print "IS Running!"
-		return self.isAlive()
+		if os.path.exists("/proc/" + str(self.sub.pid)):
+			procfile = open("/proc/%d/stat" % self.sub.pid)
+			status = procfile.readline().split(' ')[2]
+			procfile.close()
+			if status == 'Z':
+				return False
+			return True
 
-	def kill(self):
-		if self.isAlive():
-			self.sub.kill()
-
-def print_time(threadName, delay, counter):
-	while counter:
-		if exitFlag:
-			thread.exit()
-		time.sleep(delay)
-		print "%s: %s" % (threadName, time.ctime(time.time()))
-		counter -= 1
+		return False
 
 
+if __name__ == "__main__":
+	print "starting"
+	p = buildPseudoTerminal()
+	p.run("ls -l")
+	print "child process created"
+	while p.is_running():
+		data = p.read()
+		if data is None:
+			continue
+		#data = p.read()
+		print str(data)
+
+#	data = p.read()
+#	print str(data)
+
+	print "finished"
+
+	
