@@ -456,8 +456,8 @@ class SapFile:
 		#	print "didn't find module name"
 
 #sometimes modules cannot be found, but this is okay
-		raise ModuleNotFound("Module was not found")
-#		return ""
+#		raise ModuleNotFound("Module %s was not found" % module_name)
+		return ""
 
 	def is_module_in_file(self, filename, module_name, debug = False):
 		"""check the file for the module"""

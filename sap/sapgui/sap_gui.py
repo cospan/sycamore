@@ -227,7 +227,7 @@ class SapGuiController:
 		self.window.show()
 
 		self.filename = filename
-		gobject.timeout_add(50, self.build_tick)
+		self.bc = build_controller.BuildController()
 		return
 
 	def sap_quit(self, variable):
@@ -592,32 +592,41 @@ class SapGuiController:
 		from saplib import saplib
 		import saputils
 
+		if self.bc.is_running():
+			return
+
 		saplib.generate_project(self.filename)
 		current_dir = os.getcwd()
 		project_dir = self.sc.get_project_location()
 		p = saputils.resolve_linux_path(project_dir)
 		print "project_dir: " + p
-#		os.chdir(p)
+		os.chdir(p)
+		self.bc.run("pa_no_gui.sh")
 #		out = subprocess.call(["bash", "./pa_no_gui.sh"])
 
-		ostream = None
-		estream = None
-		self.build_thread = build_controller.buildThread(	1, 
-															"Build Thread", 
-															p)
-		self.build_thread.start()
+#		self.build_thread = build_controller.buildThread(	1, 
+#															"Build Thread", 
+#															p)
+#		self.build_thread.start()
 
 
+		os.chdir(current_dir)
+		gobject.timeout_add(50, self.build_tick)
 		self.status.print_info(__file__, "started build thread")
 		
 		
 	def build_tick(self):
-		if self.build_thread is not None:
-			if self.build_thread.is_running():
-				status = self.build_thread.get_std_out()
-				if status is None:
-					return
-				print status
+		if not self.bc.is_running():
+			print "not running"
+			return False
+
+		data = self.bc.read()
+
+		if data is None:
+			#perhaps this time there just isn't any data
+			return True
+
+		print data
 
 		return True # Causes timeout to tick again
 
