@@ -3,6 +3,7 @@
 import subprocess
 import os
 import select
+import fcntl
 
 
 class buildPseudoTerminal(object):
@@ -14,22 +15,25 @@ class buildPseudoTerminal(object):
 		Creates a spawned process
 		"""
 #		self.sub = subprocess.Popen(["bash", "/home/cospan/Projects/python/subprocess/demo.sh"],
-		self.sub = subprocess.Popen(["ls", "-l"],
+#		self.sub = subprocess.Popen(["ls", "-l"],
+		self.sub = subprocess.Popen(["bash", command],
 									stdout = subprocess.PIPE,
 									stderr = subprocess.STDOUT)
 
+		flags = fcntl.fcntl(self.sub.stdout, fcntl.F_GETFL)
+		fcntl.fcntl(self.sub.stdout, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
 	def read(self):
-		rlist = [self.sub.stdout]
-		wlist = []
-		elist = []
-				
-		retval = select.select(rlist, wlist, elist, 0)[0]
-		if len (retval) == 0:
+		data = None
+		try:
+			data = self.sub.stdout.readline()
+
+		except:
 			return None
+		
+		return data
+			
 
-
-		return self.sub.stdout.readline()
 
 	def kill_child(self):
 		print "kill child"
@@ -50,21 +54,14 @@ class buildPseudoTerminal(object):
 if __name__ == "__main__":
 	print "starting"
 	p = buildPseudoTerminal()
-	p.run("ls -l")
+	p.run("tests/demo.sh")
 	print "child process created"
 	while p.is_running():
 		#data = p.sub.stdout.readlines()
 		data = p.read()
 		if data is None:
 			continue
-
 		print data,
-
-#		for d in data:
-#			print d,
-
-#	data = p.read()
-#	print str(data)
 
 	print "finished"
 
