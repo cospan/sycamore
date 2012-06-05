@@ -637,6 +637,7 @@ def main(argv):
 	sys.path.append(sys.path[0] + "/../saplib")
 	sys.path.append(sys.path[0] + '/../saplib/gen_scripts')
 
+	filename = ""
 #	print "sys.path: " + str(sys.path)
 
 
